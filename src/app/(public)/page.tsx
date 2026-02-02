@@ -1,9 +1,5 @@
 import { HeroSection } from '@/components/public/HeroSection';
-import { ServicesSection } from '@/components/public/ServicesSection';
-import { ProjectsSection } from '@/components/public/ProjectsSection';
-import { TeamSection } from '@/components/public/TeamSection';
-import { ClientsSection } from '@/components/public/ClientsSection';
-import { AlliancesSection } from '@/components/public/AlliancesSection';
+import { HomePageContent } from '@/components/public/HomePageContent';
 import { ContactCTA } from '@/components/public/ContactCTA';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +20,7 @@ export default function HomePage() {
         ctaHref="#servicios"
         backgroundImage="/images/hero-background.jpg"
       />
-      <ServicesSection />
-      <ProjectsSection />
-      <TeamSection />
-      <ClientsSection />
-      <AlliancesSection />
+      <HomePageContent />
       <ContactCTA />
     </>
   );

@@ -6,10 +6,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '../../../convex/_generated/api';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ClientOnly } from '@/components/ClientOnly';
 import { getProjectImage } from '@/lib/staticImages';
 import styles from '@/app/(public)/proyectos/[slug]/ProyectoDetail.module.css';
 
 export function ProyectoDetailContent() {
+  return (
+    <ClientOnly fallback={<ProjectDetailSkeleton />}>
+      <ProyectoDetailInner />
+    </ClientOnly>
+  );
+}
+
+function ProyectoDetailInner() {
   const params = useParams();
   const slug = params?.slug as string;
 

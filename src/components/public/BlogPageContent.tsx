@@ -4,11 +4,10 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { BlogCard } from '@/components/public/BlogCard';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ClientOnly } from '@/components/ClientOnly';
 import styles from '@/app/(public)/blog/BlogPage.module.css';
 
 export function BlogPageContent() {
-  const posts = useQuery(api.blogPosts.listPublished, {});
-
   return (
     <>
       <section className={styles.hero}>
@@ -22,37 +21,57 @@ export function BlogPageContent() {
 
       <section className={styles.content}>
         <div className={styles.container}>
-          {posts === undefined ? (
-            <div className={styles.grid}>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <BlogCardSkeleton key={index} />
-              ))}
-            </div>
-          ) : posts.length === 0 ? (
-            <div className={styles.empty}>
-              <p className={styles.emptyText}>
-                Aun no hay articulos publicados. Vuelve pronto para ver nuestro contenido.
-              </p>
-            </div>
-          ) : (
-            <div className={styles.grid}>
-              {posts.map((post) => (
-                <BlogCard
-                  key={post._id}
-                  slug={post.slug}
-                  title={post.title}
-                  excerpt={post.excerpt}
-                  coverUrl={post.coverUrl}
-                  authorName={post.authorName}
-                  publishedAt={post.publishedAt}
-                  createdAt={post.createdAt}
-                />
-              ))}
-            </div>
-          )}
+          <ClientOnly fallback={<BlogGridSkeleton />}>
+            <BlogGrid />
+          </ClientOnly>
         </div>
       </section>
     </>
+  );
+}
+
+function BlogGrid() {
+  const posts = useQuery(api.blogPosts.listPublished, {});
+
+  if (posts === undefined) {
+    return <BlogGridSkeleton />;
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <p className={styles.emptyText}>
+          Aun no hay articulos publicados. Vuelve pronto para ver nuestro contenido.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.grid}>
+      {posts.map((post) => (
+        <BlogCard
+          key={post._id}
+          slug={post.slug}
+          title={post.title}
+          excerpt={post.excerpt}
+          coverUrl={post.coverUrl}
+          authorName={post.authorName}
+          publishedAt={post.publishedAt}
+          createdAt={post.createdAt}
+        />
+      ))}
+    </div>
+  );
+}
+
+function BlogGridSkeleton() {
+  return (
+    <div className={styles.grid}>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <BlogCardSkeleton key={index} />
+      ))}
+    </div>
   );
 }
 

@@ -7,10 +7,19 @@ import Image from 'next/image';
 import { api } from '../../../convex/_generated/api';
 import { BlogContent } from '@/components/public/BlogContent';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ClientOnly } from '@/components/ClientOnly';
 import { getBlogCoverImage } from '@/lib/staticImages';
 import styles from '@/app/(public)/blog/[slug]/BlogPost.module.css';
 
 export function BlogPostContent() {
+  return (
+    <ClientOnly fallback={<BlogPostSkeleton />}>
+      <BlogPostInner />
+    </ClientOnly>
+  );
+}
+
+function BlogPostInner() {
   const params = useParams();
   const slug = params.slug as string;
 
