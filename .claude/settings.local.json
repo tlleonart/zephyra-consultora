@@ -33,7 +33,10 @@
       "mcp__plugin_compound-engineering_pw__browser_wait_for",
       "mcp__plugin_compound-engineering_pw__browser_snapshot",
       "mcp__plugin_compound-engineering_pw__browser_evaluate",
-      "mcp__plugin_compound-engineering_pw__browser_close"
+      "mcp__plugin_compound-engineering_pw__browser_close",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ]
   }
 }
