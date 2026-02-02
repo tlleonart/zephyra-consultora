@@ -6,6 +6,8 @@ import { ClientsSection } from '@/components/public/ClientsSection';
 import { AlliancesSection } from '@/components/public/AlliancesSection';
 import { ContactCTA } from '@/components/public/ContactCTA';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Zephyra Consultora | Consultoría en Sostenibilidad',
   description:
