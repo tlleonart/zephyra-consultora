@@ -1,0 +1,9 @@
+export { HeroSection } from './HeroSection';
+export { ServicesSection } from './ServicesSection';
+export { ProjectsSection } from './ProjectsSection';
+export { TeamSection } from './TeamSection';
+export { ClientsSection } from './ClientsSection';
+export { AlliancesSection } from './AlliancesSection';
+export { ContactCTA } from './ContactCTA';
+export { Navbar } from './Navbar';
+export { Footer } from './Footer';

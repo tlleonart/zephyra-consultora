@@ -1,0 +1,91 @@
+.section {
+  padding: 80px 0;
+  background-color: var(--color-bg);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  color: var(--color-brand-main);
+  margin-bottom: var(--spacing-md);
+}
+
+.description {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.logoWrapper {
+  flex: 0 0 auto;
+}
+
+.logoLink,
+.logoContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  height: 80px;
+  padding: var(--spacing-md);
+  transition: all var(--transition-normal);
+  filter: grayscale(100%);
+  opacity: 0.7;
+}
+
+.logoLink:hover,
+.logoContainer:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+}
+
+.logo {
+  object-fit: contain;
+}
+
+.logoPlaceholder {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  word-break: break-word;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 0;
+  }
+
+  .grid {
+    gap: var(--spacing-lg);
+  }
+
+  .logoLink,
+  .logoContainer {
+    width: 120px;
+    height: 60px;
+    padding: var(--spacing-sm);
+  }
+}

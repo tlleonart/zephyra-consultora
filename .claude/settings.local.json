@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:zephyraconsultora.com)",
+      "Bash(dir:*)",
+      "Bash(git fetch:*)",
+      "Bash(ls:*)",
+      "Bash(pwsh -File:*)",
+      "WebFetch(domain:docs.convex.dev)",
+      "mcp__plugin_compound-engineering_context7__resolve-library-id",
+      "WebSearch",
+      "mcp__plugin_compound-engineering_context7__query-docs",
+      "WebFetch(domain:github.com)",
+      "Bash(powershell:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(copy \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra_web\\\\public\\\\light_logo.png\" \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra-consultora\\\\public\\\\images\"\" && copy \"C:UserstomasDocumentsc14reposzephyra_webpublicb_corp.webp\" \"C:UserstomasDocumentsc14reposzephyra-consultorapublicimages\"\")",
+      "Bash(copy \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra_web\\\\public\\\\desarrollo_sostenible.webp\" \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra-consultora\\\\public\\\\images\"\" && copy \"C:UserstomasDocumentsc14reposzephyra_webpublichuella_carbono.webp\" \"C:UserstomasDocumentsc14reposzephyra-consultorapublicimages\"\")",
+      "Bash(copy \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra_web\\\\app\\\\background.jpg\" \"C:\\\\Users\\\\tomas\\\\Documents\\\\c14\\\\repos\\\\zephyra-consultora\\\\public\\\\images\"\")",
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint)",
+      "Bash(npx convex dev --once)",
+      "Bash(npx convex run:*)",
+      "mcp__plugin_compound-engineering_pw__browser_navigate",
+      "Bash(curl:*)",
+      "mcp__plugin_compound-engineering_pw__browser_take_screenshot",
+      "mcp__plugin_compound-engineering_pw__browser_press_key",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "mcp__plugin_compound-engineering_pw__browser_click",
+      "mcp__plugin_compound-engineering_pw__browser_wait_for",
+      "mcp__plugin_compound-engineering_pw__browser_snapshot",
+      "mcp__plugin_compound-engineering_pw__browser_evaluate",
+      "mcp__plugin_compound-engineering_pw__browser_close"
+    ]
+  }
+}

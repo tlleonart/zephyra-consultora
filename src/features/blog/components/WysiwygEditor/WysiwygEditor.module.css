@@ -1,0 +1,148 @@
+.container {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 2px;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-border);
+  margin: 0 var(--spacing-xs);
+}
+
+.toolbarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbarButton:hover:not(:disabled) {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+.toolbarButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbarButton.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.editor {
+  min-height: 400px;
+  padding: var(--spacing-md);
+  outline: none;
+}
+
+/* Editor content styles */
+.editor :global(h2) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.editor :global(h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.editor :global(h4) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.editor :global(p) {
+  margin: 0.75rem 0;
+  line-height: 1.7;
+}
+
+.editor :global(ul),
+.editor :global(ol) {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.editor :global(li) {
+  margin: 0.25rem 0;
+}
+
+.editor :global(blockquote) {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--color-primary);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.editor :global(.editor-link) {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.editor :global(.editor-image) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: 1rem 0;
+}
+
+.editor :global(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.editor :global(th),
+.editor :global(td) {
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+  text-align: left;
+}
+
+.editor :global(th) {
+  background-color: var(--color-bg-secondary);
+  font-weight: 600;
+}
+
+.editor :global(iframe) {
+  max-width: 100%;
+  margin: 1rem 0;
+  border-radius: var(--radius-md);
+}
+
+.editor :global(p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
