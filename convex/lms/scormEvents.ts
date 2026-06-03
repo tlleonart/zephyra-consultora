@@ -14,6 +14,7 @@
 
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 
 // Read the append-only event trail for an enrollment, ordered by time.
 export const listByEnrollment = query({
@@ -84,7 +85,7 @@ export const recordScormEvent = mutation({
     });
 
     // 2) Project onto the aggregate based on which CMI element was written.
-    const patch: Record<string, unknown> = { updatedAt: now };
+    const patch: Partial<Doc<"lmsEnrollments">> = { updatedAt: now };
 
     // First touch / engagement signal.
     if (!enrollment.firstTouchedAt) {
@@ -121,7 +122,7 @@ export const recordScormEvent = mutation({
         break;
     }
 
-    await ctx.db.patch(args.enrollmentId, patch as any);
+    await ctx.db.patch(args.enrollmentId, patch);
 
     return { ok: true };
   },
