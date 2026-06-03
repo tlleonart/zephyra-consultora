@@ -12,6 +12,7 @@
 import { action, internalMutation, mutation, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { Id } from "../_generated/dataModel";
 import { parseScormManifest } from "./manifest";
 
 // List published courses for the public /cursos catalog.
@@ -105,7 +106,7 @@ export const ingestScormPackage = action({
     parseMs: number;
   }> => {
     // Build the path -> storageId map. Normalize separators to forward slashes.
-    const scoFiles: Record<string, string> = {};
+    const scoFiles: Record<string, Id<"_storage">> = {};
     for (const f of args.files) {
       scoFiles[f.path.replace(/\\/g, "/")] = f.storageId;
     }
@@ -120,7 +121,7 @@ export const ingestScormPackage = action({
       );
     }
 
-    const blob = await ctx.storage.get(scoFiles[manifestKey] as any);
+    const blob = await ctx.storage.get(scoFiles[manifestKey]);
     if (!blob) {
       throw new Error("ingestScormPackage: could not read imsmanifest.xml blob");
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../../../convex/_generated/api";
+import { Id } from "../../../../../../../convex/_generated/dataModel";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export async function GET(
     return new NextResponse("Course not found", { status: 404 });
   }
 
-  const scoFiles = (course.scoFiles ?? {}) as Record<string, string>;
+  const scoFiles = (course.scoFiles ?? {}) as Record<string, Id<"_storage">>;
 
   // Resolve the requested path against the stored file map. Try exact match,
   // then a normalized match that tolerates "./" and redundant separators.
@@ -88,7 +89,7 @@ export async function GET(
   }
 
   const url = await convex.query(api.files.getUrl, {
-    storageId: storageId as any,
+    storageId,
   });
   if (!url) {
     return new NextResponse("Asset storage URL unavailable", { status: 502 });

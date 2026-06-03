@@ -1,0 +1,69 @@
+name: CI
+
+# Runs on every push to any branch and on every pull request targeting main.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    # NON-BLOCKING: the institutional codebase carries pre-existing ESLint
+    # violations (8 errors + 16 warnings across files that predate the LMS
+    # track). ESLint reports them here for visibility, but does not gate the
+    # pipeline. The hard gates are `typecheck` and `test` below. LMS-track code
+    # is clean. See docs/decisions/ADR-0001 / the CI section of the SDD.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: Typecheck (tsc --noEmit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  test:
+    name: Test (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+# NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job in Sprint 0.
+# There are no e2e specs and no playwright.config in the repo yet, and the SCORM
+# demo loop requires a live Convex dev deploy + a running Next.js server (an
+# external service), which violates the "runs clean locally without external
+# services" bar for AC-C01.2. Add a `test:e2e` job once headless specs exist
+# that can run against a built app without a live Convex backend (Sprint 1+).
+#
+# NOTE — Vercel preview deploys (AC-4) are triggered by the Vercel Git
+# integration on push/PR, outside this workflow. Keeping `build` green is
+# covered transitively: `next build` runs on Vercel for every preview.
