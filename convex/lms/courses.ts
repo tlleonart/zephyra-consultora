@@ -1,14 +1,18 @@
 /**
- * LMS — Course functions (Sprint 0 stubs).
+ * LMS — Course functions.
  *
- * Isolated from the institutional function files. Real ingestion logic
- * (client-side unzip -> per-file upload -> manifest parse -> lmsCourses row)
- * lands in Phase D (the SCORM player spike). These stubs exist so the
- * module structure and namespace are in place from the foundation.
+ * Isolated from the institutional function files. Phase D (the SCORM player
+ * spike) implements the ingestion path here:
+ *   client-side unzip -> per-file upload to _storage -> ingestScormPackage
+ *   mutation parses imsmanifest.xml and inserts the lmsCourses row.
+ *
+ * The full seat/claim/enrollment domain lands in Sprint 1.
  */
 
-import { query } from "../_generated/server";
+import { action, internalMutation, mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { parseScormManifest } from "./manifest";
 
 // List published courses for the public /cursos catalog.
 export const listPublished = query({
@@ -19,6 +23,15 @@ export const listPublished = query({
       .withIndex("by_status", (q) => q.eq("status", "published"))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
+  },
+});
+
+// List ALL non-deleted courses (admin surface — includes drafts).
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("lmsCourses").order("desc").collect();
+    return rows.filter((r) => !r.deletedAt);
   },
 });
 
@@ -35,6 +48,180 @@ export const getBySlug = query({
   },
 });
 
-// NOTE (Phase D): ingestScormPackage mutation/action goes here —
-// reads the uploaded zip contents from _storage, parses imsmanifest.xml,
-// and inserts the lmsCourses row with status "draft".
+// Get a course by id.
+export const getById = query({
+  args: { id: v.id("lmsCourses") },
+  handler: async (ctx, args) => {
+    const course = await ctx.db.get(args.id);
+    if (!course || course.deletedAt) return null;
+    return course;
+  },
+});
+
+/**
+ * Slugify a title into a URL-safe slug (handles Spanish accents + ñ).
+ */
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // strip diacritics
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+/**
+ * ingestScormPackage (Phase D — AC-D01.4 / AC-D01.5)
+ *
+ * This is a Convex ACTION, not a mutation, by necessity: reading blob CONTENT
+ * back from `_storage` (`ctx.storage.get(id).text()`) is only available in
+ * queries/actions, not mutations. Doing the parse in an action also pre-empts
+ * S0-R8 (large-manifest timeout) — actions have a much longer timeout than
+ * mutations, so even a pathological 500-item manifest cannot stall the DB write.
+ * The DB insert is delegated to the `insertCourse` internalMutation so the row
+ * lands transactionally with slug-uniqueness checked at write time.
+ *
+ * Receives the already-uploaded per-file (path -> storageId) map produced by
+ * the browser (JSZip unzip + parallel uploads to generateUploadUrl()).
+ */
+export const ingestScormPackage = action({
+  args: {
+    campusCourseId: v.string(),
+    title: v.optional(v.string()),
+    files: v.array(
+      v.object({
+        path: v.string(),
+        storageId: v.id("_storage"),
+      })
+    ),
+  },
+  handler: async (ctx, args): Promise<{
+    courseId: string;
+    slug: string;
+    title: string;
+    entryPoint: string | null;
+    fileCount: number;
+    parseMs: number;
+  }> => {
+    // Build the path -> storageId map. Normalize separators to forward slashes.
+    const scoFiles: Record<string, string> = {};
+    for (const f of args.files) {
+      scoFiles[f.path.replace(/\\/g, "/")] = f.storageId;
+    }
+
+    // Locate the manifest. SCORM 1.2 mandates imsmanifest.xml at the package root.
+    const manifestKey = Object.keys(scoFiles).find((p) =>
+      p.toLowerCase().endsWith("imsmanifest.xml")
+    );
+    if (!manifestKey) {
+      throw new Error(
+        "ingestScormPackage: imsmanifest.xml not found in uploaded files"
+      );
+    }
+
+    const blob = await ctx.storage.get(scoFiles[manifestKey] as any);
+    if (!blob) {
+      throw new Error("ingestScormPackage: could not read imsmanifest.xml blob");
+    }
+    const manifestXml = await blob.text();
+
+    // Parse. Sample manifest is ~3 KB; trivial cost. Timed for the demo report.
+    const started = Date.now();
+    const parsed = parseScormManifest(manifestXml);
+    const parseMs = Date.now() - started;
+
+    const title = args.title?.trim() || parsed.title || args.campusCourseId;
+
+    // Resolve the launch entry point: the href of the first item's resource,
+    // falling back to the first SCO resource, then viewer.html if present.
+    const entryPoint =
+      parsed.entryPoint ||
+      Object.keys(scoFiles).find((p) =>
+        p.toLowerCase().endsWith("viewer.html")
+      ) ||
+      null;
+
+    const inserted = await ctx.runMutation(internal.lms.courses.insertCourse, {
+      campusCourseId: args.campusCourseId,
+      title,
+      scoFiles,
+      manifest: manifestXml,
+      scoStructure: {
+        organizations: parsed.organizations,
+        resources: parsed.resources,
+      },
+      entryPoint: entryPoint ?? undefined,
+    });
+
+    return {
+      courseId: inserted.courseId,
+      slug: inserted.slug,
+      title,
+      entryPoint,
+      fileCount: args.files.length,
+      parseMs,
+    };
+  },
+});
+
+/**
+ * insertCourse — internal mutation that performs the transactional DB write
+ * for ingestScormPackage. Slug uniqueness is resolved here at write time.
+ */
+export const insertCourse = internalMutation({
+  args: {
+    campusCourseId: v.string(),
+    title: v.string(),
+    scoFiles: v.any(),
+    manifest: v.string(),
+    scoStructure: v.any(),
+    entryPoint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let slug = slugify(args.title);
+    const existing = await ctx.db
+      .query("lmsCourses")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+    if (existing) {
+      slug = `${slug}-${args.campusCourseId.slice(-6)}`;
+    }
+
+    const now = Date.now();
+    const courseId = await ctx.db.insert("lmsCourses", {
+      campusCourseId: args.campusCourseId,
+      title: args.title,
+      slug,
+      status: "draft",
+      scoFiles: args.scoFiles,
+      manifest: args.manifest,
+      scoStructure: args.scoStructure,
+      entryPoint: args.entryPoint,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { courseId, slug };
+  },
+});
+
+/**
+ * Publish a course (draft -> published) so it shows in the public catalog.
+ */
+export const setStatus = mutation({
+  args: {
+    id: v.id("lmsCourses"),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: args.status,
+      updatedAt: Date.now(),
+    });
+  },
+});

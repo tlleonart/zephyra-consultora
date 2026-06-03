@@ -16,6 +16,7 @@ import type * as clients from "../clients.js";
 import type * as crons from "../crons.js";
 import type * as files from "../files.js";
 import type * as lms_courses from "../lms/courses.js";
+import type * as lms_manifest from "../lms/manifest.js";
 import type * as lms_scormEvents from "../lms/scormEvents.js";
 import type * as model_auth from "../model/auth.js";
 import type * as model_softDelete from "../model/softDelete.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   files: typeof files;
   "lms/courses": typeof lms_courses;
+  "lms/manifest": typeof lms_manifest;
   "lms/scormEvents": typeof lms_scormEvents;
   "model/auth": typeof model_auth;
   "model/softDelete": typeof model_softDelete;

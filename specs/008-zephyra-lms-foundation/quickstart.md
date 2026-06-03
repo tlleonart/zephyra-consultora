@@ -45,21 +45,71 @@ Rutas esperadas tras Fase A:
 - Sitio institucional intacto: `/`, `/blog`, `/proyectos`, `/contacto`, `/admin`.
 - Nuevas: `/cursos` (público), `/admin/lms` (admin, protegido).
 
-## 3. Demo loop del spike SCORM (stub — se completa en Fase D)
+## 3. Demo loop del spike SCORM (Fase D — reproducible en <15 min)
 
-> **Estado:** stub. El flujo completo (unzip en browser → upload por archivo a Convex `_storage` → parse de manifest → ingest a `lmsCourses` → player en iframe → bridge `scorm-again` → `recordScormEvent` → proyección a `lmsEnrollments`) se implementa en la **Fase D**.
+Implementado en Fase D. Reproduce AC-6 (intro en iframe), AC-7 (bridge
+`scorm-again`) y AC-8 (eventos persisten + proyección) desde un clone limpio.
 
-Pasos previstos del demo loop (a completar en Fase D):
+### 3.1 Ingesta del curso (vía admin UI)
 
-1. En `/admin/lms`, seleccionar el `.zip` SCORM de muestra (`specs/008-zephyra-lms-foundation/fixtures/scorm12_diversidad_equidad_e_inclusion.zip`).
-2. El cliente lo descomprime en memoria (JSZip), filtra `.bak.*`, y sube cada archivo a Convex `_storage`.
-3. Una mutation parsea `imsmanifest.xml` y crea la fila `lmsCourses` (`status: "draft"`).
-4. Abrir `/cursos/<slug>/player` → el iframe sandboxeado carga el entry point del SCO.
-5. El contenido encuentra `window.API` (provisto por `scorm-again`) y emite llamadas SCORM 1.2.
-6. Cada `LMSSetValue` / `LMSCommit` se persiste en `lmsScormEvents` (append-only) y proyecta a `lmsEnrollments` (`progressPercent`, `scoreRaw`, `lessonStatus`, `suspendData`).
-7. **Verificación:** en el Convex dashboard (dev), al navegar unidades se ven filas nuevas en `lmsScormEvents` Y cambian `lmsEnrollments.lessonStatus` / `.scoreRaw`.
+1. Iniciar sesión en `/login` con una cuenta admin (`adminUsers`).
+2. Ir a **`/admin/lms`** → botón **"+ Ingestar SCORM"** (o directo a
+   `/admin/lms/courses/new`).
+3. Seleccionar el `.zip` de muestra:
+   `specs/008-zephyra-lms-foundation/fixtures/scorm12_diversidad_equidad_e_inclusion.zip`.
+4. El navegador lo descomprime con JSZip, **filtra los 17 archivos `.bak.*`**
+   (quedan 50 archivos), sube cada uno en paralelo (8 a la vez) a Convex
+   `_storage`, y llama a la action `ingestScormPackage`, que lee
+   `imsmanifest.xml` desde `_storage`, lo parsea y crea la fila `lmsCourses`
+   (`status: "draft"`). El log en pantalla muestra los tiempos.
+   - Tiempo observado: ~50 archivos en **~10 s**; parse de manifest **1 ms**.
+5. Al terminar, botón **"Abrir player →"** lleva a `/cursos/<slug>/player`.
 
-Objetivo de reproducibilidad (SDD v3): un teammate reproduce el demo desde un clone limpio en <15 min.
+> El slug del curso de muestra es
+> `diversidad-equidad-e-inclusion-en-el-trabajo-como-construir-entornos-laborales-r`.
+
+### 3.2 Player + bridge + persistencia
+
+6. En el player, la barra superior muestra **Progreso / Estado / Puntaje** en
+   vivo (query reactiva a `lmsEnrollments`). La intro del curso renderiza dentro
+   del `<iframe sandbox="allow-scripts allow-same-origin">` (**AC-6**), servida
+   desde `_storage` vía el proxy same-origin `/api/lms/asset/<slug>/<path>`.
+7. En la nav izquierda, clic en **"Fundamentos de diversidad e inclusión"**
+   (unidad_01). Abrir DevTools → Console: el wrapper del proveedor loguea
+   **`[SCORM 1.2] SCORM 1.2 API encontrada en intento 2`** seguido de
+   `SCORM 1.2 API inicializada correctamente` (**AC-7**). Esto confirma que el
+   contenido encontró nuestro `window.API` (expuesto por `scorm-again` en la
+   página padre, instalado **antes** de cargar el iframe).
+8. Dentro de la unidad, abrir la sección **"Evaluación: Fundamentos de
+   diversidad"**, responder algunas preguntas y **"Enviar respuestas"**. La
+   consola muestra `LMSSetValue("cmi.core.score.raw", ...)` y
+   `LMSSetValue("cmi.core.lesson_status", "failed"|"passed")`.
+9. **Verificación (AC-8)** — en el Convex dashboard (dev `exuberant-corgi-88`),
+   tabla `lmsScormEvents`: filas nuevas acumulándose (lesson_status, score.raw,
+   score.min/max, suspend_data, session_time, marcadores `__commit__`). Tabla
+   `lmsEnrollments`: la fila del curso muestra `lessonStatus`, `scoreRaw`,
+   `progressPercent` y `suspendData` actualizados en vivo (la barra superior del
+   player refleja el cambio sin recargar).
+
+### 3.3 Por qué el proxy same-origin (decisión clave, S0-R3)
+
+El contenido CAMPUS descubre la API recorriendo `window.parent` y además llama
+`window.parent.document.querySelectorAll('iframe')`. Si el iframe se sirviera
+desde `*.convex.cloud` (otro origen que la página del player), la política de
+mismo-origen del navegador **bloquearía** tanto `window.parent.API` como
+`window.parent.document` y el bridge **nunca** funcionaría. Por eso todos los
+assets del SCO se sirven desde el origen de la app Next.js, vía el route handler
+`/api/lms/asset/[slug]/[...path]`, que streamea desde Convex `_storage`. No se
+usó `getUrl` directo para los assets del SCO; sí internamente dentro del proxy.
+
+### 3.4 Enrollment placeholder
+
+El spike usa una fila `lmsEnrollments` placeholder (`learnerId: "spike-learner"`,
+`status: "active"`) creada idempotentemente por `ensureSpikeEnrollment` al montar
+el player. El flujo real de seat/claim es Sprint 1.
+
+Objetivo de reproducibilidad (SDD v3): un teammate reproduce el demo desde un
+clone limpio en <15 min. ✅
 
 ## 4. Estrategia de cookies JWT (nota de diseño — solo documentación en Sprint 0)
 
