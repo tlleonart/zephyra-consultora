@@ -49,3 +49,6 @@ next-env.d.ts
 # Cache
 .cache/
 *.log
+
+# Playwright MCP browser-test artifacts (screenshots/snapshots)
+.playwright-mcp/
