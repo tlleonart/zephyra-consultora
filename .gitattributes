@@ -1,0 +1,1 @@
+specs/008-zephyra-lms-foundation/fixtures/*.zip filter=lfs diff=lfs merge=lfs -text
