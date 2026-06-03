@@ -196,4 +196,77 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_active", ["isActive"])
     .index("by_subscribed", ["subscribedAt"]),
+
+  // ============================================
+  // LMS — Sprint 0 subset (PDD v1.3 §6.3)
+  // All LMS tables are prefixed `lms*` to namespace them against the
+  // institutional tables above. Additive change only — institutional
+  // tables are untouched. Full aggregate set lands in Sprint 1.
+  // ============================================
+
+  // Course aggregate. One row per ingested SCORM course.
+  // CAMPUS does not reversion: an updated course = new campusCourseId = new row.
+  lmsCourses: defineTable({
+    campusCourseId: v.string(), // unique — provider identifier
+    title: v.string(),
+    slug: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    ),
+    scormStorageId: v.optional(v.id("_storage")), // original zip (optional)
+    scoFiles: v.optional(v.any()), // map: relative path -> Id<"_storage">
+    manifest: v.optional(v.string()), // parsed imsmanifest.xml (serialized)
+    scoStructure: v.optional(v.any()), // organizations + items + resources
+    entryPoint: v.optional(v.string()), // launch resource path
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    // Soft delete (repo convention)
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  })
+    .index("by_campus_course_id", ["campusCourseId"])
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_deleted", ["deletedAt"]),
+
+  // Enrollment aggregate. Sprint 0 uses a placeholder row for the spike;
+  // the real seat/claim flow lands in Sprint 1.
+  lmsEnrollments: defineTable({
+    seatId: v.optional(v.string()), // Sprint 1: unique once real seats exist
+    learnerId: v.string(), // placeholder in Sprint 0 (no lmsCustomers yet)
+    courseId: v.id("lmsCourses"),
+    status: v.union(
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("expired")
+    ),
+    claimRequestId: v.optional(v.string()), // Sprint 1: claim idempotency
+    startedAt: v.optional(v.number()),
+    firstTouchedAt: v.optional(v.number()), // engagement signal
+    expiresAt: v.optional(v.number()),
+    // Projected from lmsScormEvents (Phase D)
+    progressPercent: v.number(),
+    scoreRaw: v.optional(v.number()),
+    lessonStatus: v.optional(v.string()),
+    suspendData: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_course", ["courseId"])
+    .index("by_learner", ["learnerId"])
+    .index("by_learner_course_status", ["learnerId", "courseId", "status"])
+    .index("by_claim_request", ["claimRequestId"]),
+
+  // SCORM event log — append-only audit trail. Never updated or deleted.
+  lmsScormEvents: defineTable({
+    enrollmentId: v.id("lmsEnrollments"),
+    timestamp: v.number(),
+    element: v.string(), // e.g. cmi.core.lesson_status, cmi.core.score.raw
+    value: v.string(), // raw value sent by the content
+    commitId: v.optional(v.string()), // groups SetValue calls of one Commit
+  })
+    .index("by_enrollment", ["enrollmentId"])
+    .index("by_enrollment_timestamp", ["enrollmentId", "timestamp"])
+    .index("by_commit", ["commitId"]),
 });
