@@ -28,7 +28,13 @@ interface FileEntry {
 
 type Phase = "idle" | "unzipping" | "uploading" | "ingesting" | "done" | "error";
 
-export function ScormUploadForm() {
+interface ScormUploadFormProps {
+  userId: Id<"adminUsers">;
+}
+
+// userId is propped from the server-side session (admin-only route) and passed
+// to ingestScormPackage so the action's requireRole("admin") gate succeeds.
+export function ScormUploadForm({ userId }: ScormUploadFormProps) {
   const router = useRouter();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const ingestScormPackage = useAction(api.lms.courses.ingestScormPackage);
@@ -117,6 +123,7 @@ export function ScormUploadForm() {
       setPhase("ingesting");
       addLog("Parseando imsmanifest.xml e insertando lmsCourses...");
       const r = await ingestScormPackage({
+        userId,
         campusCourseId: inferredCampusId,
         title: title.trim() || undefined,
         files: uploaded,

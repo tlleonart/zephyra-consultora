@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
+import { getSession } from "@/features/auth/lib/session";
 import { api } from "../../../../../../convex/_generated/api";
 import { ScormPlayer } from "./ScormPlayer";
 
@@ -11,6 +12,11 @@ export const dynamic = "force-dynamic";
  * Server-side: load the course by slug. The placeholder spike enrollment is
  * ensured client-side (a mutation can't run during server render), so the
  * client component calls ensureSpikeEnrollment on mount.
+ *
+ * AUTH (B02): the player calls gated mutations (ensureSpikeEnrollment,
+ * recordScormEvent), so the page itself requires a logged-in admin user.
+ * Sprint-0 spike uses admin masquerading as learner; C04 will add a learner
+ * middleware so non-admin learners can reach the player after seat-claim.
  */
 export default async function PlayerPage({
   params,
@@ -18,7 +24,15 @@ export default async function PlayerPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  const session = await getSession();
+  if (!session) {
+    redirect(`/login?returnTo=/cursos/${encodeURIComponent(slug)}/player`);
+  }
+
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  // getBySlug is PUBLIC + published-only; admin must publish the course before
+  // launching the player.
   const course = await convex.query(api.lms.courses.getBySlug, { slug });
   if (!course) {
     notFound();
@@ -42,6 +56,7 @@ export default async function PlayerPage({
 
   return (
     <ScormPlayer
+      userId={session.userId}
       courseId={course._id}
       slug={slug}
       courseTitle={course.title}

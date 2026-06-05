@@ -32,6 +32,7 @@ interface Unit {
 }
 
 interface ScormPlayerProps {
+  userId: Id<"adminUsers">;
   courseId: Id<"lmsCourses">;
   slug: string;
   courseTitle: string;
@@ -48,6 +49,7 @@ declare global {
 }
 
 export function ScormPlayer({
+  userId,
   courseId,
   slug,
   courseTitle,
@@ -64,15 +66,17 @@ export function ScormPlayer({
   const [currentHref, setCurrentHref] = useState<string | null>(entryPoint);
   const enrollmentRef = useRef<Id<"lmsEnrollments"> | null>(null);
 
-  const enrollment = useQuery(
-    api.lms.scormEvents.getEnrollment,
-    enrollmentId ? { enrollmentId } : "skip"
-  );
+  // Reactive: getEnrollment is keyed by (spike-learner, courseId) server-side
+  // so the live progress bar updates as soon as recordScormEvent commits.
+  const enrollment = useQuery(api.lms.scormEvents.getEnrollment, {
+    userId,
+    courseId,
+  });
 
   // Ensure the placeholder spike enrollment exists (AC-D02.1).
   useEffect(() => {
     let cancelled = false;
-    ensureEnrollment({ courseId }).then((id) => {
+    ensureEnrollment({ userId, courseId }).then((id) => {
       if (cancelled) return;
       enrollmentRef.current = id;
       setEnrollmentId(id);
@@ -80,7 +84,7 @@ export function ScormPlayer({
     return () => {
       cancelled = true;
     };
-  }, [courseId, ensureEnrollment]);
+  }, [userId, courseId, ensureEnrollment]);
 
   // Install the SCORM 1.2 API on window BEFORE the iframe loads (AC-D02.3).
   useEffect(() => {
@@ -97,7 +101,13 @@ export function ScormPlayer({
       const eid = enrollmentRef.current;
       if (!eid) return;
       // Fire-and-forget; Convex is reactive so the UI updates on its own.
-      void recordScormEvent({ enrollmentId: eid, element, value, commitId });
+      void recordScormEvent({
+        userId,
+        enrollmentId: eid,
+        element,
+        value,
+        commitId,
+      });
     };
 
     // AC-D03.1: every SetValue is captured (element + value).
@@ -129,7 +139,7 @@ export function ScormPlayer({
         delete window.API;
       }
     };
-  }, [enrollmentId, recordScormEvent]);
+  }, [enrollmentId, recordScormEvent, userId]);
 
   const iframeSrc =
     apiReady && currentHref

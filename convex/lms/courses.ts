@@ -10,12 +10,13 @@
  */
 
 import { action, internalMutation, mutation, query } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
+import { AuthError, requireAuth, requireRole } from "../model/auth";
 import { parseScormManifest } from "./manifest";
 
-// List published courses for the public /cursos catalog.
+// PUBLIC — catalog surface; reads only status:"published"; used by /cursos
 export const listPublished = query({
   args: {},
   handler: async (ctx) => {
@@ -27,16 +28,22 @@ export const listPublished = query({
   },
 });
 
-// List ALL non-deleted courses (admin surface — includes drafts).
+// Admin-only: includes drafts/archived; requires admin role.
 export const listAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { userId: v.id("adminUsers") },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
     const rows = await ctx.db.query("lmsCourses").order("desc").collect();
     return rows.filter((r) => !r.deletedAt);
   },
 });
 
-// Get a course by its public slug.
+// PUBLIC — slugs are URLs; only published courses are exposed; used by
+// /cursos/<slug>/player + /api/lms/asset/...
+// Filtering on status:"published" prevents the Sprint-0 draft leak where any
+// guessable slug returned the full course row regardless of status.
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
@@ -45,14 +52,18 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!course || course.deletedAt) return null;
+    if (course.status !== "published") return null;
     return course;
   },
 });
 
-// Get a course by id.
+// Admin-only: returns full row regardless of status.
 export const getById = query({
-  args: { id: v.id("lmsCourses") },
+  args: { userId: v.id("adminUsers"), id: v.id("lmsCourses") },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
     const course = await ctx.db.get(args.id);
     if (!course || course.deletedAt) return null;
     return course;
@@ -88,6 +99,7 @@ function slugify(input: string): string {
  */
 export const ingestScormPackage = action({
   args: {
+    userId: v.id("adminUsers"),
     campusCourseId: v.string(),
     title: v.optional(v.string()),
     files: v.array(
@@ -105,6 +117,20 @@ export const ingestScormPackage = action({
     fileCount: number;
     parseMs: number;
   }> => {
+    // Admin-only ingest. Actions have no ctx.db, so the gate runs via
+    // runQuery against the existing public getCurrentUser query (same logic
+    // requireAuth/requireRole would apply if this were a mutation: user must
+    // exist, be active, not soft-deleted, and have role admin or superadmin).
+    const user = await ctx.runQuery(api.adminUsers.getCurrentUser, {
+      userId: args.userId,
+    });
+    if (!user) {
+      throw new AuthError("Authentication required");
+    }
+    if (user.role !== "admin" && user.role !== "superadmin") {
+      throw new AuthError("Admin access required");
+    }
+
     // Build the path -> storageId map. Normalize separators to forward slashes.
     const scoFiles: Record<string, Id<"_storage">> = {};
     for (const f of args.files) {
@@ -169,6 +195,7 @@ export const ingestScormPackage = action({
 /**
  * insertCourse — internal mutation that performs the transactional DB write
  * for ingestScormPackage. Slug uniqueness is resolved here at write time.
+ * Internal-only: callable only from the gated ingestScormPackage action above.
  */
 export const insertCourse = internalMutation({
   args: {
@@ -209,9 +236,11 @@ export const insertCourse = internalMutation({
 
 /**
  * Publish a course (draft -> published) so it shows in the public catalog.
+ * Admin-only: state transitions are privileged.
  */
 export const setStatus = mutation({
   args: {
+    userId: v.id("adminUsers"),
     id: v.id("lmsCourses"),
     status: v.union(
       v.literal("draft"),
@@ -220,6 +249,9 @@ export const setStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
     await ctx.db.patch(args.id, {
       status: args.status,
       updatedAt: Date.now(),
