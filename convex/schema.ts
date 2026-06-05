@@ -231,11 +231,12 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_deleted", ["deletedAt"]),
 
-  // Enrollment aggregate. Sprint 0 uses a placeholder row for the spike;
-  // the real seat/claim flow lands in Sprint 1.
+  // Enrollment aggregate. D01 promoted learnerId from a v.string() placeholder
+  // to Id<"lmsCustomers"> now that learner identity exists (Sprint 1 C). The
+  // real seat-claim flow (lmsSeats + claimRequest aggregates) lands in Sprint 2.
   lmsEnrollments: defineTable({
-    seatId: v.optional(v.string()), // Sprint 1: unique once real seats exist
-    learnerId: v.string(), // placeholder in Sprint 0 (no lmsCustomers yet)
+    seatId: v.optional(v.string()), // Sprint 2: unique once real seats exist
+    learnerId: v.id("lmsCustomers"),
     courseId: v.id("lmsCourses"),
     status: v.union(
       v.literal("active"),

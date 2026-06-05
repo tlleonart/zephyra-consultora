@@ -7,7 +7,7 @@ import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 /**
- * SCORM 1.2 player + scorm-again bridge (Phase D — AC-D02.3 .. AC-D03.5).
+ * SCORM 1.2 player + scorm-again bridge (D01 — learner identity).
  *
  * Bridge wiring (the centerpiece):
  *  - On mount we instantiate scorm-again's Scorm12API and assign it to
@@ -24,6 +24,10 @@ import type { Id } from "../../../../../../convex/_generated/dataModel";
  *    (S0-R3 resolved; see the proxy route handler).
  *  - The progress bar reads the enrollment via a reactive Convex query, so it
  *    updates live as events land (AC-D03.5).
+ *
+ * D01: enrollmentId is now passed in as a prop (the page-server-side gate has
+ * already resolved it from getMyEnrollment); the player no longer "ensures"
+ * anything client-side.
  */
 
 interface Unit {
@@ -32,8 +36,9 @@ interface Unit {
 }
 
 interface ScormPlayerProps {
-  userId: Id<"adminUsers">;
+  learnerId: Id<"lmsCustomers">;
   courseId: Id<"lmsCourses">;
+  enrollmentId: Id<"lmsEnrollments">;
   slug: string;
   courseTitle: string;
   entryPoint: string | null;
@@ -49,47 +54,30 @@ declare global {
 }
 
 export function ScormPlayer({
-  userId,
+  learnerId,
   courseId,
+  enrollmentId,
   slug,
   courseTitle,
   entryPoint,
   units,
 }: ScormPlayerProps) {
-  const ensureEnrollment = useMutation(api.lms.scormEvents.ensureSpikeEnrollment);
   const recordScormEvent = useMutation(api.lms.scormEvents.recordScormEvent);
 
-  const [enrollmentId, setEnrollmentId] = useState<Id<"lmsEnrollments"> | null>(
-    null
-  );
   const [apiReady, setApiReady] = useState(false);
   const [currentHref, setCurrentHref] = useState<string | null>(entryPoint);
-  const enrollmentRef = useRef<Id<"lmsEnrollments"> | null>(null);
+  const enrollmentRef = useRef<Id<"lmsEnrollments">>(enrollmentId);
+  enrollmentRef.current = enrollmentId;
 
-  // Reactive: getEnrollment is keyed by (spike-learner, courseId) server-side
+  // Reactive: getEnrollment is keyed by (learnerId, courseId) server-side
   // so the live progress bar updates as soon as recordScormEvent commits.
   const enrollment = useQuery(api.lms.scormEvents.getEnrollment, {
-    userId,
+    learnerId,
     courseId,
   });
 
-  // Ensure the placeholder spike enrollment exists (AC-D02.1).
-  useEffect(() => {
-    let cancelled = false;
-    ensureEnrollment({ userId, courseId }).then((id) => {
-      if (cancelled) return;
-      enrollmentRef.current = id;
-      setEnrollmentId(id);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, courseId, ensureEnrollment]);
-
   // Install the SCORM 1.2 API on window BEFORE the iframe loads (AC-D02.3).
   useEffect(() => {
-    if (!enrollmentId) return;
-
     const api = new Scorm12API({
       autocommit: false,
     });
@@ -102,7 +90,7 @@ export function ScormPlayer({
       if (!eid) return;
       // Fire-and-forget; Convex is reactive so the UI updates on its own.
       void recordScormEvent({
-        userId,
+        learnerId,
         enrollmentId: eid,
         element,
         value,
@@ -139,7 +127,7 @@ export function ScormPlayer({
         delete window.API;
       }
     };
-  }, [enrollmentId, recordScormEvent, userId]);
+  }, [recordScormEvent, learnerId]);
 
   const iframeSrc =
     apiReady && currentHref
