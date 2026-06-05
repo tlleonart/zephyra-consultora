@@ -247,11 +247,26 @@ export default defineSchema({
     startedAt: v.optional(v.number()),
     firstTouchedAt: v.optional(v.number()), // engagement signal
     expiresAt: v.optional(v.number()),
-    // Projected from lmsScormEvents (Phase D)
+    // Projected from lmsScormEvents (Phase D).
+    // D02: aggregate now reflects the COURSE across all SCOs.
+    // - progressPercent = floor(completedScoCount / course.scoStructure.scos.length × 100)
+    // - lessonStatus    = "completed" iff all SCOs completed, "passed" if all ≥ passed, else "incomplete"
+    // - suspendData     = latest-touched SCO's suspend_data (legacy single-SCO consumer compat;
+    //                     per-SCO suspend_data lives in scoStates[scoId].suspendData)
     progressPercent: v.number(),
     scoreRaw: v.optional(v.number()),
     lessonStatus: v.optional(v.string()),
     suspendData: v.optional(v.string()),
+    // D02 — denormalized counter (Q5 lock). MUST be re-derived inside
+    // recordScormEvent on every event so it never drifts from scoStates.
+    completedScoCount: v.number(),
+    // D02 — per-SCO state map: { [scoId: string]: { lessonStatus, scoreRaw?, suspendData?, completedAt? } }.
+    // WHY v.any(): Sprint 1 accepts a loose shape; a v.object() schema can land
+    // in Sprint 2 once the SCO state surface is stable. WHY NOT denormalize
+    // totalScos here: courses can be re-ingested with a different SCO count
+    // (PDD §6.3 archive-on-duplicate) — course row is the single source of
+    // truth, dereferenced via courseId on each event.
+    scoStates: v.optional(v.any()),
     updatedAt: v.number(),
   })
     .index("by_course", ["courseId"])
