@@ -107,7 +107,7 @@ export const AllianceList = ({ adminUserId }: AllianceListProps) => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.pageTitle}>Alianzas</h1>
-          <p className={styles.subtitle}>Gestiona la sección "Nuestras Alianzas"</p>
+          <p className={styles.subtitle}>Gestiona la sección &quot;Nuestras Alianzas&quot;</p>
         </div>
         <Link href="/admin/alliances/new">
           <Button>Agregar alianza</Button>

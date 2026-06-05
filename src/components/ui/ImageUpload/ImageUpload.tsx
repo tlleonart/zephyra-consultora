@@ -73,7 +73,7 @@ export const ImageUpload = ({
 
       const { storageId } = await response.json();
       onChange(storageId as Id<'_storage'>);
-    } catch (err) {
+    } catch {
       setUploadError('Error al subir la imagen. Intenta de nuevo.');
       setPreview(null);
     } finally {

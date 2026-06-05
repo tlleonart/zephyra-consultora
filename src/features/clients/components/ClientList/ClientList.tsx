@@ -107,7 +107,7 @@ export const ClientList = ({ adminUserId }: ClientListProps) => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.pageTitle}>Clientes</h1>
-          <p className={styles.subtitle}>Gestiona la sección "Ya confían en nosotros"</p>
+          <p className={styles.subtitle}>Gestiona la sección &quot;Ya confían en nosotros&quot;</p>
         </div>
         <Link href="/admin/clients/new">
           <Button>Agregar cliente</Button>

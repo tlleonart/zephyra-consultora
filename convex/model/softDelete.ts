@@ -1,4 +1,3 @@
-import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
 /**
