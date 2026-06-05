@@ -18,7 +18,7 @@ interface WysiwygEditorProps {
   placeholder?: string;
 }
 
-export const WysiwygEditor = ({ content, onChange, placeholder }: WysiwygEditorProps) => {
+export const WysiwygEditor = ({ content, onChange }: WysiwygEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({

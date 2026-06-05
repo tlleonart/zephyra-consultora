@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 type EntityType = 'blogPosts' | 'teamMembers' | 'projects' | 'services' | 'clients' | 'alliances' | 'adminUsers';
 
@@ -198,29 +199,31 @@ export const restore = mutation({
     entityId: v.string(),
   },
   handler: async (ctx, args) => {
-    const id = args.entityId as any;
-
+    // Per-branch narrowing: `entityId` arrives as string from the mutation
+    // boundary, and the Convex Id brand is asserted against the table picked
+    // by `entityType` to keep ctx.db.patch type-safe.
+    const restorePatch = { deletedAt: undefined, deletedBy: undefined };
     switch (args.entityType) {
       case "blogPosts":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"blogPosts">, restorePatch);
         break;
       case "teamMembers":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"teamMembers">, restorePatch);
         break;
       case "projects":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"projects">, restorePatch);
         break;
       case "services":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"services">, restorePatch);
         break;
       case "clients":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"clients">, restorePatch);
         break;
       case "alliances":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"alliances">, restorePatch);
         break;
       case "adminUsers":
-        await ctx.db.patch(id, { deletedAt: undefined, deletedBy: undefined });
+        await ctx.db.patch(args.entityId as Id<"adminUsers">, restorePatch);
         break;
     }
   },
@@ -240,37 +243,40 @@ export const permanentDelete = mutation({
     entityId: v.string(),
   },
   handler: async (ctx, args) => {
-    const id = args.entityId as any;
-
+    // Per-branch narrowing: the string `entityId` is asserted as the Convex
+    // Id branded for the table chosen by `entityType` so ctx.db.delete stays
+    // type-checked instead of falling back to `any`.
     switch (args.entityType) {
       case "blogPosts":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"blogPosts">);
         break;
       case "teamMembers":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"teamMembers">);
         break;
-      case "projects":
+      case "projects": {
+        const projectId = args.entityId as Id<"projects">;
         // Also delete related achievements
         const achievements = await ctx.db
           .query("projectAchievements")
-          .withIndex("by_project", (q) => q.eq("projectId", id))
+          .withIndex("by_project", (q) => q.eq("projectId", projectId))
           .collect();
         for (const achievement of achievements) {
           await ctx.db.delete(achievement._id);
         }
-        await ctx.db.delete(id);
+        await ctx.db.delete(projectId);
         break;
+      }
       case "services":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"services">);
         break;
       case "clients":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"clients">);
         break;
       case "alliances":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"alliances">);
         break;
       case "adminUsers":
-        await ctx.db.delete(id);
+        await ctx.db.delete(args.entityId as Id<"adminUsers">);
         break;
     }
   },

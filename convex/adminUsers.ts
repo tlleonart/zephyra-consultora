@@ -1,13 +1,21 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
-import { requireAuth, requireRole, AuthError } from "./model/auth";
+import { Doc } from "./_generated/dataModel";
+import { requireRole, AuthError } from "./model/auth";
 import {
   hashPassword,
   verifyPassword,
   hashOpaqueToken,
   verifyOpaqueToken,
 } from "./model/passwords";
+
+// Strip the password hash before returning an adminUsers document to clients.
+// Centralised so the type stays consistent across queries/mutations.
+function stripPasswordHash(user: Doc<"adminUsers">): Omit<Doc<"adminUsers">, "passwordHash"> {
+  const safe: Omit<Doc<"adminUsers">, "passwordHash"> & { passwordHash?: string } = { ...user };
+  delete safe.passwordHash;
+  return safe;
+}
 
 // ============================================
 // QUERIES
@@ -24,8 +32,7 @@ export const getCurrentUser = query({
     }
 
     // Don't return password hash
-    const { passwordHash, ...safeUser } = user;
-    return safeUser;
+    return stripPasswordHash(user);
   },
 });
 
@@ -40,7 +47,7 @@ export const list = query({
       .collect();
 
     // Don't return password hashes
-    return users.map(({ passwordHash, ...user }) => user);
+    return users.map(stripPasswordHash);
   },
 });
 
@@ -52,8 +59,7 @@ export const getById = query({
     const user = await ctx.db.get(args.targetId);
     if (!user || user.deletedAt) return null;
 
-    const { passwordHash, ...safeUser } = user;
-    return safeUser;
+    return stripPasswordHash(user);
   },
 });
 
@@ -90,8 +96,7 @@ export const login = mutation({
     }
     await ctx.db.patch(user._id, patch);
 
-    const { passwordHash, ...safeUser } = user;
-    return safeUser;
+    return stripPasswordHash(user);
   },
 });
 

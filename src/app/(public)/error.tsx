@@ -8,7 +8,7 @@ interface ErrorPageProps {
   reset: () => void;
 }
 
-export default function ErrorPage({ error, reset }: ErrorPageProps) {
+export default function ErrorPage({ reset }: ErrorPageProps) {
   return (
     <div className={styles.container}>
       <div className={styles.content}>

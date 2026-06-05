@@ -18,12 +18,6 @@ jobs:
   lint:
     name: Lint (ESLint)
     runs-on: ubuntu-latest
-    # NON-BLOCKING: the institutional codebase carries pre-existing ESLint
-    # violations (8 errors + 16 warnings across files that predate the LMS
-    # track). ESLint reports them here for visibility, but does not gate the
-    # pipeline. The hard gates are `typecheck` and `test` below. LMS-track code
-    # is clean. See docs/decisions/ADR-0001 / the CI section of the SDD.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

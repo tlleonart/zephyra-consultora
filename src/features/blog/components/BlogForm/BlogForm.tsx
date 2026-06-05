@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, SyntheticEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
@@ -59,7 +59,7 @@ export const BlogForm = ({ mode, initialData }: BlogFormProps) => {
   const [authorId, setAuthorId] = useState<Id<'teamMembers'> | ''>(
     initialData?.authorId || ''
   );
-  const [status, setStatus] = useState<'draft' | 'published'>(
+  const [status] = useState<'draft' | 'published'>(
     initialData?.status || 'draft'
   );
   const [publishedAtStr, setPublishedAtStr] = useState(
@@ -78,7 +78,7 @@ export const BlogForm = ({ mode, initialData }: BlogFormProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: FormEvent, saveStatus: 'draft' | 'published' = status) => {
+  const handleSubmit = async (e: SyntheticEvent, saveStatus: 'draft' | 'published' = status) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -208,14 +208,14 @@ export const BlogForm = ({ mode, initialData }: BlogFormProps) => {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={(e) => handleSubmit(e as any, 'draft')}
+                  onClick={(e) => handleSubmit(e, 'draft')}
                   loading={loading}
                 >
                   Guardar borrador
                 </Button>
                 <Button
                   type="button"
-                  onClick={(e) => handleSubmit(e as any, 'published')}
+                  onClick={(e) => handleSubmit(e, 'published')}
                   loading={loading}
                 >
                   Publicar
