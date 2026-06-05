@@ -17,6 +17,7 @@ import type * as crons from "../crons.js";
 import type * as files from "../files.js";
 import type * as lms_auth from "../lms/auth.js";
 import type * as lms_courses from "../lms/courses.js";
+import type * as lms_enrollments from "../lms/enrollments.js";
 import type * as lms_manifest from "../lms/manifest.js";
 import type * as lms_scormEvents from "../lms/scormEvents.js";
 import type * as model_auth from "../model/auth.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   "lms/auth": typeof lms_auth;
   "lms/courses": typeof lms_courses;
+  "lms/enrollments": typeof lms_enrollments;
   "lms/manifest": typeof lms_manifest;
   "lms/scormEvents": typeof lms_scormEvents;
   "model/auth": typeof model_auth;

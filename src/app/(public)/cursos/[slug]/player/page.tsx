@@ -1,25 +1,24 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
-import { getSession } from "@/features/auth/lib/session";
+import { getLearnerSession } from "@/features/auth-learner/lib/session";
 import { api } from "../../../../../../convex/_generated/api";
 import { ScormPlayer } from "./ScormPlayer";
 
 export const dynamic = "force-dynamic";
 
 /**
- * SCORM player page (Phase D — AC-D02.1).
+ * SCORM player page (D01 — learner identity migration).
  *
- * Server-side: load the course by slug. The placeholder spike enrollment is
- * ensured client-side (a mutation can't run during server render), so the
- * client component calls ensureSpikeEnrollment on mount.
+ * AUTH: middleware (C04) gates the route on the session-learner cookie. We
+ * also call getLearnerSession() here for defense-in-depth (and to pass
+ * learnerId into the player). No admin getSession() — Sprint-0 spike of admin
+ * masquerade is gone.
  *
- * AUTH: C04 added middleware protection (session-learner cookie). The page
- * still calls getSession() (admin) because ScormPlayer + gated mutations are
- * typed against Id<"adminUsers"> from the Sprint-0 spike; rewiring them to
- * Id<"lmsCustomers"> is a separate task (post-C04). Net effect: a learner
- * with no admin session can pass middleware but the page-level admin guard
- * still redirects to /login — Tomas-known gap, tracked outside Sprint 1
- * Phase C scope.
+ * ACCESS GATE: after the learner is identified, we call getMyEnrollment to
+ * confirm the learner actually has an active enrollment for this course.
+ * Without an enrollment we render an explicit "no tenés acceso" page; we do
+ * NOT auto-enroll (the placeholder ensureSpikeEnrollment is gone, by design).
  */
 export default async function PlayerPage({
   params,
@@ -28,9 +27,11 @@ export default async function PlayerPage({
 }) {
   const { slug } = await params;
 
-  const session = await getSession();
+  const session = await getLearnerSession();
   if (!session) {
-    redirect(`/login?returnTo=/cursos/${encodeURIComponent(slug)}/player`);
+    redirect(
+      `/cursos/auth/signin?returnTo=/cursos/${encodeURIComponent(slug)}/player`
+    );
   }
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -39,6 +40,49 @@ export default async function PlayerPage({
   const course = await convex.query(api.lms.courses.getBySlug, { slug });
   if (!course) {
     notFound();
+  }
+
+  // Access gate: no enrollment, no player. Renders an explicit "no tenés
+  // acceso" surface rather than a generic 404 so the learner knows the course
+  // exists and how to request access.
+  const enrollment = await convex.query(api.lms.enrollments.getMyEnrollment, {
+    learnerId: session.learnerId,
+    courseId: course._id,
+  });
+
+  if (!enrollment) {
+    return (
+      <div
+        style={{
+          maxWidth: 560,
+          margin: "120px auto",
+          padding: "40px 24px",
+          textAlign: "center",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>
+          No tenés acceso a este curso
+        </h1>
+        <p style={{ color: "#555", marginBottom: 24 }}>
+          {course.title} existe, pero tu cuenta todavía no fue habilitada.
+          Contactá al equipo de Zephyra para que te den acceso.
+        </p>
+        <Link
+          href="/cursos"
+          style={{
+            display: "inline-block",
+            padding: "10px 18px",
+            background: "#2d7",
+            color: "#fff",
+            borderRadius: 6,
+            textDecoration: "none",
+          }}
+        >
+          Ver catálogo
+        </Link>
+      </div>
+    );
   }
 
   // Build the ordered list of launchable SCO items (item -> resource href).
@@ -59,8 +103,9 @@ export default async function PlayerPage({
 
   return (
     <ScormPlayer
-      userId={session.userId}
+      learnerId={session.learnerId}
       courseId={course._id}
+      enrollmentId={enrollment._id}
       slug={slug}
       courseTitle={course.title}
       entryPoint={course.entryPoint ?? items[0]?.href ?? null}
