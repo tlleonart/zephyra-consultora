@@ -22,7 +22,10 @@ correct home.
 | [ADR-0002](./0002-scorm-1.2-as-canonical-content-format.md) | SCORM 1.2 as the canonical content format | Accepted |
 | ADR-0003 | _(Auth library selection)_ | **Dropped** |
 | [ADR-0004](./0004-lms-as-feature-track-not-separate-repo.md) | The LMS lives in `zephyra-consultora` as a feature track, not a separate repo | Accepted |
-| [ADR-0008](./0008-password-hashing-argon2id-plus-lazy-rehash.md) | Password hashing: argon2id (via `hash-wasm`) + lazy re-hash + HMAC for opaque tokens | Draft |
+| [ADR-0005](./0005-same-origin-proxy-for-sco-assets.md) | Same-origin proxy for SCO assets (S0-R3 resolution) | Accepted |
+| [ADR-0006](./0006-ingest-scorm-package-as-convex-action.md) | `ingestScormPackage` as a Convex action, not a mutation (S0-R8 resolution) | Accepted |
+| [ADR-0007](./0007-learner-auth-magic-link-plus-password.md) | Learner auth: magic-link primary + optional password + distinct cookie / signing key | Accepted |
+| [ADR-0008](./0008-password-hashing-argon2id-plus-lazy-rehash.md) | Password hashing: argon2id (via `hash-wasm`) + lazy re-hash + HMAC for opaque tokens | Accepted |
 
 ### Why ADR-0003 is dropped
 

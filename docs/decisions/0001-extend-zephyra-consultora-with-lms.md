@@ -83,3 +83,13 @@ no new tooling. The ratified stack:
   data layer, duplicate admin UI, broken operational coherence — rejected at PDD
   v1.2); Better-Auth / Lucia as a new auth library (existing `jose` pattern works
   and is in production — rejected, see ADR-0003 dropped).
+
+## Note (2026-06-05, F01) — email stack clarification
+
+The email layer is **Nodemailer + Ferozo SMTP**, not Resend. The
+`RESEND_API_KEY` placeholder in `.env.local.example` was an orphan from a
+prior PDD draft and has been removed in Sprint 1 / F01. Templates are
+React Email (`@react-email/components`), which would be Resend-compatible
+if the SMTP transport is later swapped to a hosted provider — but that
+swap is out of V1 scope. Code references: `src/lib/mailer/learner.ts`,
+`src/features/auth/actions/password-reset.ts`, `src/app/api/send-mail/route.ts`.
