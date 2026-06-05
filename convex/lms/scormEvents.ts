@@ -10,16 +10,29 @@
  *
  * See specs/008-zephyra-lms-foundation/scorm-coverage.md for the full element
  * coverage matrix.
+ *
+ * AUTH (B02): every function here gates on adminUsers identity (Sprint-0 spike
+ * has admin masquerading as learner; the demo loop accepts that). Row-level
+ * ownership ("does THIS learner own THIS enrollment") defers to C01 when the
+ * lmsCustomers identity table wires in.
  */
 
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
+import { requireAuth } from "../model/auth";
 
 // Read the append-only event trail for an enrollment, ordered by time.
+// TODO(C01): when lmsCustomers identity wires in, switch to lmsCustomers id +
+// add row-level ownership check (does this learner own this enrollment).
 export const listByEnrollment = query({
-  args: { enrollmentId: v.id("lmsEnrollments") },
+  args: {
+    userId: v.id("adminUsers"),
+    enrollmentId: v.id("lmsEnrollments"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+
     return await ctx.db
       .query("lmsScormEvents")
       .withIndex("by_enrollment_timestamp", (q) =>
@@ -59,15 +72,21 @@ function progressFromStatus(status: string | undefined): number | null {
  * Append the event AND patch the enrollment aggregate. element/value are the
  * raw CMI element name and value as written by the content (e.g.
  * "cmi.core.lesson_status" -> "completed", "cmi.core.score.raw" -> "80").
+ *
+ * TODO(C01): when lmsCustomers identity wires in, switch to lmsCustomers id +
+ * add row-level ownership check (does this learner own this enrollment).
  */
 export const recordScormEvent = mutation({
   args: {
+    userId: v.id("adminUsers"),
     enrollmentId: v.id("lmsEnrollments"),
     element: v.string(),
     value: v.string(),
     commitId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+
     const enrollment = await ctx.db.get(args.enrollmentId);
     if (!enrollment) {
       throw new Error("recordScormEvent: enrollment not found");
@@ -134,10 +153,18 @@ export const recordScormEvent = mutation({
  * Real enrollment (seat claim, learner identity) is Sprint 1. For the spike we
  * need exactly one active enrollment per course so the player has a target for
  * recordScormEvent. Idempotent: returns the existing spike enrollment if present.
+ *
+ * TODO(C01): when lmsCustomers identity wires in, switch to lmsCustomers id +
+ * add row-level ownership check (does this learner own this enrollment).
  */
 export const ensureSpikeEnrollment = mutation({
-  args: { courseId: v.id("lmsCourses") },
+  args: {
+    userId: v.id("adminUsers"),
+    courseId: v.id("lmsCourses"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+
     const learnerId = "spike-learner";
     const existing = await ctx.db
       .query("lmsEnrollments")
@@ -162,9 +189,29 @@ export const ensureSpikeEnrollment = mutation({
 });
 
 // Reactive read of the enrollment aggregate for the live progress bar (AC-D03.5).
+// Looks up by (spike-learner, courseId) so the client doesn't have to round-trip
+// to ensureSpikeEnrollment first; mirrors the gated read pattern in the rest of
+// the file.
+//
+// TODO(C01): when lmsCustomers identity wires in, switch to lmsCustomers id +
+// add row-level ownership check (does this learner own this enrollment).
 export const getEnrollment = query({
-  args: { enrollmentId: v.id("lmsEnrollments") },
+  args: {
+    userId: v.id("adminUsers"),
+    courseId: v.id("lmsCourses"),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.enrollmentId);
+    await requireAuth(ctx, args.userId);
+
+    const learnerId = "spike-learner";
+    return await ctx.db
+      .query("lmsEnrollments")
+      .withIndex("by_learner_course_status", (q) =>
+        q
+          .eq("learnerId", learnerId)
+          .eq("courseId", args.courseId)
+          .eq("status", "active")
+      )
+      .first();
   },
 });

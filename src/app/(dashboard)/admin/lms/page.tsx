@@ -10,11 +10,13 @@ export const metadata = {
 
 // Admin LMS landing page.
 // Protected by the existing admin auth (same middleware matcher + (dashboard)
-// layout session guard as the other admin sub-routes).
+// layout session guard as the other admin sub-routes). Reads the session
+// server-side and props the adminUsers id down so the client mirrors the
+// argument-based gating pattern already standard across the codebase.
 export default async function AdminLmsPage() {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
-  return <LmsCourseList />;
+  return <LmsCourseList userId={session.userId} />;
 }

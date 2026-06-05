@@ -5,9 +5,15 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 
+interface LmsCourseListProps {
+  userId: Id<"adminUsers">;
+}
+
 // Admin LMS course list + ingest entry point (Phase D).
-export function LmsCourseList() {
-  const courses = useQuery(api.lms.courses.listAll);
+// userId flows from the server-side session in the parent page (mirrors the
+// argument-based gating pattern used by adminUsers.list/UserList).
+export function LmsCourseList({ userId }: LmsCourseListProps) {
+  const courses = useQuery(api.lms.courses.listAll, { userId });
   const setStatus = useMutation(api.lms.courses.setStatus);
 
   return (
@@ -66,6 +72,7 @@ export function LmsCourseList() {
                     <button
                       onClick={() =>
                         setStatus({
+                          userId,
                           id: c._id as Id<"lmsCourses">,
                           status: "published",
                         })
