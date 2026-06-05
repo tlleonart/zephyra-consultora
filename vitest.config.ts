@@ -13,6 +13,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // React 19's automatic JSX runtime: tsconfig has `jsx: preserve` because
+  // Next.js handles the transform, but vitest uses esbuild and would default
+  // to the classic runtime (which needs `React` in scope). Email components
+  // (src/emails/*.tsx) opt every suite that imports them into the modern
+  // runtime so we don't have to sprinkle `import React from 'react'`.
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
     include: [
       "tests/unit/**/*.test.ts",
