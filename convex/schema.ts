@@ -210,6 +210,10 @@ export default defineSchema({
     campusCourseId: v.string(), // unique — provider identifier
     title: v.string(),
     slug: v.string(),
+    // E03: admin-editable presentation copy. Optional because legacy Sprint-0
+    // rows have neither, and the public catalog renders gracefully without.
+    description: v.optional(v.string()),
+    coverStorageId: v.optional(v.id("_storage")),
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
@@ -222,6 +226,10 @@ export default defineSchema({
     entryPoint: v.optional(v.string()), // launch resource path
     createdAt: v.number(),
     updatedAt: v.number(),
+    // E03: set when a row is archived because a new ingest of the same
+    // campusCourseId superseded it. PDD §6.3 invariant — existing
+    // lmsEnrollments stay pointed at this archived row.
+    archivedAt: v.optional(v.number()),
     // Soft delete (repo convention)
     deletedAt: v.optional(v.number()),
     deletedBy: v.optional(v.id("adminUsers")),
