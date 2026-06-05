@@ -32,7 +32,8 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const requestMagicLink = async (
   email: string,
-  purpose: Purpose
+  purpose: Purpose,
+  returnTo?: string
 ): Promise<RequestMagicLinkResult> => {
   try {
     const result = await convex.mutation(api.lms.auth.requestMagicLink, {
@@ -45,9 +46,15 @@ export const requestMagicLink = async (
     }
 
     if (result.rawToken) {
+      // returnTo is embedded so /cursos/auth/verify can land the learner on
+      // the originally-intended path after consumeMagicLink succeeds. Kept
+      // optional so existing callers (signup, recovery) need no changes.
+      const returnToParam = returnTo
+        ? `&returnTo=${encodeURIComponent(returnTo)}`
+        : '';
       const magicLinkUrl =
         `${process.env.NEXT_PUBLIC_APP_URL}/cursos/auth/verify` +
-        `?token=${result.rawToken}&purpose=${purpose}`;
+        `?token=${result.rawToken}&purpose=${purpose}${returnToParam}`;
       const expiresInMinutes = ttlMinutesByPurpose[purpose];
 
       await sendLearnerEmail({
