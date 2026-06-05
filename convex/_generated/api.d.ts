@@ -19,6 +19,7 @@ import type * as lms_courses from "../lms/courses.js";
 import type * as lms_manifest from "../lms/manifest.js";
 import type * as lms_scormEvents from "../lms/scormEvents.js";
 import type * as model_auth from "../model/auth.js";
+import type * as model_passwords from "../model/passwords.js";
 import type * as model_softDelete from "../model/softDelete.js";
 import type * as newsletter from "../newsletter.js";
 import type * as projectAchievements from "../projectAchievements.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "lms/manifest": typeof lms_manifest;
   "lms/scormEvents": typeof lms_scormEvents;
   "model/auth": typeof model_auth;
+  "model/passwords": typeof model_passwords;
   "model/softDelete": typeof model_softDelete;
   newsletter: typeof newsletter;
   projectAchievements: typeof projectAchievements;

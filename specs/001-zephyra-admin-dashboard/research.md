@@ -258,8 +258,8 @@ Session-based auth con JWT tokens almacenados en HttpOnly cookies.
   sub: "user_id",
   email: "admin@zephyra.com",
   role: "superadmin",
-  iat: 1234567890,
-  exp: 1234571490 // 1 hour
+  iat: 1700000000,
+  exp: 1700003600 // 1 hour
 }
 ```
 
