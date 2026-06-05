@@ -160,7 +160,12 @@ describe("issueEnrollment", () => {
       courseId: "course-1",
       status: "active",
       progressPercent: 0,
+      // D02: per-SCO counters start zeroed; totalScos is NOT denormalized here
+      // — the course row is the source of truth and is dereferenced inside
+      // recordScormEvent.
+      completedScoCount: 0,
     });
+    expect(enrollmentsInserted[0].scoStates).toEqual({});
     expect(db.insert).toHaveBeenCalledTimes(1);
   });
 

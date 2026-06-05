@@ -86,6 +86,9 @@ export default async function PlayerPage({
   }
 
   // Build the ordered list of launchable SCO items (item -> resource href).
+  // D02: each unit carries its scoId (the item identifier — stable across
+  // re-renders + matches what convex/lms/scormEvents.ts extractScoIds derives
+  // server-side). The mutation arg scoId MUST match one of these.
   const structure = (course.scoStructure ?? {}) as {
     organizations?: {
       title?: string;
@@ -94,12 +97,18 @@ export default async function PlayerPage({
     resources?: { identifier: string; href: string | null; scormType: string | null }[];
   };
   const resources = structure.resources ?? [];
-  const items = (structure.organizations?.items ?? [])
+  const units = (structure.organizations?.items ?? [])
     .map((it) => {
       const res = resources.find((r) => r.identifier === it.identifierref);
-      return res?.href ? { title: it.title, href: res.href } : null;
+      // Only items whose resource is a SCO (or unmarked, matching the parser's
+      // tolerant default) become launchable units — keeps assets out of the nav.
+      const isSco =
+        res !== undefined && (res.scormType === "sco" || res.scormType === null);
+      return res?.href && isSco
+        ? { scoId: it.identifier, title: it.title, href: res.href }
+        : null;
     })
-    .filter((x): x is { title: string; href: string } => x !== null);
+    .filter((x): x is { scoId: string; title: string; href: string } => x !== null);
 
   return (
     <ScormPlayer
@@ -108,8 +117,8 @@ export default async function PlayerPage({
       enrollmentId={enrollment._id}
       slug={slug}
       courseTitle={course.title}
-      entryPoint={course.entryPoint ?? items[0]?.href ?? null}
-      units={items}
+      entryPoint={course.entryPoint ?? units[0]?.href ?? null}
+      units={units}
     />
   );
 }

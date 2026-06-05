@@ -89,11 +89,16 @@ export const issueEnrollment = mutation({
     }
 
     const now = Date.now();
+    // D02: completedScoCount + scoStates start empty. totalScos is NOT
+    // denormalized — it lives on the course row (PDD §6.3 archive-on-duplicate
+    // means re-ingestion can change it; courseId is the source of truth).
     const enrollmentId = await ctx.db.insert("lmsEnrollments", {
       learnerId: customer._id,
       courseId: args.courseId,
       status: "active",
       progressPercent: 0,
+      completedScoCount: 0,
+      scoStates: {},
       updatedAt: now,
     });
 
