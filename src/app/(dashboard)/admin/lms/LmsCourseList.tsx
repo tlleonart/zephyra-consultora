@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -16,25 +16,78 @@ interface IssueFeedback {
   message: string;
 }
 
-// Admin LMS course list + ingest entry point (Phase D).
-// userId flows from the server-side session in the parent page (mirrors the
-// argument-based gating pattern used by adminUsers.list/UserList).
-//
-// D01: per-course inline "Dar acceso" interaction. We open the email input
-// inline on the row (not a modal) to keep the surface trivial — issuing
-// access is a one-field action and a row-level disclosure carries enough UX
-// context (you can see which course you're issuing access to).
+type StatusFilter = "all" | "published" | "draft" | "archived";
+
+const FILTER_LABELS: Record<StatusFilter, string> = {
+  all: "Todos",
+  published: "Publicados",
+  draft: "Borradores",
+  archived: "Archivados",
+};
+
+const STATUS_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
+  published: { bg: "#dcfce7", fg: "#166534", label: "Publicado" },
+  draft: { bg: "#fef3c7", fg: "#854d0e", label: "Borrador" },
+  archived: { bg: "#e5e7eb", fg: "#374151", label: "Archivado" },
+};
+
+function relativeTime(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return "hace segundos";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `hace ${d} días`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `hace ${mo} meses`;
+  const y = Math.floor(mo / 12);
+  return `hace ${y} años`;
+}
+
+function scoCountOf(course: { scoStructure?: unknown }): number {
+  const s = course.scoStructure as
+    | { resources?: Array<{ scormType?: string | null }> }
+    | undefined;
+  if (!s?.resources) return 0;
+  return s.resources.filter(
+    (r) => r.scormType === "sco" || r.scormType === null
+  ).length;
+}
+
+// Admin LMS course list + ingest entry point (Phase D + E03).
+// E03 adds a status filter (default = Publicados), color-coded badges, edit
+// links, and shows archived courses so admins can audit superseded versions.
 export function LmsCourseList({ userId }: LmsCourseListProps) {
   const courses = useQuery(api.lms.courses.listAll, { userId });
   const setStatus = useMutation(api.lms.courses.setStatus);
   const issueEnrollment = useMutation(api.lms.enrollments.issueEnrollment);
 
+  const [filter, setFilter] = useState<StatusFilter>("published");
   const [openCourseId, setOpenCourseId] = useState<Id<"lmsCourses"> | null>(
     null
   );
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Record<string, IssueFeedback>>({});
+
+  const filtered = useMemo(() => {
+    if (!courses) return courses;
+    if (filter === "all") return courses;
+    return courses.filter((c) => c.status === filter);
+  }, [courses, filter]);
+
+  const counts = useMemo(() => {
+    if (!courses) return { all: 0, published: 0, draft: 0, archived: 0 };
+    return {
+      all: courses.length,
+      published: courses.filter((c) => c.status === "published").length,
+      draft: courses.filter((c) => c.status === "draft").length,
+      archived: courses.filter((c) => c.status === "archived").length,
+    };
+  }, [courses]);
 
   const handleIssue = async (courseId: Id<"lmsCourses">) => {
     if (!email.trim()) return;
@@ -94,39 +147,115 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
         </Link>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Filtro por estado"
+        style={{ display: "flex", gap: 6, marginBottom: "1rem", flexWrap: "wrap" }}
+      >
+        {(Object.keys(FILTER_LABELS) as StatusFilter[]).map((key) => {
+          const active = filter === key;
+          return (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilter(key)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 16,
+                border: active ? "1px solid #2d7" : "1px solid #d1d5db",
+                background: active ? "#2d7" : "#fff",
+                color: active ? "#fff" : "#374151",
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              {FILTER_LABELS[key]} ({counts[key]})
+            </button>
+          );
+        })}
+      </div>
+
       {courses === undefined && <p>Cargando...</p>}
       {courses && courses.length === 0 && (
         <p style={{ color: "#666" }}>
           Todavía no hay cursos. Ingestá un paquete SCORM para empezar.
         </p>
       )}
+      {courses && courses.length > 0 && filtered && filtered.length === 0 && (
+        <p style={{ color: "#666" }}>
+          No hay cursos en estado &ldquo;{FILTER_LABELS[filter]}&rdquo;.
+        </p>
+      )}
 
-      {courses && courses.length > 0 && (
+      {filtered && filtered.length > 0 && (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "2px solid #eee" }}>
               <th style={{ padding: 8 }}>Título</th>
-              <th style={{ padding: 8 }}>Slug</th>
               <th style={{ padding: 8 }}>Estado</th>
+              <th style={{ padding: 8 }}>campusCourseId</th>
+              <th style={{ padding: 8 }}>Creado</th>
+              <th style={{ padding: 8 }}>SCOs</th>
               <th style={{ padding: 8 }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {courses.map((c) => {
+            {filtered.map((c) => {
               const courseId = c._id as Id<"lmsCourses">;
               const isOpen = openCourseId === courseId;
               const fb = feedback[courseId];
+              const badge = STATUS_COLORS[c.status] ?? {
+                bg: "#eee",
+                fg: "#333",
+                label: c.status,
+              };
               return (
                 <tr key={c._id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                  <td style={{ padding: 8 }}>{c.title}</td>
                   <td style={{ padding: 8 }}>
-                    <code>{c.slug}</code>
+                    <div style={{ fontWeight: 500 }}>{c.title}</div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      <code>{c.slug}</code>
+                    </div>
                   </td>
-                  <td style={{ padding: 8 }}>{c.status}</td>
                   <td style={{ padding: 8 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <Link href={`/cursos/${c.slug}/player`}>Abrir player</Link>
-                      {c.status !== "published" && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        background: badge.bg,
+                        color: badge.fg,
+                        fontSize: 12,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {badge.label}
+                    </span>
+                  </td>
+                  <td style={{ padding: 8, fontSize: 12, color: "#374151" }}>
+                    <code>{c.campusCourseId}</code>
+                  </td>
+                  <td style={{ padding: 8, fontSize: 12, color: "#6b7280" }}>
+                    {relativeTime(c.createdAt)}
+                  </td>
+                  <td style={{ padding: 8, fontSize: 13 }}>{scoCountOf(c)}</td>
+                  <td style={{ padding: 8 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {c.status === "published" && (
+                        <Link href={`/cursos/${c.slug}/player`}>Abrir player</Link>
+                      )}
+                      <Link href={`/admin/lms/courses/${c.slug}/edit`}>
+                        Editar
+                      </Link>
+                      {c.status === "draft" && (
                         <button
                           onClick={() =>
                             setStatus({
@@ -140,12 +269,25 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                           Publicar
                         </button>
                       )}
-                      {!isOpen && (
+                      {c.status === "published" && (
+                        <button
+                          onClick={() =>
+                            setStatus({
+                              userId,
+                              id: courseId,
+                              status: "draft",
+                            })
+                          }
+                          style={{ cursor: "pointer" }}
+                        >
+                          Despublicar
+                        </button>
+                      )}
+                      {c.status !== "archived" && !isOpen && (
                         <button
                           onClick={() => {
                             setOpenCourseId(courseId);
                             setEmail("");
-                            // Clear stale feedback for this course on reopen.
                             setFeedback((f) => {
                               const next = { ...f };
                               delete next[courseId];
@@ -154,7 +296,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                           }}
                           style={{ cursor: "pointer" }}
                         >
-                          Dar acceso a un alumno
+                          Dar acceso
                         </button>
                       )}
                       {isOpen && (
@@ -163,7 +305,11 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                             e.preventDefault();
                             void handleIssue(courseId);
                           }}
-                          style={{ display: "flex", gap: 6, alignItems: "center" }}
+                          style={{
+                            display: "flex",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
                         >
                           <input
                             type="email"
@@ -182,7 +328,9 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                           <button
                             type="submit"
                             disabled={submitting}
-                            style={{ cursor: submitting ? "default" : "pointer" }}
+                            style={{
+                              cursor: submitting ? "default" : "pointer",
+                            }}
                           >
                             {submitting ? "Enviando..." : "Otorgar"}
                           </button>

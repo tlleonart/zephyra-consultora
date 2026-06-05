@@ -8,18 +8,23 @@ import { api } from "../../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../../convex/_generated/dataModel";
 
 /**
- * SCORM ingestion form (Phase D — AC-D01.1 .. AC-D01.4).
+ * SCORM ingestion form (Phase D — AC-D01.1 .. AC-D01.4; E03 polish).
  *
  * Flow (all client-side until ingestScormPackage):
- *   1) admin picks the .zip from disk
+ *   1) admin picks the .zip from disk (E03: type+size validated before unzip)
  *   2) JSZip reads it in-memory, filters `.bak.*` entries -> (path, blob) pairs
  *   3) per file: generateUploadUrl() -> POST blob -> collect Id<"_storage">,
  *      parallelized in batches so the ~29 MB / ~50-file ingest stays < ~60s
  *   4) ingestScormPackage({ campusCourseId, files: [(path, storageId)] })
  *      reads imsmanifest.xml back from _storage and inserts the lmsCourses row
+ *
+ * E03 error states map the action's purpose-specific failures
+ * (ManifestValidationError code, archive-on-duplicate notice, generic) to
+ * Spanish copy.
  */
 
 const UPLOAD_CONCURRENCY = 8;
+const MAX_ZIP_BYTES = 100 * 1024 * 1024;
 
 interface FileEntry {
   path: string;
@@ -30,6 +35,70 @@ type Phase = "idle" | "unzipping" | "uploading" | "ingesting" | "done" | "error"
 
 interface ScormUploadFormProps {
   userId: Id<"adminUsers">;
+}
+
+interface IngestSuccess {
+  slug: string;
+  parseMs: number;
+  fileCount: number;
+  archivedPriorCount: number;
+  title: string;
+}
+
+interface IngestError {
+  message: string;
+  // Surfaced via the validation-error code in the action error message.
+  hint?: string;
+}
+
+/**
+ * Convex actions wrap thrown errors with a Convex prefix; we look for the
+ * ManifestValidationError code marker the parser embeds and surface a
+ * purpose-specific Spanish message. Falls back to a generic detail line.
+ */
+function describeIngestError(err: unknown): IngestError {
+  const raw = err instanceof Error ? err.message : String(err);
+  // Convex action error format includes the original message; we match on
+  // the validation-error code substrings.
+  if (/Versi.n SCORM no soportada/i.test(raw) || /wrong-version/i.test(raw)) {
+    return {
+      message:
+        "El manifest del paquete SCORM no es válido (versión incorrecta). Verificá que el archivo sea SCORM 1.2.",
+      hint: "wrong-version",
+    };
+  }
+  if (
+    /no es XML/i.test(raw) ||
+    /elemento ra.z <manifest>/i.test(raw) ||
+    /malformed/i.test(raw)
+  ) {
+    return {
+      message:
+        "El manifest del paquete SCORM no es válido (malformado). Verificá que el archivo sea SCORM 1.2.",
+      hint: "malformed",
+    };
+  }
+  if (
+    /missing-fields/i.test(raw) ||
+    /Falta <schemaversion>/i.test(raw) ||
+    /Falta el elemento <organizations>/i.test(raw) ||
+    /Falta el elemento <resources>/i.test(raw) ||
+    /no tiene el atributo identifier/i.test(raw) ||
+    /<resources> est.* vac.o/i.test(raw)
+  ) {
+    return {
+      message:
+        "El manifest del paquete SCORM no es válido (campos requeridos faltantes). Verificá que el archivo sea SCORM 1.2.",
+      hint: "missing-fields",
+    };
+  }
+  if (/imsmanifest\.xml not found/i.test(raw)) {
+    return {
+      message:
+        "No se encontró imsmanifest.xml en el paquete. Verificá que el zip sea SCORM 1.2 con el manifest en la raíz.",
+    };
+  }
+  return { message: `Error inesperado durante la ingesta. Detalle: ${raw}` };
 }
 
 // userId is propped from the server-side session (admin-only route) and passed
@@ -44,11 +113,9 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
   const [campusCourseId, setCampusCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [log, setLog] = useState<string[]>([]);
-  const [result, setResult] = useState<{
-    slug: string;
-    parseMs: number;
-    fileCount: number;
-  } | null>(null);
+  const [result, setResult] = useState<IngestSuccess | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [ingestError, setIngestError] = useState<IngestError | null>(null);
 
   const addLog = (line: string) =>
     setLog((prev) => [...prev, `${new Date().toLocaleTimeString()}  ${line}`]);
@@ -65,10 +132,34 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
     return { path: entry.path, storageId };
   }
 
+  function validateFile(file: File): string | null {
+    const isZipName = /\.zip$/i.test(file.name);
+    const isZipMime =
+      file.type === "application/zip" ||
+      file.type === "application/x-zip-compressed" ||
+      file.type === ""; // some browsers omit type for .zip
+    if (!isZipName || !isZipMime) {
+      return "El archivo debe ser un paquete .zip de SCORM 1.2.";
+    }
+    if (file.size > MAX_ZIP_BYTES) {
+      return "El archivo excede el tamaño máximo (100 MB).";
+    }
+    return null;
+  }
+
   async function handleFile(file: File) {
     setLog([]);
     setResult(null);
+    setIngestError(null);
+    setValidationError(null);
     setProgress({ done: 0, total: 0 });
+
+    const fileErr = validateFile(file);
+    if (fileErr) {
+      setValidationError(fileErr);
+      setPhase("error");
+      return;
+    }
 
     try {
       // --- Step 1+2: unzip + filter .bak ---
@@ -131,24 +222,37 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
       addLog(
         `Curso creado: "${r.title}" (slug: ${r.slug}). Manifest parse: ${r.parseMs}ms.`
       );
-      setResult({ slug: r.slug, parseMs: r.parseMs, fileCount: r.fileCount });
+      if (r.archivedPriorCount > 0) {
+        addLog(`Se archivaron ${r.archivedPriorCount} versión(es) anterior(es).`);
+      }
+      setResult({
+        slug: r.slug,
+        parseMs: r.parseMs,
+        fileCount: r.fileCount,
+        archivedPriorCount: r.archivedPriorCount,
+        title: r.title,
+      });
       setPhase("done");
     } catch (err) {
-      addLog(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
+      const described = describeIngestError(err);
+      setIngestError(described);
+      addLog(`ERROR: ${described.message}`);
       setPhase("error");
     }
   }
 
   const busy =
     phase === "unzipping" || phase === "uploading" || phase === "ingesting";
+  const uploadPercent =
+    progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <section style={{ maxWidth: 760, padding: "2rem" }}>
       <h1 style={{ marginBottom: "0.5rem" }}>Ingestar curso SCORM</h1>
       <p style={{ color: "#666", marginBottom: "1.5rem" }}>
-        Seleccioná un paquete SCORM 1.2 (.zip). Se descomprime en el navegador,
-        se suben los archivos a Convex <code>_storage</code> y se parsea el
-        manifest para crear el curso en estado borrador.
+        Seleccioná un paquete SCORM 1.2 (.zip, hasta 100 MB). Se descomprime en
+        el navegador, se suben los archivos a Convex <code>_storage</code> y se
+        parsea el manifest para crear el curso en estado borrador.
       </p>
 
       <div style={{ display: "grid", gap: "1rem", marginBottom: "1.5rem" }}>
@@ -173,10 +277,10 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
           />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
-          <span>Paquete SCORM (.zip)</span>
+          <span>Paquete SCORM (.zip, máx. 100 MB)</span>
           <input
             type="file"
-            accept=".zip,application/zip"
+            accept=".zip"
             disabled={busy}
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -185,6 +289,22 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
           />
         </label>
       </div>
+
+      {validationError && (
+        <div
+          role="alert"
+          style={{
+            padding: "0.75rem 1rem",
+            background: "#fdecea",
+            border: "1px solid #f5c2c0",
+            borderRadius: 8,
+            marginBottom: "1rem",
+            color: "#7a1310",
+          }}
+        >
+          {validationError}
+        </div>
+      )}
 
       {progress.total > 0 && (
         <div style={{ marginBottom: "1rem" }}>
@@ -199,15 +319,32 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
             <div
               style={{
                 height: "100%",
-                width: `${(progress.done / progress.total) * 100}%`,
+                width: `${uploadPercent}%`,
                 background: "#2d7",
                 transition: "width 0.2s",
               }}
             />
           </div>
           <small>
-            {phase} — {progress.done}/{progress.total} archivos
+            Subiendo archivo {progress.done} de {progress.total} ({uploadPercent}%)
           </small>
+        </div>
+      )}
+
+      {ingestError && (
+        <div
+          role="alert"
+          style={{
+            padding: "1rem",
+            background: "#fdecea",
+            border: "1px solid #f5c2c0",
+            borderRadius: 8,
+            marginBottom: "1rem",
+            color: "#7a1310",
+          }}
+        >
+          <strong>No se pudo ingestar el paquete.</strong>
+          <div style={{ marginTop: 6 }}>{ingestError.message}</div>
         </div>
       )}
 
@@ -223,7 +360,13 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
         >
           <strong>Curso ingestado.</strong> {result.fileCount} archivos. Manifest
           parse: {result.parseMs}ms.
-          <div style={{ marginTop: 8 }}>
+          {result.archivedPriorCount > 0 && (
+            <div style={{ marginTop: 8, color: "#555" }}>
+              Curso publicado como nueva versión. La versión anterior queda
+              archivada para los alumnos ya inscritos.
+            </div>
+          )}
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
             <button
               onClick={() => router.push(`/cursos/${result.slug}/player`)}
               style={{
@@ -236,6 +379,18 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
               }}
             >
               Abrir player →
+            </button>
+            <button
+              onClick={() => router.push("/admin/lms")}
+              style={{
+                padding: "8px 14px",
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: 6,
+                cursor: "pointer",
+              }}
+            >
+              Volver al listado
             </button>
           </div>
         </div>

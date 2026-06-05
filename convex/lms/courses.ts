@@ -57,6 +57,24 @@ export const getBySlug = query({
   },
 });
 
+// Admin-only: fetch by slug regardless of status (drafts + archived included).
+// E03: backs the edit page so admins can edit drafts/archived rows that
+// getBySlug (public) hides.
+export const getBySlugAdmin = query({
+  args: { userId: v.id("adminUsers"), slug: v.string() },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
+    const course = await ctx.db
+      .query("lmsCourses")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (!course || course.deletedAt) return null;
+    return course;
+  },
+});
+
 // Admin-only: returns full row regardless of status.
 export const getById = query({
   args: { userId: v.id("adminUsers"), id: v.id("lmsCourses") },
@@ -116,6 +134,7 @@ export const ingestScormPackage = action({
     entryPoint: string | null;
     fileCount: number;
     parseMs: number;
+    archivedPriorCount: number;
   }> => {
     // Admin-only ingest. Actions have no ctx.db, so the gate runs via
     // runQuery against the existing public getCurrentUser query (same logic
@@ -188,6 +207,7 @@ export const ingestScormPackage = action({
       entryPoint,
       fileCount: args.files.length,
       parseMs,
+      archivedPriorCount: inserted.archivedPriorCount ?? 0,
     };
   },
 });
@@ -207,16 +227,49 @@ export const insertCourse = internalMutation({
     entryPoint: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // E03 spec-drift FIX (PDD §6.3): CAMPUS does not reversion. A re-ingest of
+    // the same campusCourseId must archive any non-archived predecessor row
+    // BEFORE inserting the new draft, so existing lmsEnrollments stay pointed
+    // at the archived row (no mid-course break) and the public catalog only
+    // surfaces the most recent published version.
+    const now = Date.now();
+    const priorRows = await ctx.db
+      .query("lmsCourses")
+      .withIndex("by_campus_course_id", (q) =>
+        q.eq("campusCourseId", args.campusCourseId)
+      )
+      .collect();
+    let archivedCount = 0;
+    for (const prior of priorRows) {
+      if (prior.deletedAt) continue;
+      if (prior.status === "archived") continue;
+      await ctx.db.patch(prior._id, {
+        status: "archived",
+        archivedAt: now,
+        updatedAt: now,
+      });
+      archivedCount++;
+    }
+
     let slug = slugify(args.title);
-    const existing = await ctx.db
+    const existingSlug = await ctx.db
       .query("lmsCourses")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .first();
-    if (existing) {
+    if (existingSlug) {
       slug = `${slug}-${args.campusCourseId.slice(-6)}`;
     }
+    // Slug collision can still happen when the same campusCourseId is
+    // re-ingested twice in a row (the disambiguated slug from the previous
+    // ingest is now also taken). Append the timestamp tail in that case.
+    const stillExists = await ctx.db
+      .query("lmsCourses")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+    if (stillExists) {
+      slug = `${slug}-${now.toString().slice(-6)}`;
+    }
 
-    const now = Date.now();
     const courseId = await ctx.db.insert("lmsCourses", {
       campusCourseId: args.campusCourseId,
       title: args.title,
@@ -230,7 +283,46 @@ export const insertCourse = internalMutation({
       updatedAt: now,
     });
 
-    return { courseId, slug };
+    return { courseId, slug, archivedPriorCount: archivedCount };
+  },
+});
+
+/**
+ * updateCourseMeta — admin-editable presentation copy.
+ *
+ * E03 (AC-E03.8): title, description (TipTap HTML), cover image. Slug is NOT
+ * regenerated on title change — slugs are URLs and breaking them would orphan
+ * existing learner links. SCORM payload fields (manifest, scoFiles,
+ * scoStructure, entryPoint, campusCourseId) are intentionally NOT editable
+ * here; those only change via re-ingest.
+ */
+export const updateCourseMeta = mutation({
+  args: {
+    userId: v.id("adminUsers"),
+    id: v.id("lmsCourses"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    coverStorageId: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
+    const course = await ctx.db.get(args.id);
+    if (!course || course.deletedAt) {
+      throw new Error("Curso no encontrado");
+    }
+    const trimmed = args.title.trim();
+    if (!trimmed) {
+      throw new Error("El título no puede estar vacío");
+    }
+
+    await ctx.db.patch(args.id, {
+      title: trimmed,
+      description: args.description?.trim() || undefined,
+      coverStorageId: args.coverStorageId,
+      updatedAt: Date.now(),
+    });
   },
 });
 

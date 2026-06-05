@@ -38,7 +38,11 @@ const adminUser = {
   isActive: true,
 };
 
-const minimalManifestXml = `<manifest>
+// Must satisfy the E03 strict parser: identifier + schemaversion=1.2 +
+// organizations + non-empty resources.
+const minimalManifestXml = `<?xml version="1.0"?>
+<manifest identifier="TEST-MANIFEST">
+  <metadata><schemaversion>1.2</schemaversion></metadata>
   <organizations>
     <organization identifier="ORG">
       <title>Test Course</title>
@@ -169,28 +173,83 @@ describe("ingestScormPackage action — manifest pipeline", () => {
 
 // --- insertCourse internalMutation -----------------------------------------
 //
-// NOTE on the spec line "duplicate campusCourseId archives old + inserts new":
-// the current implementation (Sprint 1 B-merge) DOES NOT archive on collision.
-// It resolves slug uniqueness by suffixing the campusCourseId last-6 — a
-// brand-new draft row is inserted alongside the existing one. We test the
-// real behavior; the archive-old semantic is a deferred enhancement
-// (tracked in the code-change report; see notes).
+// E03 spec-drift FIX (PDD §6.3): re-ingesting the same campusCourseId now
+// archives every non-archived predecessor row before inserting the new draft.
+// These tests assert that contract — including the edge case where all prior
+// rows are already archived (no double-archive, just an insert).
 
-const buildMutationCtx = (overrides: Partial<{
-  existingSlugRow: unknown;
-}> = {}) => {
-  const inserts: Array<{ table: string; row: unknown }> = [];
+/**
+ * Hand-rolled mock that supports two query shapes the implementation uses:
+ *   - by_campus_course_id .eq("campusCourseId", id) .collect()
+ *   - by_slug             .eq("slug", s)            .first()
+ *
+ * We track patches and inserts so tests can assert the archive + insert pair.
+ */
+type LmsRow = {
+  _id: string;
+  slug: string;
+  status: "draft" | "published" | "archived";
+  campusCourseId: string;
+  archivedAt?: number;
+  deletedAt?: number;
+};
+
+const buildMutationCtx = (
+  overrides: Partial<{
+    priorRows: LmsRow[];
+    existingSlugRows: Record<string, LmsRow>; // slug -> row
+  }> = {}
+) => {
+  const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+  const patches: Array<{ id: string; row: Record<string, unknown> }> = [];
+  const priorRows = overrides.priorRows ?? [];
+  const existingSlugRows = overrides.existingSlugRows ?? {};
+
   const db = {
-    query: vi.fn().mockImplementation(() => ({
-      withIndex: vi.fn().mockReturnThis(),
-      first: vi.fn().mockResolvedValue(overrides.existingSlugRow ?? null),
-    })),
-    insert: vi.fn().mockImplementation(async (table: string, row: unknown) => {
-      inserts.push({ table, row });
-      return `${table}-${inserts.length}`;
+    query: vi.fn().mockImplementation(() => {
+      // The handler chains: .withIndex(idxName, cb).first() OR .collect().
+      // We pretend to introspect by storing the index name across calls.
+      let activeIndex: string | null = null;
+      let activeArg: string | null = null;
+      const chain = {
+        withIndex: vi.fn().mockImplementation((indexName: string, cb: (q: { eq: (field: string, value: string) => unknown }) => unknown) => {
+          activeIndex = indexName;
+          cb({
+            eq: (_field: string, value: string) => {
+              activeArg = value;
+              return chain;
+            },
+          });
+          return chain;
+        }),
+        first: vi.fn().mockImplementation(async () => {
+          if (activeIndex === "by_slug" && activeArg) {
+            return existingSlugRows[activeArg] ?? null;
+          }
+          return null;
+        }),
+        collect: vi.fn().mockImplementation(async () => {
+          if (activeIndex === "by_campus_course_id") {
+            return priorRows.filter((r) => r.campusCourseId === activeArg);
+          }
+          return [];
+        }),
+      };
+      return chain;
     }),
+    insert: vi
+      .fn()
+      .mockImplementation(async (table: string, row: Record<string, unknown>) => {
+        inserts.push({ table, row });
+        return `${table}-${inserts.length}`;
+      }),
+    patch: vi
+      .fn()
+      .mockImplementation(async (id: string, row: Record<string, unknown>) => {
+        patches.push({ id, row });
+      }),
   };
-  return { ctx: { db }, db, inserts };
+  return { ctx: { db }, db, inserts, patches };
 };
 
 describe("insertCourse internal mutation", () => {
@@ -205,9 +264,10 @@ describe("insertCourse internal mutation", () => {
       manifest: "<x/>",
       scoStructure: {},
       entryPoint: "index.html",
-    })) as { courseId: string; slug: string };
+    })) as { courseId: string; slug: string; archivedPriorCount: number };
 
     expect(result.slug).toBe("diversidad-equidad-e-inclusion");
+    expect(result.archivedPriorCount).toBe(0);
     expect(inserts).toHaveLength(1);
     expect(inserts[0].row).toMatchObject({
       campusCourseId: "CAMPUS-001",
@@ -218,7 +278,14 @@ describe("insertCourse internal mutation", () => {
 
   it("disambiguates the slug when a course with the same slug already exists", async () => {
     const { ctx } = buildMutationCtx({
-      existingSlugRow: { _id: "existing", slug: "duplicate-title" },
+      existingSlugRows: {
+        "duplicate-title": {
+          _id: "existing",
+          slug: "duplicate-title",
+          status: "published",
+          campusCourseId: "OTHER",
+        },
+      },
     });
     const result = (await insertHandler(ctx, {
       campusCourseId: "CAMPUS-ABCDEF123456",
@@ -228,5 +295,102 @@ describe("insertCourse internal mutation", () => {
       scoStructure: {},
     })) as { slug: string };
     expect(result.slug).toBe("duplicate-title-123456");
+  });
+
+  it("archives the prior non-archived row when re-ingesting the same campusCourseId (PDD §6.3)", async () => {
+    const prior: LmsRow = {
+      _id: "course-prior",
+      slug: "diversidad-equidad-e-inclusion",
+      status: "published",
+      campusCourseId: "CAMPUS-XYZ",
+    };
+    const { ctx, inserts, patches } = buildMutationCtx({
+      priorRows: [prior],
+      // The new slugified title collides with the prior published row, so the
+      // suffix branch kicks in too.
+      existingSlugRows: {
+        "diversidad-equidad-e-inclusion": prior,
+      },
+    });
+    const result = (await insertHandler(ctx, {
+      campusCourseId: "CAMPUS-XYZ",
+      title: "Diversidad, Equidad e Inclusión",
+      scoFiles: {},
+      manifest: "<x/>",
+      scoStructure: {},
+    })) as { archivedPriorCount: number; slug: string };
+
+    expect(result.archivedPriorCount).toBe(1);
+    expect(patches).toHaveLength(1);
+    expect(patches[0]).toMatchObject({
+      id: "course-prior",
+      row: { status: "archived" },
+    });
+    expect(patches[0].row).toHaveProperty("archivedAt");
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].row).toMatchObject({ status: "draft" });
+  });
+
+  it("does NOT re-archive rows that are already archived (idempotent re-ingest)", async () => {
+    const alreadyArchived: LmsRow = {
+      _id: "course-old",
+      slug: "old-slug",
+      status: "archived",
+      campusCourseId: "CAMPUS-ARCH",
+      archivedAt: 1000,
+    };
+    const { ctx, inserts, patches } = buildMutationCtx({
+      priorRows: [alreadyArchived],
+    });
+    const result = (await insertHandler(ctx, {
+      campusCourseId: "CAMPUS-ARCH",
+      title: "Fresh Title",
+      scoFiles: {},
+      manifest: "<x/>",
+      scoStructure: {},
+    })) as { archivedPriorCount: number };
+
+    expect(result.archivedPriorCount).toBe(0);
+    expect(patches).toHaveLength(0);
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].row).toMatchObject({ status: "draft" });
+  });
+
+  it("archives MULTIPLE non-archived prior rows on re-ingest", async () => {
+    const draftPrior: LmsRow = {
+      _id: "course-draft",
+      slug: "x",
+      status: "draft",
+      campusCourseId: "CAMPUS-MULTI",
+    };
+    const publishedPrior: LmsRow = {
+      _id: "course-published",
+      slug: "x2",
+      status: "published",
+      campusCourseId: "CAMPUS-MULTI",
+    };
+    const archivedPrior: LmsRow = {
+      _id: "course-archived",
+      slug: "x3",
+      status: "archived",
+      campusCourseId: "CAMPUS-MULTI",
+      archivedAt: 1000,
+    };
+    const { ctx, patches } = buildMutationCtx({
+      priorRows: [draftPrior, publishedPrior, archivedPrior],
+    });
+    const result = (await insertHandler(ctx, {
+      campusCourseId: "CAMPUS-MULTI",
+      title: "New",
+      scoFiles: {},
+      manifest: "<x/>",
+      scoStructure: {},
+    })) as { archivedPriorCount: number };
+
+    expect(result.archivedPriorCount).toBe(2);
+    expect(patches.map((p) => p.id).sort()).toEqual([
+      "course-draft",
+      "course-published",
+    ]);
   });
 });
