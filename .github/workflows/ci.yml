@@ -42,6 +42,13 @@ jobs:
   test:
     name: Test (Vitest)
     runs-on: ubuntu-latest
+    env:
+      # MAGIC_LINK_HMAC_KEY is required by convex/model/passwords at import
+      # time when verifyOpaqueToken's HMAC path runs. Tests pin a deterministic
+      # 64-hex key here (matches tests/setup.ts default) so opaque-token /
+      # legacy discrimination is reproducible without leaking the prod key.
+      MAGIC_LINK_HMAC_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      SESSION_SECRET: "test-session-secret-not-for-production-use"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,12 +58,13 @@ jobs:
       - run: npm ci
       - run: npm test
 
-# NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job in Sprint 0.
-# There are no e2e specs and no playwright.config in the repo yet, and the SCORM
-# demo loop requires a live Convex dev deploy + a running Next.js server (an
-# external service), which violates the "runs clean locally without external
-# services" bar for AC-C01.2. Add a `test:e2e` job once headless specs exist
-# that can run against a built app without a live Convex backend (Sprint 1+).
+# NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job here in
+# Sprint 1 either. The SCORM demo loop requires a live Convex dev deploy
+# (NEXT_PUBLIC_CONVEX_URL pointing at dev:exuberant-corgi-88) plus a running
+# Next.js server. Adding a separate `e2e.yml` workflow gated on a
+# `CONVEX_DEPLOY_KEY` secret + a per-PR ephemeral preview is tracked for
+# Sprint 2. For now `npm run test:e2e` is a local-only dev tool documented
+# in tests/e2e/demo-loop.spec.ts.
 #
 # NOTE — Vercel preview deploys (AC-4) are triggered by the Vercel Git
 # integration on push/PR, outside this workflow. Keeping `build` green is
