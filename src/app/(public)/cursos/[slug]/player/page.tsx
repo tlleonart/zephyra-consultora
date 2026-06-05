@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
  * ensured client-side (a mutation can't run during server render), so the
  * client component calls ensureSpikeEnrollment on mount.
  *
- * AUTH (B02): the player calls gated mutations (ensureSpikeEnrollment,
- * recordScormEvent), so the page itself requires a logged-in admin user.
- * Sprint-0 spike uses admin masquerading as learner; C04 will add a learner
- * middleware so non-admin learners can reach the player after seat-claim.
+ * AUTH: C04 added middleware protection (session-learner cookie). The page
+ * still calls getSession() (admin) because ScormPlayer + gated mutations are
+ * typed against Id<"adminUsers"> from the Sprint-0 spike; rewiring them to
+ * Id<"lmsCustomers"> is a separate task (post-C04). Net effect: a learner
+ * with no admin session can pass middleware but the page-level admin guard
+ * still redirects to /login — Tomas-known gap, tracked outside Sprint 1
+ * Phase C scope.
  */
 export default async function PlayerPage({
   params,
