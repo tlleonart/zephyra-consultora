@@ -130,3 +130,24 @@ Razones del aislamiento:
 ## 5. Disciplina de regresión
 
 Antes de cerrar cualquier fase, verificar que el sitio institucional sigue funcionando: `/`, `/blog`, `/proyectos`, `/contacto`, `/admin`. El cambio de schema es aditivo; si algo regresiona, revertir y aislar.
+
+## 6. Dev superadmin bootstrap (Sprint 1, post B01)
+
+The `convex/adminUsers.ts:seedSuperAdmin` internal mutation no longer carries a
+literal default password. To bootstrap a dev superadmin row:
+
+1. Set `DEV_ADMIN_DEFAULT_PASSWORD` in `.env.local` to any value (32-byte hex
+   recommended — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
+2. Push the same value to the Convex dev deployment:
+   ```bash
+   npx convex env set DEV_ADMIN_DEFAULT_PASSWORD <value>
+   ```
+3. Invoke the seed from the Convex dashboard or CLI:
+   ```bash
+   npx convex run adminUsers:seedSuperAdmin
+   ```
+   (If the env var is missing, the mutation throws a clear error — no silent
+   fallback to a known literal.)
+
+`MAGIC_LINK_HMAC_KEY` follows the same flow — required by `requestPasswordReset`
+and the learner magic-link mutations landing in B02/C02.

@@ -4,9 +4,8 @@ This directory records the significant architectural decisions for the Zephyra
 platform, including the LMS feature track introduced in Sprint 0
 (`specs/008-zephyra-lms-foundation`).
 
-ADRs are written in English (Carbono14 convention for internal engineering
-artifacts) and use the lightweight Nygard format: **Context → Decision →
-Consequences**.
+ADRs are written in English (internal engineering convention) and use the
+lightweight Nygard format: **Context → Decision → Consequences**.
 
 Directory choice: ADRs live at the repository root under `docs/decisions/`
 (the default) rather than per-spec (`specs/008-.../decisions/`). The repo had no
@@ -23,6 +22,7 @@ correct home.
 | [ADR-0002](./0002-scorm-1.2-as-canonical-content-format.md) | SCORM 1.2 as the canonical content format | Accepted |
 | ADR-0003 | _(Auth library selection)_ | **Dropped** |
 | [ADR-0004](./0004-lms-as-feature-track-not-separate-repo.md) | The LMS lives in `zephyra-consultora` as a feature track, not a separate repo | Accepted |
+| [ADR-0008](./0008-password-hashing-argon2id-plus-lazy-rehash.md) | Password hashing: argon2id (via `hash-wasm`) + lazy re-hash + HMAC for opaque tokens | Draft |
 
 ### Why ADR-0003 is dropped
 

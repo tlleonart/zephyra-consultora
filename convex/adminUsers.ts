@@ -2,23 +2,12 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { requireAuth, requireRole, AuthError } from "./model/auth";
-
-// Simple password hashing (in production, use bcrypt via a Convex action)
-const hashPassword = async (password: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "zephyra-salt-2024");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-};
-
-const verifyPassword = async (
-  password: string,
-  hash: string
-): Promise<boolean> => {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
-};
+import {
+  hashPassword,
+  verifyPassword,
+  hashOpaqueToken,
+  verifyOpaqueToken,
+} from "./model/passwords";
 
 // ============================================
 // QUERIES
@@ -87,13 +76,19 @@ export const login = mutation({
       throw new AuthError("Credenciales inválidas");
     }
 
-    const isValid = await verifyPassword(args.password, user.passwordHash);
-    if (!isValid) {
+    const result = await verifyPassword(args.password, user.passwordHash);
+    if (!result.valid) {
       throw new AuthError("Credenciales inválidas");
     }
 
-    // Update last login
-    await ctx.db.patch(user._id, { lastLoginAt: Date.now() });
+    // Lazy migration: legacy SHA-256 rows get rehashed to argon2id transparently.
+    const patch: { lastLoginAt: number; passwordHash?: string } = {
+      lastLoginAt: Date.now(),
+    };
+    if (result.needsRehash) {
+      patch.passwordHash = await hashPassword(args.password);
+    }
+    await ctx.db.patch(user._id, patch);
 
     const { passwordHash, ...safeUser } = user;
     return safeUser;
@@ -254,9 +249,10 @@ export const requestPasswordReset = mutation({
       await ctx.db.delete(token._id);
     }
 
-    // Create new token (raw token returned, hash stored)
+    // HMAC-SHA-256 of the random opaque token (Q6 lock — argon2 is the wrong
+    // tool for opaque random tokens).
     const rawToken = crypto.randomUUID();
-    const tokenHash = await hashPassword(rawToken);
+    const tokenHash = await hashOpaqueToken(rawToken);
 
     await ctx.db.insert("passwordResetTokens", {
       adminUserId: user._id,
@@ -285,12 +281,27 @@ export const resetPassword = mutation({
       throw new Error("La contraseña debe tener al menos 8 caracteres");
     }
 
-    const tokenHash = await hashPassword(args.token);
-
-    const tokenRecord = await ctx.db
+    // Fast path: lookup by HMAC hash on the by_token index.
+    const hmacHash = await hashOpaqueToken(args.token);
+    let tokenRecord = await ctx.db
       .query("passwordResetTokens")
-      .withIndex("by_token", (q) => q.eq("tokenHash", tokenHash))
+      .withIndex("by_token", (q) => q.eq("tokenHash", hmacHash))
       .first();
+
+    // Legacy fallback: scan candidate rows by lazy verify if HMAC missed.
+    // Tokens are single-use + short-lived, so legacy rows drain quickly.
+    let isLegacyToken = false;
+    if (!tokenRecord) {
+      const candidates = await ctx.db.query("passwordResetTokens").collect();
+      for (const candidate of candidates) {
+        const verdict = await verifyOpaqueToken(args.token, candidate.tokenHash);
+        if (verdict.valid) {
+          tokenRecord = candidate;
+          isLegacyToken = verdict.isLegacy;
+          break;
+        }
+      }
+    }
 
     if (!tokenRecord) {
       throw new Error("Token inválido o expirado");
@@ -309,11 +320,13 @@ export const resetPassword = mutation({
       throw new Error("Usuario no encontrado");
     }
 
-    // Update password
+    // Update password to argon2id.
     const newPasswordHash = await hashPassword(args.newPassword);
     await ctx.db.patch(user._id, { passwordHash: newPasswordHash });
 
-    // Mark token as used
+    // Mark token as used. Legacy token rows are single-use so we do not
+    // bother re-hashing them to HMAC; usedAt closes the row.
+    void isLegacyToken;
     await ctx.db.patch(tokenRecord._id, { usedAt: Date.now() });
 
     return { success: true };
@@ -338,7 +351,16 @@ export const seedSuperAdmin = internalMutation({
       return;
     }
 
-    const passwordHash = await hashPassword("changeme123");
+    // Dev-only bootstrap. The default password MUST come from env so no
+    // shared literal lives in the repo. Operators set DEV_ADMIN_DEFAULT_PASSWORD
+    // in .env.local (gitignored) before running this internal mutation.
+    const seedPassword = process.env.DEV_ADMIN_DEFAULT_PASSWORD;
+    if (!seedPassword) {
+      throw new Error(
+        "DEV_ADMIN_DEFAULT_PASSWORD is not set; refusing to seed super admin with a known literal."
+      );
+    }
+    const passwordHash = await hashPassword(seedPassword);
 
     await ctx.db.insert("adminUsers", {
       email: "admin@zephyraconsultora.com",

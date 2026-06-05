@@ -369,7 +369,7 @@ export const seedSuperAdmin = internalMutation({
       return;
     }
 
-    const passwordHash = await hash("changeme123", 10);
+    const passwordHash = await hash(process.env.DEV_ADMIN_DEFAULT_PASSWORD!, 10);
 
     await ctx.db.insert("adminUsers", {
       email: "admin@zephyraconsultora.com",
