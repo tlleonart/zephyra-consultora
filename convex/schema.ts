@@ -269,4 +269,59 @@ export default defineSchema({
     .index("by_enrollment", ["enrollmentId"])
     .index("by_enrollment_timestamp", ["enrollmentId", "timestamp"])
     .index("by_commit", ["commitId"]),
+
+  // ============================================
+  // LMS — Sprint 1 additions (PDD v1.3 §6.3 + §7.5)
+  // Learner identity + magic-link tokens. Additive only.
+  // ============================================
+
+  // Learner / customer aggregate. Three subtypes — individual buyer,
+  // organization admin, organization-managed learner. Magic-link is the
+  // primary auth path; passwordHash is optional and only present once a
+  // learner opts in to set one.
+  lmsCustomers: defineTable({
+    email: v.string(), // lowercased
+    type: v.union(
+      v.literal("individual"),
+      v.literal("org_admin"),
+      v.literal("org_learner")
+    ),
+    passwordHash: v.optional(v.string()), // argon2id encoded string; absent until learner opts to set
+    organizationId: v.optional(v.string()), // lmsOrganizations lands in Sprint 3 — string placeholder for now
+    activatedAt: v.optional(v.number()), // set on first successful magic-link consume
+    lastLoginAt: v.optional(v.number()),
+    createdAt: v.number(),
+    // Soft delete (repo convention).
+    // Learners NEVER appear as deletedBy in ANY row (PDD H-2 mitigation):
+    // self-initiated Habeas Data deletions are processed by an admin, who
+    // is the recorded actor.
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  })
+    .index("by_email", ["email"])
+    .index("by_type", ["type"])
+    .index("by_organization", ["organizationId"])
+    .index("by_deleted", ["deletedAt"]),
+
+  // Magic-link tokens. Opaque random tokens stored as HMAC-SHA-256 of the
+  // raw token (NOT argon2id — argon2id is the wrong tool for opaque random
+  // tokens; it burns CPU for no security gain). Single-use: `usedAt` is
+  // stamped on consume. TTL is enforced in the consume mutation, not the
+  // schema (30min for activation, 15min for signin/recovery).
+  lmsMagicLinkTokens: defineTable({
+    email: v.string(), // lowercased — may not yet be an lmsCustomers row (activation creates it on consume)
+    tokenHash: v.string(), // HMAC-SHA-256(rawToken, MAGIC_LINK_HMAC_KEY)
+    purpose: v.union(
+      v.literal("learner_activation"),
+      v.literal("learner_signin"),
+      v.literal("learner_recovery")
+    ),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    createdFromIp: v.optional(v.string()), // forensic, optional
+  })
+    .index("by_token", ["tokenHash"])
+    .index("by_email_purpose", ["email", "purpose"])
+    .index("by_expires", ["expiresAt"]),
 });

@@ -98,3 +98,76 @@ Agregado **Enrollment**. En Sprint 0 se crea un row placeholder manual para el s
 - `lmsEnrollments` se proyecta desde `lmsScormEvents` (Fase D): cada evento se appendea Y el agregado se patchea (`progressPercent`, `scoreRaw`, `lessonStatus`, `suspendData`).
 
 El resto de los invariantes del §6.3 (balance de seats, idempotencia de payment, etc.) son Sprint 1.
+
+---
+
+## Sprint 1 — Identidad de learner + Magic-link tokens
+
+Sprint 1 añade dos tablas aditivas al schema. Las tres tablas Sprint 0 (`lmsCourses`, `lmsEnrollments`, `lmsScormEvents`) y las 11 institucionales quedan byte-idénticas.
+
+### `lmsCustomers`
+
+Agregado **Customer / Learner**. Tres subtipos: comprador individual (B2C), administrador de organización (B2B-admin), learner gestionado por organización (B2B-learner).
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `email` | `string` | Lowercased. Único de facto vía índice + pre-check (la unicidad estricta llega cuando exista la action de creación en Phase B). |
+| `type` | `"individual" \| "org_admin" \| "org_learner"` | Subtipo del aggregate. |
+| `passwordHash` | `string?` | argon2id encoded string. Ausente hasta que el learner opte a setearlo (magic-link es el path primario). |
+| `organizationId` | `string?` | Placeholder hasta Sprint 3; cuando aterrice `lmsOrganizations` se promueve a `Id<"lmsOrganizations">`. |
+| `activatedAt` | `number?` | Timestamp del primer consume exitoso de magic-link de activación. |
+| `lastLoginAt` | `number?` | Última sesión exitosa. |
+| `createdAt` | `number` | |
+| `deletedAt` | `number?` | Soft-delete. |
+| `deletedBy` | `Id<"adminUsers">?` | **Solo administradores** pueden borrar (mitigación PDD H-2). |
+
+**Índices:**
+- `by_email` — `["email"]`
+- `by_type` — `["type"]`
+- `by_organization` — `["organizationId"]`
+- `by_deleted` — `["deletedAt"]`
+
+**Decisión: `passwordHash` opcional**
+Magic-link es el path primario de auth para learners. Forzar password al activar suma fricción sin valor de seguridad: el flow de consume del magic-link ya valida posesión del email, y el token tiene TTL corto + single-use. El learner puede setear password después si quiere (`POST /api/auth/learner/set-password` en Phase C); también puede no hacerlo nunca y seguir entrando por magic-link. El campo permanece optional para reflejar ese estado real, no un `string` con valor centinela.
+
+**Decisión: learners nunca como `deletedBy`**
+PDD §H-2 (Habeas Data): el self-service de eliminación de cuenta del learner se procesa por un admin, no por el propio learner. Razones: (a) traza forense — siempre hay un actor con rol admin auditable; (b) ventana de reversión — el admin puede confirmar antes de soft-delete; (c) modelo de poderes — el dueño del dato (Zephyra) es el responsable legal del borrado. Constraint: `deletedBy` es `Id<"adminUsers">` (no `Id<"lmsCustomers">`), reforzado a nivel tipo.
+
+---
+
+### `lmsMagicLinkTokens`
+
+Tabla de **tokens opacos de magic-link**. Un row por token emitido. Single-use: `usedAt` se estampa en el consume y el row queda como histórico (no se borra; expira fuera-de-banda por TTL del schedule de cleanup, no por este sprint).
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `email` | `string` | Lowercased. Puede no existir todavía como `lmsCustomers` (el flow de activación crea el customer al consumir). |
+| `tokenHash` | `string` | HMAC-SHA-256(rawToken, MAGIC_LINK_HMAC_KEY). Ver decisión abajo. |
+| `purpose` | `"learner_activation" \| "learner_signin" \| "learner_recovery"` | Discrimina TTL y handler de consume. |
+| `expiresAt` | `number` | Timestamp ms absoluto. TTL: 30 min activación, 15 min signin/recovery (enforced en mutation de consume, no en schema). |
+| `usedAt` | `number?` | Single-use enforcement: si ya tiene valor, consume rechaza. |
+| `createdAt` | `number` | |
+| `createdFromIp` | `string?` | Forensic, opcional. Útil para detectar abuso (rate-limit por IP en Phase B). |
+
+**Índices:**
+- `by_token` — `["tokenHash"]` (lookup O(1) en consume)
+- `by_email_purpose` — `["email", "purpose"]` (rate-limit y "ya tenés un link en tu bandeja, mirá ahí" UX)
+- `by_expires` — `["expiresAt"]` (cleanup job barre por este índice)
+
+**Decisión: `tokenHash` con HMAC-SHA-256, no argon2id**
+`argon2id` está diseñado para hashear secretos de baja entropía elegidos por humanos (passwords). Cuesta CPU intencionalmente para frenar fuerza bruta. Los magic-link tokens NO son secretos de baja entropía: son strings opacos de 32 bytes random (256 bits de entropía real). Fuerza bruta es matemáticamente irrelevante. Aplicar argon2id a un token random es quemar 100ms+ de CPU por verify para ganar 0 bits efectivos de seguridad — confunde el modelo de amenazas.
+
+HMAC-SHA-256 con una clave server-side (`MAGIC_LINK_HMAC_KEY`, 32 bytes random) da exactamente lo que necesitamos: si la DB se filtra, el atacante no puede recuperar los raw tokens sin la clave, y verify es O(1). Es el patrón estándar para tokens opacos (OAuth refresh tokens, session IDs, API keys con prefix).
+
+**Decisión: `email` no es FK**
+El flow de activación crea el `lmsCustomers` al consumir el token. Forzar `Id<"lmsCustomers">` rompería el caso: o emitís el token sin saber el customer (imposible), o creás el customer antes (deja huérfanos si nunca consume). Quedarse en `string` + lookup por email lateral es el patrón correcto.
+
+---
+
+## Invariantes Sprint 1
+
+- `lmsCustomers.email` único en la práctica vía pre-check en mutation de creación (no hay constraint nativo en Convex; se enforce en código).
+- `lmsCustomers.deletedBy` siempre es `Id<"adminUsers">` (typesafe).
+- `lmsMagicLinkTokens.usedAt = null` antes del consume; estamparlo es atómico dentro de la mutation de consume (lectura + write en la misma transacción).
+- `lmsMagicLinkTokens.tokenHash` es HMAC-SHA-256 del raw token; el raw token jamás se persiste.
+- Activación = primer consume exitoso de `purpose: "learner_activation"` → patchea `lmsCustomers.activatedAt = now()` (o lo crea si no existe el customer).

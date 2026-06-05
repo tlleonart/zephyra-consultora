@@ -1,7 +1,8 @@
-# Implementation Plan: Zephyra LMS — Foundation (Sprint 0)
+# Implementation Plan: Zephyra LMS — Foundation (Sprint 0 + Sprint 1)
 
-**Branch**: `feature/008-zephyra-lms-foundation` | **Date**: 2026-06-03 | **Spec**: [spec.md](./spec.md)
-**Source of truth**: **SDD v3** (`sdd-SPRINT-ZEPHYRA-LMS-0`, secciones §3.1–3.7) y **PDD v1.3** (`pdd-zephyra-lms`, §6.3 tablas `lms*`, §7.5 auth, Risk-INFRA).
+**Branch**: `feature/008-zephyra-lms-foundation` | **Date**: 2026-06-03 (Sprint 0) — extendido 2026-06-05 (Sprint 1) | **Spec**: [spec.md](./spec.md)
+**Source of truth (Sprint 0)**: **SDD v3** (`sdd-SPRINT-ZEPHYRA-LMS-0`, secciones §3.1–3.7) y **PDD v1.3** (`pdd-zephyra-lms`, §6.3 tablas `lms*`, §7.5 auth, Risk-INFRA).
+**Source of truth (Sprint 1)**: `sdd-zephyra-lms-sprint-1-2026-06-04.md` + plan canónico `sprint-plan-SPRINT-ZEPHYRA-LMS-1-v1.md` (ambos en outputs del equipo de planificación; rama de feature compartida).
 
 ## Summary
 

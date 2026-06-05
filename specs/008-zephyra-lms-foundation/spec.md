@@ -32,7 +32,7 @@ Esta Fase A entrega únicamente la **fundación**: branch, scaffolding de specs,
 
 ## Requisitos funcionales (Fase A)
 
-- **FR-A01**: El repo debe tener una rama de feature aislada cortada de `main`. NO se mergea a `main` en este sprint (Tomás testea; el equipo de Carbono14 ejecuta el merge tras su confirmación).
+- **FR-A01**: El repo debe tener una rama de feature aislada cortada de `main`. NO se mergea a `main` en este sprint (Tomás testea; el equipo de ingeniería ejecuta el merge tras su confirmación).
 - **FR-A02**: La documentación de especificación debe seguir la convención existente del repo (spec-kit, 6 archivos markdown).
 - **FR-A03**: El schema de Convex debe extenderse de forma **aditiva** con el subset `lms*`; las 11 tablas institucionales quedan intactas.
 - **FR-A04**: La superficie de rutas debe escalar a dos audiencias: pública (`/cursos`) y admin (`/admin/lms`).
@@ -46,3 +46,31 @@ Ver `tasks.md` para el desglose por tarea (T-ZL0-A01, T-ZL0-A02) con sus ACs ver
 ## Disciplina de regresión (HARD)
 
 Este es un codebase de producción. Cualquier cambio de schema/ruta/nav que rompa el sitio institucional (`/`, `/blog`, `/proyectos`, `/contacto`, `/admin`) debe revertirse y aislarse. El cambio de schema es **aditivo** y todas las tablas LMS llevan prefijo `lms*`.
+
+---
+
+# Sprint 1 — Hardening + Learner identity + Catálogo público + Admin LMS
+
+**Branch**: `feature/008-zephyra-lms-foundation` (continúa) | **Date**: 2026-06-05 | **Sprint**: SPRINT-ZEPHYRA-LMS-1
+**Plan canónico**: `sprint-plan-SPRINT-ZEPHYRA-LMS-1-v1.md` (en el directorio de outputs del orquestador del sprint)
+**SDD**: `sdd-zephyra-lms-sprint-1-2026-06-04.md` (en el directorio de outputs del equipo de producto)
+
+Sprint 1 EXTIENDE Sprint 0 sin reemplazarlo: el sitio institucional, el subset SCORM del spike (Fase D) y la convención de namespace `lms*` permanecen intactos. Las nuevas tablas (`lmsCustomers`, `lmsMagicLinkTokens`) son aditivas; toda mutación queda fuera de la superficie pública hasta que pasen los gates de QA.
+
+## Capacidades Sprint 1 (S1.1 – S1.8)
+
+- **S1.1 — Hardening de auth admin**: migración perezosa de hashes (bcrypt/legado → argon2id OWASP 2024) sin romper sesiones activas, cookie `session` rotada en cada login. Sin downtime ni reset masivo.
+- **S1.2 — Identidad de learner**: tabla `lmsCustomers` (individual / org_admin / org_learner), cookie `session-learner` independiente (distinto secreto JWT), magic-link como path primario, password opcional.
+- **S1.3 — Magic-link end-to-end**: tabla `lmsMagicLinkTokens` con `tokenHash` HMAC-SHA-256, single-use, TTL 30min activación / 15min signin+recovery, tres `purpose` (`learner_activation`, `learner_signin`, `learner_recovery`). Email de envío vía proveedor existente (Resend en hardening, swappeable).
+- **S1.4 — Catálogo público de cursos**: `/cursos` + `/cursos/[slug]` reactivos sobre `lmsCourses.status = "published"`, SEO básico (metadata + sitemap entry), responsive móvil/desktop.
+- **S1.5 — Admin LMS — catálogo**: ABM de `lmsCourses` desde `/admin/lms` reutilizando los patrones del CMS institucional (TipTap para descripción, soft-delete consistente).
+- **S1.6 — Admin LMS — learners**: vista read-only de `lmsCustomers` con filtros por `type` / `organizationId`, búsqueda por email; sin mutaciones destructivas hasta Sprint 2.
+- **S1.7 — Habeas Data v1**: endpoint admin-only para soft-delete de `lmsCustomers`; el actor registrado en `deletedBy` siempre es un `adminUsers` (mitigación H-2 del PDD — los learners nunca aparecen como `deletedBy`).
+- **S1.8 — Observabilidad mínima**: contadores de magic-link emitido/consumido/expirado expuestos como query Convex, log estructurado de fallos de consume (token expirado vs. ya usado vs. no encontrado).
+
+## Fuera de alcance Sprint 1
+
+- Pagos y seats reales (`lmsOrders`, `lmsPayments`, `lmsSeatPacks`, `lmsSeats`) — Sprint 2.
+- Organizaciones reales (`lmsOrganizations`) — Sprint 3. El campo `organizationId` en `lmsCustomers` queda como `string` placeholder hasta entonces.
+- Revenue share / payouts — Sprint 4.
+- Migración de fixture SCORM a contenido del proveedor (CAMPUS) — fuera de scope LMS-internal.
