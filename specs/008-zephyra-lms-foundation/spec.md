@@ -74,3 +74,76 @@ Sprint 1 EXTIENDE Sprint 0 sin reemplazarlo: el sitio institucional, el subset S
 - Organizaciones reales (`lmsOrganizations`) — Sprint 3. El campo `organizationId` en `lmsCustomers` queda como `string` placeholder hasta entonces.
 - Revenue share / payouts — Sprint 4.
 - Migración de fixture SCORM a contenido del proveedor (CAMPUS) — fuera de scope LMS-internal.
+
+---
+
+## Sprint 1 — Close summary (2026-06-05)
+
+All build phases shipped behind the `feature/008-zephyra-lms-foundation`
+branch. Phase F01 (this document update) is the last task before sprint
+close.
+
+### Capability outcomes (S1.1 – S1.8)
+
+- **S1.1 — Public catalog** (E01 + E02). `/cursos` lists `lmsCourses` filtered
+  by `status = "published"`; `/cursos/[slug]` renders the detail page with the
+  CTA stub. SEO metadata and responsive layout shipped. See commits
+  `106ce6d` / `2b51c64`.
+- **S1.2 — Admin ingestion polish** (E03). Manifest validation hardened
+  (rejects malformed `imsmanifest.xml` with a structured error); duplicate
+  ingest archives the prior course instead of overwriting. Closes the two
+  Sprint-0 carry-forward spec drifts on the ingestion path. Backed by
+  [ADR-0006](../../docs/decisions/0006-ingest-scorm-package-as-convex-action.md).
+  Commits `092b1b2` / `ec7ae9f`.
+- **S1.3 — Learner auth** (C01 + C02 + C03 + C04). Backend (`convex/lms/auth.ts`)
+  + magic-link email template + signup/signin/verify/set-password UI
+  (`src/features/auth-learner/*`) + middleware extension. Distinct cookie
+  (`session-learner`) and signing key (`LEARNER_JWT_SECRET`). Locked into
+  [ADR-0007](../../docs/decisions/0007-learner-auth-magic-link-plus-password.md).
+  Commits `6265e8f`, `e7ad7ca`, `02e29f4`, `eca26ed`.
+- **S1.4 — Player full** (D01 + D02). D01 migrated the Sprint-0 placeholder
+  enrollment to a real `lmsEnrollments` row keyed by `Id<"lmsCustomers">` and
+  added the admin issue-enrollment flow. D02 added multi-SCO navigation,
+  cross-session resume, and `progressPercent` aggregation across SCOs. Commits
+  `bb582bd`, `a953644`.
+- **S1.5 — Test infrastructure** (B04). Vitest 2.1 + Playwright 1.49 wired;
+  42/42 unit suites green on the new LMS surface; demo-loop e2e spec written.
+  Commit `d2f9a19`.
+- **S1.6 — Security hardening** (B01 + B02). B01 — argon2id via `hash-wasm`
+  with lazy re-hash for legacy admin rows + HMAC-SHA-256 for opaque tokens.
+  Documented in [ADR-0008](../../docs/decisions/0008-password-hashing-argon2id-plus-lazy-rehash.md).
+  B02 — `requireAuth` / `requireRole` guards on every `convex/lms/*`
+  function + `userId` plumbed through from frontend callers. Commits
+  `4b1c441`, `0ab05be`.
+- **S1.7 — Lint hard gate** (B03). 8 errors + 16 warnings cleared; CI `lint`
+  job flipped from reporter to hard gate. Commit `748847e`.
+- **S1.8 — Docs** (F01, this task). ADRs 0005–0008 written + spec/quickstart
+  updated + orphan `RESEND_API_KEY` removed from `.env.local.example`.
+
+### Spec drifts resolved
+
+Two Sprint-0 carry-forward drifts on the ingestion path were closed in E03:
+
+1. Malformed `imsmanifest.xml` previously created an `lmsCourses` row with
+   empty `scoFiles`. The action now rejects with a structured validation
+   error and writes nothing.
+2. Duplicate ingests for the same package now archive the prior course
+   (`status = "archived"`) rather than colliding.
+
+### Cross-cutting discovery (C04)
+
+The repo-root `middleware.ts` was never loaded by Next 15 with the `src/app/`
+directory layout — the institutional admin protection that everyone assumed
+was running at the edge had silently been a no-op at the middleware layer
+(route handlers still enforced auth server-side, so no actual exposure
+occurred, but the edge gate was inert). C04 moved the file to
+`src/middleware.ts`, at which point the admin protection genuinely runs at
+the edge for the first time. The learner branch lives next to the admin
+branch in the same file, per [ADR-0007](../../docs/decisions/0007-learner-auth-magic-link-plus-password.md).
+
+### ADRs added or finalized in Sprint 1
+
+- [ADR-0005](../../docs/decisions/0005-same-origin-proxy-for-sco-assets.md) — locks the Sprint-0 implementation note into an architectural decision.
+- [ADR-0006](../../docs/decisions/0006-ingest-scorm-package-as-convex-action.md) — locks the action + internalMutation split.
+- [ADR-0007](../../docs/decisions/0007-learner-auth-magic-link-plus-password.md) — locks the learner-auth model.
+- [ADR-0008](../../docs/decisions/0008-password-hashing-argon2id-plus-lazy-rehash.md) — promoted from B01 stub to fully-prosed Accepted ADR.
