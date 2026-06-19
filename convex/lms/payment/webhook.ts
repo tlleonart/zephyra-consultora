@@ -24,6 +24,7 @@
 
 import { internal } from "../../_generated/api";
 import { httpAction } from "../../_generated/server";
+import { logMoney } from "./logging";
 import { MercadoPagoAdapter } from "./mercadopago";
 
 type LogEvent = { eventType: string; payload: unknown; timestamp: number };
@@ -40,7 +41,9 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
   try {
     adapter = new MercadoPagoAdapter();
   } catch (err) {
-    console.error("MP webhook: adapter init failed (missing env?)", err);
+    logMoney("error", "provider_not_configured", "MP webhook: adapter init failed (missing env?)", {
+      reason: String(err),
+    });
     return json({ error: "provider_not_configured" }, 500);
   }
 
@@ -61,16 +64,19 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
   });
 
   const now = Date.now();
+  const requestId = headers["x-request-id"] ?? undefined;
   const events: LogEvent[] = [
     { eventType: "webhook_received", payload: parsedBody, timestamp: now },
   ];
+  logMoney("info", "webhook_received", "MP webhook received", { requestId });
 
   // --- (1) VERIFY x-signature HMAC ------------------------------------------
   const verification = await adapter.verifyWebhook(parsedBody, headers);
   if (!verification.valid) {
-    console.warn(
-      `MP webhook rejected: ${verification.reason}. requestId=${headers["x-request-id"] ?? "?"}`
-    );
+    logMoney("warn", "signature_rejected", "MP webhook rejected (signature/intent)", {
+      reason: verification.reason,
+      requestId,
+    });
     // 401 for signature mismatch (authenticated endpoint); other invalid
     // classifications (missing id, unsupported topic) are 200 — a retry won't
     // fix them and they're not auth failures.
@@ -83,16 +89,21 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
     payload: { ok: true },
     timestamp: Date.now(),
   });
+  logMoney("info", "signature_verified", "MP webhook x-signature verified", {
+    mpPaymentId: verification.paymentId,
+    requestId,
+  });
 
   // --- (2) FETCH authoritative state ----------------------------------------
   let fetched;
   try {
     fetched = await adapter.fetchPaymentState(verification.paymentId);
   } catch (err) {
-    console.error(
-      `MP webhook: fetchPaymentState failed for ${verification.paymentId}`,
-      err
-    );
+    logMoney("error", "payment_state_fetch_failed", "MP fetchPaymentState failed (will retry on next delivery)", {
+      mpPaymentId: verification.paymentId,
+      requestId,
+      reason: String(err),
+    });
     // 200 so MP retries on its own schedule; transient API errors resolve on
     // the next delivery. No DB side effects on this path.
     return json({ status: "fetch_failed_will_retry" }, 200);
@@ -101,6 +112,14 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
     eventType: "state_fetched",
     payload: fetched,
     timestamp: Date.now(),
+  });
+  logMoney("info", "payment_state_fetched", "MP payment state fetched (authoritative)", {
+    mpPaymentId: fetched.id,
+    externalReference: fetched.external_reference,
+    status: fetched.status,
+    amountArs: fetched.amount,
+    currency: fetched.currency,
+    requestId,
   });
 
   // --- (3-6) DELEGATE to the transactional core -----------------------------
@@ -121,35 +140,53 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
 
   switch (result.outcome) {
     case "approved":
-      console.info(
-        `MP webhook approved: order=${result.orderId} payment=${verification.paymentId} enrollment=${result.enrollmentId}`
-      );
+      logMoney("info", "payment_approved", "Payment approved and enrollment granted", {
+        orderId: result.orderId,
+        mpPaymentId: verification.paymentId,
+        enrollmentId: result.enrollmentId,
+        requestId,
+      });
       break;
     case "already_processed":
-      console.info(
-        `MP webhook idempotent no-op: payment=${verification.paymentId}`
-      );
+      logMoney("info", "webhook_idempotent_noop", "Duplicate webhook — already processed, no side effects", {
+        mpPaymentId: verification.paymentId,
+        requestId,
+      });
       break;
     case "order_not_found":
-      console.error(
-        `MP webhook: order not found for external_reference=${result.externalReference}`
-      );
+      logMoney("error", "order_not_found", "No order matches the fetched external_reference", {
+        mpPaymentId: verification.paymentId,
+        externalReference: result.externalReference,
+        requestId,
+      });
       break;
     case "amount_mismatch":
-      console.error(
-        `MP webhook anti-tamper REJECT: ${result.reason} payment=${verification.paymentId}`
-      );
+      logMoney("error", "amount_mismatch", "Anti-tamper REJECT: amount/currency mismatch", {
+        mpPaymentId: verification.paymentId,
+        reason: result.reason,
+        requestId,
+      });
       break;
     case "rejected":
+      logMoney("info", "payment_rejected", "Payment rejected — order failed, no entitlement", {
+        orderId: result.orderId,
+        mpPaymentId: verification.paymentId,
+        requestId,
+      });
+      break;
     case "cancelled":
-      console.info(
-        `MP webhook ${result.outcome}: order=${result.orderId} payment=${verification.paymentId}`
-      );
+      logMoney("info", "payment_cancelled", "Payment cancelled — order cancelled, no entitlement", {
+        orderId: result.orderId,
+        mpPaymentId: verification.paymentId,
+        requestId,
+      });
       break;
     case "pending":
-      console.info(
-        `MP webhook pending (no durable write): payment=${verification.paymentId}`
-      );
+      logMoney("info", "payment_pending", "Payment pending — no durable write, awaiting follow-up webhook", {
+        orderId: result.orderId,
+        mpPaymentId: verification.paymentId,
+        requestId,
+      });
       break;
   }
 

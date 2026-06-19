@@ -26,6 +26,10 @@ correct home.
 | [ADR-0006](./0006-ingest-scorm-package-as-convex-action.md) | `ingestScormPackage` as a Convex action, not a mutation (S0-R8 resolution) | Accepted |
 | [ADR-0007](./0007-learner-auth-magic-link-plus-password.md) | Learner auth: magic-link primary + optional password + distinct cookie / signing key | Accepted |
 | [ADR-0008](./0008-password-hashing-argon2id-plus-lazy-rehash.md) | Password hashing: argon2id (via `hash-wasm`) + lazy re-hash + HMAC for opaque tokens | Accepted |
+| [ADR-0009](./0009-paymentprovider-interface-checkout-pro.md) | PaymentProvider interface + MercadoPago Checkout Pro (hosted redirect) | Accepted |
+| [ADR-0010](./0010-webhook-idempotency-verify-before-trust.md) | Webhook idempotency (triple) + verify-before-trust | Accepted |
+| [ADR-0011](./0011-usd-pricing-mp-side-ars-conversion.md) | USD pricing with MercadoPago-side ARS conversion | Accepted |
+| [ADR-0012](./0012-order-payment-state-machine.md) | Order/payment state machine (no intermediate states) | Accepted |
 
 ### Why ADR-0003 is dropped
 

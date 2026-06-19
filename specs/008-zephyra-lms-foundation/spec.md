@@ -147,3 +147,61 @@ branch in the same file, per [ADR-0007](../../docs/decisions/0007-learner-auth-m
 - [ADR-0006](../../docs/decisions/0006-ingest-scorm-package-as-convex-action.md) — locks the action + internalMutation split.
 - [ADR-0007](../../docs/decisions/0007-learner-auth-magic-link-plus-password.md) — locks the learner-auth model.
 - [ADR-0008](../../docs/decisions/0008-password-hashing-argon2id-plus-lazy-rehash.md) — promoted from B01 stub to fully-prosed Accepted ADR.
+
+## Sprint 2 — Ventas (B2C Checkout)
+
+A learner browsing `/cursos` sees a price and a "Comprar" CTA. Clicking opens
+MercadoPago Checkout Pro; on payment the learner returns enrolled, receives a
+confirmation email, and the 80/20 revenue split is recorded.
+
+### Capabilities
+
+- **S2.1 — Pricing on catalog.** `priceUsd` on courses + admin edit; price
+  shown on the catalog and course pages.
+- **S2.2 — Sales domain.** `lmsOrders` + `lmsPayments` + `lmsRevenueShares`
+  tables behind a `PaymentProvider` interface ([ADR-0009](../../docs/decisions/0009-paymentprovider-interface-checkout-pro.md)).
+- **S2.3 — Checkout flow.** `createCheckout` action opens the MP preference;
+  return pages (`exito` / `error` / `pendiente`) read DB truth, not the
+  `back_url` ([ADR-0012](../../docs/decisions/0012-order-payment-state-machine.md)).
+- **S2.4 — Webhook handler.** Verify-before-trust, idempotent ([ADR-0010](../../docs/decisions/0010-webhook-idempotency-verify-before-trust.md)).
+- **S2.5 — Entitlement.** Lookup-before-insert enrollment, internal-only.
+- **S2.6 — Revenue ledger.** 80/20 split per SDD §3.3, USD-anchored ([ADR-0011](../../docs/decisions/0011-usd-pricing-mp-side-ars-conversion.md)).
+- **S2.7 — Buyer email.** Idempotent on webhook duplication (scheduled action).
+- **S2.8 — Observability.** Structured JSON money-path logs + secret hygiene.
+- **S2.9 — Tests.** Unit + integration + e2e; T1/T2/T3 are release gates.
+- **S2.10 — Docs.** ADRs 0009–0012 + spec/quickstart + payout runbook
+  (`ops/payout-runbook.md`).
+
+### Test the full flow (dev, against the MP sandbox)
+
+1. **Set the Convex env (TEST credentials only):**
+   ```bash
+   npx convex env set MP_ACCESS_TOKEN TEST-<your-test-token>
+   npx convex env set MP_WEBHOOK_SECRET <your-test-webhook-secret>
+   npx convex env set MP_PUBLIC_KEY TEST-<your-test-public-key>
+   npx convex env set ZEPHYRA_PUBLIC_URL http://localhost:3000
+   ```
+
+2. **Start the dev server:** `npm run dev`
+
+3. **Manual e2e:**
+   - Navigate to `http://localhost:3000/cursos`, sign in as a learner.
+   - Open a purchasable course; see the price and "Comprar".
+   - Click → redirected to MP Checkout Pro (sandbox) → complete the mock payment.
+   - Auto-return to `/cursos/<slug>/compra/exito`.
+   - Verify the `lmsEnrollments` row in the Convex console; "Ir al curso" opens
+     the player.
+
+4. **Webhook reachability (dev):** the Convex dev deployment exposes a public
+   `.convex.site` HTTP endpoint, so the MP sandbox can reach
+   `https://<deployment>.convex.site/api/lms/mp/webhook` directly — no tunnel.
+
+5. **View logs:** Convex console → Logs → filter by `orderId` or `mpPaymentId`.
+   Every money-path event is one structured JSON line (`domain: "lms.payment"`).
+
+### Secrets & observability
+
+MP credentials are read **only** from the Convex env inside Convex functions —
+never hardcoded, never in `.env` files, never logged. The money-path logger
+(`convex/lms/payment/logging.ts`) emits the buyer's `learnerId` (opaque id) and
+never the email address or any card data.

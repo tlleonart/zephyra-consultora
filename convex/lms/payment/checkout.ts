@@ -29,6 +29,7 @@
 import { action } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
 import { v } from "convex/values";
+import { logMoney } from "./logging";
 import { MercadoPagoAdapter } from "./mercadopago";
 
 export const createCheckout = action({
@@ -94,6 +95,16 @@ export const createCheckout = action({
       internal.lms.payment.orders.updateOrderWithMpPreference,
       { orderId: order._id, mpPreferenceId: externalId }
     );
+
+    logMoney("info", "checkout_preference_created", "MP Checkout Pro preference created", {
+      orderId: order._id,
+      externalReference: order._id,
+      mpPreferenceId: externalId,
+      learnerId: args.learnerId,
+      courseId: args.courseId,
+      amountUsd: course.priceUsd,
+      currency: "USD",
+    });
 
     // --- 6. Return the Checkout Pro redirect --------------------------------
     return { redirectUrl };

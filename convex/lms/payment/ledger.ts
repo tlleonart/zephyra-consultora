@@ -17,6 +17,7 @@
 
 import { internalMutation } from "../../_generated/server";
 import { v } from "convex/values";
+import { logMoney } from "./logging";
 import {
   computeRevenueSplitUsd,
   currentPeriodYYYYMM,
@@ -48,7 +49,7 @@ export const recordRevenueShare = internalMutation({
     const mpFees = sumMercadoPagoFees(args.feeDetails);
     const now = Date.now();
 
-    return await ctx.db.insert("lmsRevenueShares", {
+    const revenueShareId = await ctx.db.insert("lmsRevenueShares", {
       paymentId: args.paymentId,
       grossUsd: args.grossUsd,
       grossArs: args.grossArs,
@@ -59,5 +60,16 @@ export const recordRevenueShare = internalMutation({
       payoutId: undefined, // null until reconciled (manual monthly payout)
       createdAt: now,
     });
+
+    logMoney("info", "revenue_share_recorded", "Revenue share ledger row written (80/20 split)", {
+      revenueShareId,
+      amountUsd: args.grossUsd,
+      amountArs: args.grossArs,
+      splitC14Usd: c14CutUsd,
+      splitZephyraUsd: zephyraCutUsd,
+      mpFees: mpFees ?? undefined,
+    });
+
+    return revenueShareId;
   },
 });

@@ -280,3 +280,31 @@ End-to-end happy path, reproducible from a clean clone after §7 + §8.
    rolls up into `progressPercent` on the aggregate row (D02).
 
 Targets: clean clone → demo running in <15 min. ✅
+
+## 13. Testing B2C Checkout (Sprint 2+)
+
+After the Sprint 1 setup (§7 + §8 — catalog + auth):
+
+1. **Set the MP sandbox credentials in the Convex dev deployment** (TEST tokens
+   only — never live, never in a file):
+   ```bash
+   npx convex env set MP_ACCESS_TOKEN TEST-<your-test-token>
+   npx convex env set MP_WEBHOOK_SECRET <your-test-webhook-secret>
+   npx convex env set MP_PUBLIC_KEY TEST-<your-test-public-key>
+   npx convex env set ZEPHYRA_PUBLIC_URL http://localhost:3000
+   ```
+2. **Make a course purchasable.** In the course admin, set `priceUsd` and toggle
+   `isPurchasable` on.
+3. **Sign in as a learner**, browse `/cursos`, click "Comprar" on the course.
+4. **Checkout.** Redirected to MP Checkout Pro (sandbox) → complete the mock
+   payment → auto-return to `/cursos/<slug>/compra/exito` → enrolled.
+5. **Confirmation email.** View the buyer email in the dev console log (when
+   `EMAIL_USER` is unset the mailer renders to the log) or the inbox in an
+   environment with SMTP creds.
+
+The webhook reaches the public `.convex.site` endpoint directly in dev — no
+tunnel needed. Logs are structured JSON: search by `orderId` or `mpPaymentId`
+in the Convex console (Logs tab), filtering on `domain: "lms.payment"`.
+
+See [ADR-0009](../../docs/decisions/0009-paymentprovider-interface-checkout-pro.md)–[ADR-0012](../../docs/decisions/0012-order-payment-state-machine.md) for the money-path design and
+[`ops/payout-runbook.md`](../../ops/payout-runbook.md) for the monthly settlement.

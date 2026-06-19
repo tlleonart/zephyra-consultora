@@ -23,6 +23,7 @@ import { internal } from "../../_generated/api";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
+import { logMoney } from "./logging";
 import { validateAmountAndCurrency } from "./validation";
 
 /**
@@ -186,6 +187,13 @@ export const processVerifiedPayment = internalMutation({
         internal.lms.enrollments.grantEnrollmentForOrder,
         { orderId: order._id }
       );
+      logMoney("info", "enrollment_granted", "Enrollment granted for paid order", {
+        orderId: order._id,
+        mpPaymentId: fetched.id,
+        learnerId: order.customerId,
+        courseId: order.courseId,
+        enrollmentId: enrollment.enrollmentId,
+      });
 
       await ctx.runMutation(internal.lms.payment.ledger.recordRevenueShare, {
         paymentId,
@@ -215,9 +223,11 @@ export const processVerifiedPayment = internalMutation({
           }
         );
       } else {
-        console.error(
-          `processVerifiedPayment: course ${order.courseId} missing; skipping buyer email for order ${order._id}`
-        );
+        logMoney("error", "confirmation_email_skipped", "Course row missing; skipping buyer email (money path unaffected)", {
+          orderId: order._id,
+          mpPaymentId: fetched.id,
+          courseId: order.courseId,
+        });
       }
 
       return {

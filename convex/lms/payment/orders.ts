@@ -20,6 +20,7 @@
 
 import { internalMutation, internalQuery, query } from "../../_generated/server";
 import { v } from "convex/values";
+import { logMoney } from "./logging";
 
 // ============================================================================
 // getPendingOrder — reuse an in-flight checkout (double-click idempotency)
@@ -85,6 +86,13 @@ export const createOrder = internalMutation({
       // insert+get round-trip cannot miss in a single transaction; defensive.
       throw new Error("createOrder: failed to read back inserted order");
     }
+    logMoney("info", "order_created", "Pending order created", {
+      orderId,
+      externalReference: orderId,
+      learnerId: args.customerId,
+      courseId: args.courseId,
+      amountUsd: args.priceUsd,
+    });
     return order;
   },
 });

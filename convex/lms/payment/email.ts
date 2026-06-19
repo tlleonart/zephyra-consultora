@@ -49,6 +49,7 @@ import { internalAction } from "../../_generated/server";
 import { api } from "../../_generated/api";
 import { v } from "convex/values";
 import { createTransport } from "nodemailer";
+import { logMoney } from "./logging";
 
 // Public base URL for the buyer-facing player link. Mirrors the convention
 // used across the app (NEXT_PUBLIC_SITE_URL in the Next.js pages,
@@ -130,9 +131,10 @@ export const sendBuyerConfirmationEmail = internalAction({
       learnerId: args.learnerId,
     });
     if (!learner) {
-      console.error(
-        `sendBuyerConfirmationEmail: learner not found: ${args.learnerId}`
-      );
+      logMoney("error", "confirmation_email_skipped", "Learner not found; cannot send confirmation email", {
+        learnerId: args.learnerId,
+        enrollmentId: args.enrollmentId,
+      });
       return;
     }
 
@@ -157,12 +159,19 @@ export const sendBuyerConfirmationEmail = internalAction({
     // absent, render to the log instead of throwing, so dev does not require
     // Ferozo credentials.
     if (!process.env.EMAIL_USER) {
+      // Dev-only fallback (no SMTP creds). The email address appears here ONLY
+      // in dev; this branch never runs in prod, so the PII-hygiene rule (no
+      // buyer email in logs) is preserved for production.
       console.warn(
         "[lms-buyer-email-dev] EMAIL_USER not set; rendering to log only"
       );
       console.warn(
         `[lms-buyer-email-dev] to=${learner.email} subject=${subject} playerUrl=${playerUrl}`
       );
+      logMoney("warn", "confirmation_email_skipped", "Dev fallback — EMAIL_USER unset, email rendered to log only", {
+        learnerId: args.learnerId,
+        enrollmentId: args.enrollmentId,
+      });
       return;
     }
 
@@ -183,16 +192,20 @@ export const sendBuyerConfirmationEmail = internalAction({
         html,
         text,
       });
-      console.info(
-        `Buyer confirmation email sent to ${learner.email} for enrollment ${args.enrollmentId}`
-      );
+      // PII hygiene: log the learnerId, never the buyer's email address.
+      logMoney("info", "confirmation_email_sent", "Buyer confirmation email dispatched", {
+        learnerId: args.learnerId,
+        enrollmentId: args.enrollmentId,
+      });
     } catch (err) {
       // Log but do NOT throw: the enrollment/payment/ledger transaction is
       // already committed; an email failure must not trigger scheduler retries
       // or otherwise affect entitlement.
-      console.error(
-        `Failed to send buyer confirmation email to ${learner.email} for enrollment ${args.enrollmentId}: ${err}`
-      );
+      logMoney("error", "confirmation_email_skipped", "Confirmation email send failed (enrollment unaffected)", {
+        learnerId: args.learnerId,
+        enrollmentId: args.enrollmentId,
+        reason: String(err),
+      });
     }
   },
 });
