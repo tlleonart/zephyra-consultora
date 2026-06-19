@@ -47,9 +47,17 @@ interface Row {
 // A tiny in-memory store that supports the .withIndex(name, builder).first()
 // chain the handlers use, plus get/insert/patch. Index resolution is by the
 // eq() field/value pairs the builder calls — sufficient for these handlers.
-function makeStore(seed: { orders?: Row[] } = {}) {
+function makeStore(seed: { orders?: Row[]; courses?: Row[] } = {}) {
   const tables: Record<string, Row[]> = {
     lmsOrders: [...(seed.orders ?? [])],
+    // P1.6: the approved branch reads the course (title + slug) to schedule the
+    // buyer email. Seed a default course matching ORDER.courseId so the happy
+    // path resolves it; tests that don't care still get a clean resolution.
+    lmsCourses: [
+      ...(seed.courses ?? [
+        { _id: "course-1", title: "Curso de prueba", slug: "curso-de-prueba", status: "published" },
+      ]),
+    ],
     lmsPayments: [],
     lmsEnrollments: [],
     lmsRevenueShares: [],
@@ -113,6 +121,10 @@ function makeStore(seed: { orders?: Row[] } = {}) {
       }
       throw new Error(`unexpected runMutation ref: ${ref.__name}`);
     }),
+    // P1.6: the approved branch schedules the buyer email. These suites don't
+    // assert on the schedule (paymentBuyerEmail.test.ts does); a no-op spy keeps
+    // the call from throwing on the undefined scheduler.
+    scheduler: { runAfter: vi.fn(async () => {}) },
   };
 
   return { ctx, db, tables };
@@ -125,7 +137,12 @@ vi.mock("../../../../convex/_generated/api", () => ({
   internal: {
     lms: {
       enrollments: { grantEnrollmentForOrder: { __name: "grantEnrollmentForOrder" } },
-      payment: { ledger: { recordRevenueShare: { __name: "recordRevenueShare" } } },
+      payment: {
+        ledger: { recordRevenueShare: { __name: "recordRevenueShare" } },
+        // P1.6: scheduled from the approved branch; refs must exist so the
+        // handler's scheduler.runAfter(ref) call resolves a non-undefined ref.
+        email: { sendBuyerConfirmationEmail: { __name: "sendBuyerConfirmationEmail" } },
+      },
     },
   },
   api: {},

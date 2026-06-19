@@ -194,6 +194,32 @@ export const processVerifiedPayment = internalMutation({
         feeDetails: fetched.feeDetails,
       });
 
+      // (P1.6) Buyer confirmation email — SCHEDULED, never awaited. A mutation
+      // cannot await an action; it schedules one. Scheduling also isolates the
+      // send from this transaction: a mail failure must not roll back the
+      // committed enrollment/payment/ledger. This branch is reached EXACTLY
+      // once per payment (the by_mp_payment_id dedupe above short-circuits a
+      // replayed webhook to `already_processed` before here), so a dup webhook
+      // never schedules a second email. Best-effort: if the course row is gone
+      // we skip the email rather than fail the money path.
+      const course = await ctx.db.get(order.courseId);
+      if (course && !course.deletedAt) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.lms.payment.email.sendBuyerConfirmationEmail,
+          {
+            learnerId: order.customerId,
+            enrollmentId: enrollment.enrollmentId,
+            courseTitle: course.title,
+            courseSlug: course.slug,
+          }
+        );
+      } else {
+        console.error(
+          `processVerifiedPayment: course ${order.courseId} missing; skipping buyer email for order ${order._id}`
+        );
+      }
+
       return {
         outcome: "approved" as const,
         paymentId,

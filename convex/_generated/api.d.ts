@@ -21,6 +21,7 @@ import type * as lms_courses from "../lms/courses.js";
 import type * as lms_enrollments from "../lms/enrollments.js";
 import type * as lms_manifest from "../lms/manifest.js";
 import type * as lms_payment_checkout from "../lms/payment/checkout.js";
+import type * as lms_payment_email from "../lms/payment/email.js";
 import type * as lms_payment_internal from "../lms/payment/internal.js";
 import type * as lms_payment_ledger from "../lms/payment/ledger.js";
 import type * as lms_payment_mercadopago from "../lms/payment/mercadopago.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "lms/enrollments": typeof lms_enrollments;
   "lms/manifest": typeof lms_manifest;
   "lms/payment/checkout": typeof lms_payment_checkout;
+  "lms/payment/email": typeof lms_payment_email;
   "lms/payment/internal": typeof lms_payment_internal;
   "lms/payment/ledger": typeof lms_payment_ledger;
   "lms/payment/mercadopago": typeof lms_payment_mercadopago;
