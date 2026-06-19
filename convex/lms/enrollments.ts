@@ -21,7 +21,7 @@
  *     symmetric and a follow-up task doesn't have to re-open this file.
  */
 
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { AuthError, requireAuth, requireRole } from "../model/auth";
 
@@ -107,6 +107,61 @@ export const issueEnrollment = mutation({
       customer: { _id: customer._id, email: customer.email },
       alreadyEnrolled: false,
     };
+  },
+});
+
+// ============================================================================
+// grantEnrollmentForOrder — entitlement on a PAID order (Sprint 2 P0.5)
+// ============================================================================
+//
+// internalMutation ONLY — there is NO client-facing path to mint an
+// entitlement (SDD §7, signed control #6: no client-minted entitlements).
+// Called exclusively from the webhook's processVerifiedPayment transaction
+// (convex/lms/payment/internal.ts) on the approved branch.
+//
+// Reuses the issueEnrollment lookup-before-insert idempotency pattern: a
+// duplicate webhook (or an order whose enrollment already exists) returns the
+// existing active row instead of inserting a second one. B2C only — no seatId
+// / claimRequestId (those land with the Sprint 3 org-managed seat flow).
+export const grantEnrollmentForOrder = internalMutation({
+  args: { orderId: v.id("lmsOrders") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.deletedAt) {
+      throw new Error(
+        `grantEnrollmentForOrder: order not found: ${args.orderId}`
+      );
+    }
+
+    // Idempotency: collapse on the active (learner, course) row so a duplicate
+    // webhook delivery (or a re-paid order) never piles up enrollments.
+    const existing = await ctx.db
+      .query("lmsEnrollments")
+      .withIndex("by_learner_course_status", (q) =>
+        q
+          .eq("learnerId", order.customerId)
+          .eq("courseId", order.courseId)
+          .eq("status", "active")
+      )
+      .first();
+
+    if (existing) {
+      return { enrollmentId: existing._id, alreadyEnrolled: true };
+    }
+
+    const now = Date.now();
+    const enrollmentId = await ctx.db.insert("lmsEnrollments", {
+      learnerId: order.customerId,
+      courseId: order.courseId,
+      status: "active",
+      progressPercent: 0,
+      completedScoCount: 0,
+      scoStates: {},
+      startedAt: now,
+      updatedAt: now,
+    });
+
+    return { enrollmentId, alreadyEnrolled: false };
   },
 });
 
