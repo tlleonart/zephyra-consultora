@@ -348,4 +348,94 @@ export default defineSchema({
     .index("by_token", ["tokenHash"])
     .index("by_email_purpose", ["email", "purpose"])
     .index("by_expires", ["expiresAt"]),
+
+  // ============================================
+  // LMS — Sprint 2 additions (Sales / Checkout B2C)
+  // Money-path data model. B2C individual checkout only (packs/seats
+  // deferred to Sprint 3). PaymentProvider abstraction from day 1
+  // (SDD §3.4). Additive only — institutional + prior LMS tables untouched.
+  // ============================================
+
+  // Order aggregate. One row per B2C checkout intent. `externalReference`
+  // is the orderId echoed by MercadoPago on the webhook, the bridge from a
+  // raw MP payment back to our order. Soft-delete discipline applies even
+  // though orders are rarely deleted; learners NEVER appear as `deletedBy`
+  // (admin-initiated only).
+  lmsOrders: defineTable({
+    customerId: v.id("lmsCustomers"),
+    courseId: v.id("lmsCourses"),
+    priceUsd: v.number(),
+    status: v.union(
+      v.literal("pending_payment"),
+      v.literal("paid"),
+      v.literal("cancelled"),
+      v.literal("failed")
+    ),
+    mpPreferenceId: v.optional(v.string()), // MercadoPago preference ID
+    externalReference: v.string(), // orderId echoed by the MP webhook
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    // Soft delete (repo convention). Admin-initiated only.
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  })
+    .index("by_learner_course_status", ["customerId", "courseId", "status"])
+    .index("by_external_reference", ["externalReference"])
+    .index("by_deleted", ["deletedAt"]),
+
+  // Payment aggregate. One row per MercadoPago payment. `mpPaymentId` carries
+  // a UNIQUE index — the idempotency backstop on duplicate webhook deliveries
+  // (Phase P0 money-path core dedupes on it before mutating). `webhookEventLog`
+  // is an append-only forensic trail of every event touching this payment.
+  lmsPayments: defineTable({
+    orderId: v.id("lmsOrders"),
+    mpPaymentId: v.string(), // UNIQUE (see by_mp_payment_id) — idempotency on duplicate webhooks
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("cancelled")
+    ),
+    grossArs: v.optional(v.number()), // amount MP charged (ARS, after FX from USD)
+    usdAmount: v.number(), // original USD amount from the Order
+    webhookEventLog: v.array(
+      v.object({
+        eventType: v.string(), // "webhook_received" | "signature_verified" | "state_fetched" | "approved" | "rejected" | ...
+        payload: v.any(), // full event payload
+        timestamp: v.number(),
+      })
+    ),
+    lastVerifiedAt: v.number(), // last time fetchPaymentState was called
+    createdAt: v.number(),
+    // Soft delete (repo convention). Admin-initiated only.
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  })
+    // UNIQUE backstop — application must enforce single-row-per-mpPaymentId on
+    // insert (Convex indexes are not unique-constrained); the dedupe query in
+    // the webhook handler reads this index first.
+    .index("by_mp_payment_id", ["mpPaymentId"])
+    .index("by_order_id", ["orderId"])
+    .index("by_deleted", ["deletedAt"]),
+
+  // Revenue-share ledger. One row per approved payment. 80/20 split locked
+  // (SDD §3.3): c14CutUsd = 20% of grossUsd, zephyraCutUsd = 80%. `payoutId`
+  // is null until reconciled in the manual monthly payout (Opción B).
+  lmsRevenueShares: defineTable({
+    paymentId: v.id("lmsPayments"),
+    grossUsd: v.number(),
+    grossArs: v.number(),
+    mpFees: v.optional(v.number()), // parsed from MP fee_details if present (null OK)
+    c14CutUsd: v.number(), // 20% of grossUsd
+    zephyraCutUsd: v.number(), // 80% of grossUsd
+    period: v.string(), // YYYY-MM
+    payoutId: v.optional(v.string()), // null until reconciled (manual monthly payout)
+    createdAt: v.number(),
+    // Soft delete (repo convention). Admin-initiated only.
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  })
+    .index("by_period", ["period"])
+    .index("by_payment_id", ["paymentId"])
+    .index("by_deleted", ["deletedAt"]),
 });

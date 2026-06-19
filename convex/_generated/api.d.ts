@@ -19,6 +19,8 @@ import type * as lms_auth from "../lms/auth.js";
 import type * as lms_courses from "../lms/courses.js";
 import type * as lms_enrollments from "../lms/enrollments.js";
 import type * as lms_manifest from "../lms/manifest.js";
+import type * as lms_payment_mercadopago from "../lms/payment/mercadopago.js";
+import type * as lms_payment_types from "../lms/payment/types.js";
 import type * as lms_scormEvents from "../lms/scormEvents.js";
 import type * as model_auth from "../model/auth.js";
 import type * as model_passwords from "../model/passwords.js";
@@ -52,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   "lms/courses": typeof lms_courses;
   "lms/enrollments": typeof lms_enrollments;
   "lms/manifest": typeof lms_manifest;
+  "lms/payment/mercadopago": typeof lms_payment_mercadopago;
+  "lms/payment/types": typeof lms_payment_types;
   "lms/scormEvents": typeof lms_scormEvents;
   "model/auth": typeof model_auth;
   "model/passwords": typeof model_passwords;
