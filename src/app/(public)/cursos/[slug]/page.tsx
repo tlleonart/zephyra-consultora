@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
 import { getLearnerSession } from "@/features/auth-learner/lib/session";
+import { BuyButton } from "@/features/lms-checkout/components/BuyButton";
+import { formatUsd } from "@/features/lms-checkout/lib/format-price";
 import { api } from "../../../../../convex/_generated/api";
 import styles from "./CourseDetail.module.css";
 
@@ -135,6 +137,16 @@ export default async function CourseDetailPage({
   const scoCount = deriveScoCount(course.scoStructure);
   const scoLabel = scoCount === 1 ? "1 módulo" : `${scoCount} módulos`;
 
+  // Pricing surface (Sprint 2 P1.5). A course is buyable only when it is
+  // explicitly purchasable AND carries a positive USD price. Anything else
+  // falls back to the "próximamente" stub so an un-priced course never exposes
+  // a buy path. The price + CTA state are computed server-side so the SSR HTML
+  // is correct (no flash) and enrollment state never leaks into client bundles.
+  const priceUsd =
+    typeof course.priceUsd === "number" ? course.priceUsd : null;
+  const isBuyable =
+    course.isPurchasable === true && priceUsd !== null && priceUsd > 0;
+
   return (
     <article>
       <section className={styles.hero}>
@@ -179,7 +191,17 @@ export default async function CourseDetailPage({
           </div>
 
           <aside className={styles.cta} aria-label="Inscripción">
+            {isBuyable && priceUsd !== null ? (
+              <p className={styles.price}>
+                <span className={styles.priceAmount}>
+                  {formatUsd(priceUsd)}
+                </span>
+                <span className={styles.priceNote}>Pago único</span>
+              </p>
+            ) : null}
+
             {hasEnrollment ? (
+              // State 1: signed-in + already enrolled → go to the player.
               <>
                 <Link
                   href={`/cursos/${course.slug}/player`}
@@ -191,7 +213,8 @@ export default async function CourseDetailPage({
                   Ya tenés acceso a este curso. Retomá donde lo dejaste.
                 </p>
               </>
-            ) : (
+            ) : !isBuyable ? (
+              // Fallback: course not yet priced/purchasable.
               <>
                 <button
                   type="button"
@@ -209,6 +232,33 @@ export default async function CourseDetailPage({
                     Esta cuenta no tiene acceso a este curso todavía.
                   </p>
                 ) : null}
+              </>
+            ) : isSignedIn ? (
+              // State 3: signed-in + not enrolled → buy.
+              <>
+                <BuyButton
+                  courseId={course._id}
+                  className={styles.ctaButton}
+                />
+                <p className={styles.ctaHelp}>
+                  Comprá el curso y obtené acceso inmediato al contenido.
+                </p>
+              </>
+            ) : (
+              // State 2: anonymous → sign in to buy (returnTo preserves intent).
+              <>
+                <Link
+                  href={`/cursos/auth/signin?returnTo=${encodeURIComponent(
+                    `/cursos/${course.slug}`
+                  )}`}
+                  className={styles.ctaButton}
+                >
+                  Iniciá sesión para comprar
+                </Link>
+                <p className={styles.ctaHelp}>
+                  Necesitás una cuenta para comprar este curso. Es gratis y
+                  toma menos de un minuto.
+                </p>
               </>
             )}
           </aside>

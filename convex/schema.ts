@@ -224,6 +224,13 @@ export default defineSchema({
     manifest: v.optional(v.string()), // parsed imsmanifest.xml (serialized)
     scoStructure: v.optional(v.any()), // organizations + items + resources
     entryPoint: v.optional(v.string()), // launch resource path
+    // Sprint 2 (Sales / Checkout B2C): pricing surface. priceUsd is ALWAYS USD
+    // (SDD §9.4 — MercadoPago converts to ARS at checkout). Optional because
+    // legacy Sprint-0/1 rows predate pricing; the catalog CTA gates on
+    // `isPurchasable` so an un-priced course never exposes a "Comprar" path.
+    priceUsd: v.optional(v.number()),
+    currency: v.optional(v.string()), // reserved; defaults to "USD" semantics
+    isPurchasable: v.optional(v.boolean()), // gates the public buy CTA
     createdAt: v.number(),
     updatedAt: v.number(),
     // E03: set when a row is archived because a new ingest of the same

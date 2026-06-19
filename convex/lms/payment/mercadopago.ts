@@ -163,6 +163,10 @@ export class MercadoPagoAdapter implements PaymentProvider {
   private readonly webhookSecret: string;
   private readonly publicKey: string;
   private readonly baseUrl = MP_API_BASE;
+  /** Public-facing site origin (no trailing slash) — drives back_urls. */
+  private readonly siteUrl: string;
+  /** Convex deployment HTTP origin — drives notification_url (the webhook lives in convex/http.ts). */
+  private readonly webhookUrl: string;
 
   constructor() {
     // Read from Convex env — never from .env files, never hardcoded.
@@ -179,16 +183,100 @@ export class MercadoPagoAdapter implements PaymentProvider {
     this.accessToken = accessToken;
     this.webhookSecret = webhookSecret;
     this.publicKey = publicKey;
+
+    // back_urls land the buyer on the public Next.js app. ZEPHYRA_PUBLIC_URL is
+    // the site origin; falls back to the prod domain so a missing-env dev never
+    // mints an http://localhost back_url MP would reject (MP requires https for
+    // auto_return). Trailing slash trimmed for clean concatenation.
+    this.siteUrl = (
+      process.env.ZEPHYRA_PUBLIC_URL ?? "https://zephyraconsultora.com"
+    ).replace(/\/+$/, "");
+
+    // notification_url MUST point at the Convex deployment's HTTP endpoint
+    // (convex/http.ts mounts /api/lms/mp/webhook), NOT the Next.js app — Next.js
+    // never sees the webhook. CONVEX_SITE_URL is the .convex.site HTTP origin
+    // Convex injects; we fall back to deriving it from the cloud URL if unset.
+    const explicitSite = process.env.CONVEX_SITE_URL;
+    const cloudUrl = process.env.CONVEX_CLOUD_URL;
+    const derived = cloudUrl
+      ? cloudUrl.replace(".convex.cloud", ".convex.site")
+      : null;
+    this.webhookUrl = (explicitSite ?? derived ?? this.siteUrl).replace(
+      /\/+$/,
+      ""
+    );
   }
 
+  /**
+   * Open a MercadoPago Checkout Pro preference for the order.
+   *
+   * POST /checkout/preferences. The buyer is priced in USD (SDD §9.4 — MP
+   * converts to ARS on its side). `external_reference` carries OUR orderId so
+   * the inbound webhook (verify-before-trust) can map the MP payment back to
+   * the order. `auto_return: "approved"` redirects on success without a manual
+   * click. `notification_url` targets the Convex webhook, distinct from the
+   * back_urls (which land on the public Next.js app).
+   *
+   * Runs only inside a Convex action (the adapter reads env + does outbound
+   * HTTP — never in a query/mutation). Returns the preference id + init_point.
+   */
   async createCheckoutSession(
     order: CheckoutOrderInput
   ): Promise<CheckoutSession> {
-    // Stub — Phase P1 (checkout flow) implements POST /checkout/preferences.
-    void order;
-    throw new Error(
-      "MercadoPagoAdapter.createCheckoutSession not implemented — lands in Phase P1 (checkout flow)"
-    );
+    const returnBase = `${this.siteUrl}/cursos/${order.courseSlug}/compra`;
+    const ref = encodeURIComponent(order.orderId);
+
+    const res = await fetch(`${this.baseUrl}/checkout/preferences`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: [
+          {
+            id: order.courseId,
+            title: order.courseTitle,
+            quantity: 1,
+            currency_id: order.currency, // "USD"
+            unit_price: order.priceUsd,
+          },
+        ],
+        payer: { email: order.payerEmail },
+        external_reference: order.orderId,
+        back_urls: {
+          success: `${returnBase}/exito?orderId=${ref}`,
+          failure: `${returnBase}/error?orderId=${ref}`,
+          pending: `${returnBase}/pendiente?orderId=${ref}`,
+        },
+        notification_url: `${this.webhookUrl}/api/lms/mp/webhook`,
+        auto_return: "approved",
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `MercadoPago createCheckoutSession failed: ${res.status} ${res.statusText}`
+      );
+    }
+
+    const preference = (await res.json()) as {
+      id?: string | number;
+      init_point?: string;
+      sandbox_init_point?: string;
+    };
+
+    const redirectUrl = preference.init_point ?? preference.sandbox_init_point;
+    if (preference.id === undefined || preference.id === null || !redirectUrl) {
+      throw new Error(
+        "MercadoPago createCheckoutSession: preference response missing id/init_point"
+      );
+    }
+
+    return {
+      externalId: String(preference.id),
+      redirectUrl,
+    };
   }
 
   /**

@@ -22,6 +22,12 @@ export interface CheckoutOrderInput {
   priceUsd: number;
   /** SDD §9.4: always USD in V1. */
   currency: "USD";
+  /** Buyer email — prefills the hosted checkout payer (queried from lmsCustomers). */
+  payerEmail: string;
+  /** Human-readable course title for the checkout line item. */
+  courseTitle: string;
+  /** Course slug — drives the back_urls return routes (/cursos/{slug}/compra/...). */
+  courseSlug: string;
 }
 
 /** Result of opening a checkout session — the redirect target for the buyer. */

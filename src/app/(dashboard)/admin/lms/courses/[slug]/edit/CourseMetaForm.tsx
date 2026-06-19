@@ -31,6 +31,8 @@ interface CourseMetaFormProps {
     status: "draft" | "published" | "archived";
     description?: string;
     coverStorageId?: Id<"_storage">;
+    priceUsd?: number;
+    isPurchasable?: boolean;
   };
 }
 
@@ -38,11 +40,20 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
   const router = useRouter();
   const { success, error } = useToast();
   const updateCourseMeta = useMutation(api.lms.courses.updateCourseMeta);
+  const updateCoursePricing = useMutation(api.lms.courses.updateCoursePricing);
 
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? "");
   const [coverStorageId, setCoverStorageId] = useState<Id<"_storage"> | null>(
     course.coverStorageId ?? null
+  );
+  // Pricing (P1.4). priceUsd is held as a string so the input can be empty
+  // mid-edit; parsed + validated on submit.
+  const [priceUsd, setPriceUsd] = useState(
+    typeof course.priceUsd === "number" ? String(course.priceUsd) : ""
+  );
+  const [isPurchasable, setIsPurchasable] = useState(
+    course.isPurchasable === true
   );
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,6 +62,15 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = "El título es requerido";
+
+    const parsedPrice = priceUsd.trim() === "" ? 0 : Number(priceUsd);
+    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      next.priceUsd = "El precio debe ser un número mayor o igual a 0";
+    } else if (isPurchasable && !(parsedPrice > 0)) {
+      next.priceUsd =
+        "Definí un precio mayor a 0 para habilitar la compra del curso";
+    }
+
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -62,6 +82,12 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
         title: title.trim(),
         description: description.trim() || undefined,
         coverStorageId: coverStorageId ?? undefined,
+      });
+      await updateCoursePricing({
+        userId,
+        id: course._id,
+        priceUsd: parsedPrice,
+        isPurchasable,
       });
       success("Curso actualizado");
       router.push("/admin/lms");
@@ -132,6 +158,45 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
               Guardar cambios
             </Button>
           </CardFooter>
+        </Card>
+        <Card>
+          <CardHeader title="Precio y venta" />
+          <CardContent>
+            <Input
+              label="Precio (USD)"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={priceUsd}
+              onChange={(e) => setPriceUsd(e.target.value)}
+              error={errors.priceUsd}
+              placeholder="0"
+            />
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 16,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isPurchasable}
+                onChange={(e) => setIsPurchasable(e.target.checked)}
+              />
+              <span style={{ fontWeight: 500 }}>
+                Disponible para la venta
+              </span>
+            </label>
+            <p style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
+              Al habilitar la venta, el curso muestra el botón “Comprar” en el
+              catálogo. El precio se cobra en USD (MercadoPago convierte a ARS
+              en el checkout).
+            </p>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader title="Imagen de portada" />

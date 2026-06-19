@@ -9,7 +9,13 @@
  * The full seat/claim/enrollment domain lands in Sprint 1.
  */
 
-import { action, internalMutation, mutation, query } from "../_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
@@ -85,6 +91,69 @@ export const getById = query({
     const course = await ctx.db.get(args.id);
     if (!course || course.deletedAt) return null;
     return course;
+  },
+});
+
+// INTERNAL — checkout price/title/slug resolution (Sprint 2 P1.2).
+// The createCheckout action calls this to read the authoritative price + the
+// fields the MP preference needs. Internal-only: pricing is decided server-side,
+// never trusted from the client. Returns null when the course is missing,
+// soft-deleted, unpublished, or not purchasable — the action maps that to a
+// rejection so an un-priced/draft course can never open a checkout.
+export const getCourseForCheckout = internalQuery({
+  args: { courseId: v.id("lmsCourses") },
+  handler: async (ctx, args) => {
+    const course = await ctx.db.get(args.courseId);
+    if (!course || course.deletedAt) return null;
+    if (course.status !== "published") return null;
+    if (course.isPurchasable !== true) return null;
+    if (typeof course.priceUsd !== "number" || !(course.priceUsd > 0)) {
+      return null;
+    }
+    return {
+      _id: course._id,
+      title: course.title,
+      slug: course.slug,
+      priceUsd: course.priceUsd,
+    };
+  },
+});
+
+// Admin-only: set the pricing surface on a course (Sprint 2 P1.4).
+// priceUsd must be a positive number whenever isPurchasable is true — a
+// purchasable course with no/zero price would open a $0 checkout. When
+// isPurchasable is false the price is still stored (so toggling back on
+// preserves it) but not validated as positive.
+export const updateCoursePricing = mutation({
+  args: {
+    userId: v.id("adminUsers"),
+    id: v.id("lmsCourses"),
+    priceUsd: v.number(),
+    isPurchasable: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    await requireRole(ctx, args.userId, "admin");
+
+    const course = await ctx.db.get(args.id);
+    if (!course || course.deletedAt) {
+      throw new Error("Curso no encontrado");
+    }
+    if (args.isPurchasable && !(args.priceUsd > 0)) {
+      throw new Error(
+        "El precio debe ser mayor a 0 para habilitar la compra del curso"
+      );
+    }
+    if (args.priceUsd < 0) {
+      throw new Error("El precio no puede ser negativo");
+    }
+
+    await ctx.db.patch(args.id, {
+      priceUsd: args.priceUsd,
+      currency: "USD",
+      isPurchasable: args.isPurchasable,
+      updatedAt: Date.now(),
+    });
   },
 });
 

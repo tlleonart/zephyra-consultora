@@ -33,6 +33,8 @@ export function EditCourseContent({ userId, slug }: EditCourseContentProps) {
         status: course.status,
         description: course.description,
         coverStorageId: course.coverStorageId,
+        priceUsd: course.priceUsd,
+        isPurchasable: course.isPurchasable,
       }}
     />
   );
