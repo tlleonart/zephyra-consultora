@@ -46,7 +46,12 @@ export type MoneyEvent =
   | "revenue_share_recorded"
   | "confirmation_email_sent"
   | "confirmation_email_skipped"
-  | "provider_not_configured";
+  | "provider_not_configured"
+  // Sprint 3a (Sales Pack) money-path events.
+  | "pack_order_created"
+  | "pack_checkout_preference_created"
+  | "seat_pack_minted"
+  | "seat_pack_mint_idempotent_noop";
 
 type LogLevel = "info" | "warn" | "error";
 
@@ -65,6 +70,10 @@ export interface MoneyLogContext {
   courseId?: string;
   enrollmentId?: string;
   revenueShareId?: string;
+  // Sprint 3a (Sales Pack) correlation keys — all opaque ids / business figures.
+  organizationId?: string;
+  seatPackId?: string;
+  seatCount?: number;
   amountArs?: number;
   amountUsd?: number;
   splitC14Usd?: number;
