@@ -127,8 +127,11 @@ export const createCheckout = action({
  *   2. Resolve the course server-side (authoritative per-seat price + purchasable).
  *   3. RECOMPUTE the pack total server-side from the volume tiers. Reject the
  *      50+ band (selfCheckoutAllowed:false → "Contactanos") and any invalid quote.
- *   4. Reuse an OPEN pending_payment pack order for (org, course) on retry, else
- *      snapshot a fresh pack order (orderType "pack" + the server pricing).
+ *   4. Reuse an OPEN pending_payment pack order for (org, course) ONLY when its
+ *      snapshot (seatCount + server total) still matches the freshly recomputed
+ *      quote; on a mismatch (e.g. an abandoned 10-seat order, now a 25-seat
+ *      request) cancel the stale order and snapshot a fresh one at the current
+ *      quote — so the MP preference always carries the CURRENT seatCount + total.
  *   5. Open the MP Checkout Pro preference in USD; stamp the preference id.
  *   6. Return { redirectUrl, orderId } — the return pages read order status from
  *      the DB (reusing the S2 /compra/{exito|error|pendiente} pattern).
@@ -179,12 +182,32 @@ export const createPackCheckout = action({
       );
     }
 
-    // --- 4. Reuse an open pending pack order or snapshot a fresh one ---------
-    let order = await ctx.runQuery(internal.lms.packs.getOpenPackOrder, {
+    // --- 4. Reuse an open pending pack order ONLY if its snapshot matches the
+    //        freshly recomputed quote; else supersede it + snapshot a fresh one.
+    // CRITICAL: reuse must be gated on the snapshot matching the CURRENT quote.
+    // A stale order (e.g. an abandoned 10-seat order) must NOT be reused for a
+    // 25-seat request — that would charge the old seatCount/total and mint the
+    // old seatCount. We reuse only on an exact (seatCount, total) match; on a
+    // mismatch we cancel the stale order (so it can never be paid later) and
+    // create a fresh order carrying the current quote.
+    const openOrder = await ctx.runQuery(internal.lms.packs.getOpenPackOrder, {
       organizationId: args.organizationId,
       courseId: args.courseId,
     });
-    if (!order) {
+    let order: typeof openOrder;
+    const matchesQuote =
+      openOrder !== null &&
+      openOrder.seatCount === quote.seatCount &&
+      openOrder.priceUsd === quote.totalPriceUsd;
+    if (openOrder && matchesQuote) {
+      order = openOrder;
+    } else {
+      if (openOrder) {
+        // Supersede the stale order so a late MP approval can't pay it.
+        await ctx.runMutation(internal.lms.packs.cancelPackOrder, {
+          orderId: openOrder._id,
+        });
+      }
       order = await ctx.runMutation(internal.lms.packs.createPackOrder, {
         organizationId: args.organizationId,
         customerId: args.callerCustomerId,
@@ -194,6 +217,11 @@ export const createPackCheckout = action({
         appliedDiscountPct: quote.appliedDiscountPct,
         totalPriceUsd: quote.totalPriceUsd,
       });
+    }
+    if (!order) {
+      // Unreachable: every branch above assigns a non-null order. Fail closed
+      // rather than open an MP preference against an undefined order.
+      throw new Error("No se pudo crear o reutilizar la orden del pack");
     }
 
     // --- 5. Open the MP preference (USD) ------------------------------------

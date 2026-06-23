@@ -174,7 +174,8 @@ describe("requestSeatInvite — org-owner-gated magic-link issue", () => {
     expect(tables.lmsMagicLinkTokens).toHaveLength(1);
     expect(tables.lmsMagicLinkTokens[0]).toMatchObject({
       email: "employee@acme.com",
-      purpose: "learner_activation",
+      purpose: "seat_invite",
+      seatPackId: "pack-1",
     });
   });
 
@@ -214,7 +215,8 @@ describe("requestSeatInvite — org-owner-gated magic-link issue", () => {
           _id: "tok-pending",
           email: "employee@acme.com",
           tokenHash: "deadbeef",
-          purpose: "learner_activation",
+          purpose: "seat_invite",
+          seatPackId: "pack-1",
           expiresAt: now + 1_000_000,
           createdAt: now,
         },
@@ -230,6 +232,53 @@ describe("requestSeatInvite — org-owner-gated magic-link issue", () => {
     expect(res.rawToken).toBeNull();
     // No second token minted.
     expect(tables.lmsMagicLinkTokens).toHaveLength(1);
+  });
+
+  it("RE-INVITE TO A DIFFERENT PACK is NOT swallowed: a pending invite to pack-1 does not suppress a fresh invite to pack-2 (same email)", async () => {
+    const now = Date.now();
+    const seed = baseSeed();
+    // A second pack in the same org with capacity, for the same employee email.
+    seed.packs.push({
+      _id: "pack-2",
+      orderId: "order-2",
+      organizationId: "org-1",
+      courseId: "course-2",
+      totalSeats: 1,
+      availableSeats: 1,
+      claimedSeats: 0,
+      validFrom: 1,
+      createdAt: 1,
+    });
+    seed.seats.push({ _id: "seat-p2", seatPackId: "pack-2", status: "available", createdAt: 1 });
+    const { db, tables } = makeStore({
+      ...seed,
+      tokens: [
+        {
+          // A live pending invite for pack-1.
+          _id: "tok-pack1",
+          email: "employee@acme.com",
+          tokenHash: "deadbeef",
+          purpose: "seat_invite",
+          seatPackId: "pack-1",
+          expiresAt: now + 1_000_000,
+          createdAt: now,
+        },
+      ],
+    });
+    // Inviting the SAME email to pack-2 must NOT be swallowed by the pack-1 token.
+    const res = await inviteHandler(db_ctx(db), {
+      callerCustomerId: "owner-1",
+      organizationId: "org-1",
+      seatPackId: "pack-2",
+      employeeEmail: "employee@acme.com",
+    });
+    expect(res.alreadyPending).toBe(false);
+    expect(typeof res.rawToken).toBe("string");
+    // A second token row minted, bound to pack-2 (so the action sends the email).
+    expect(tables.lmsMagicLinkTokens).toHaveLength(2);
+    const pack2Token = tables.lmsMagicLinkTokens.find((t) => t.seatPackId === "pack-2");
+    expect(pack2Token).toBeDefined();
+    expect(pack2Token?.purpose).toBe("seat_invite");
   });
 });
 
@@ -249,7 +298,8 @@ describe("claimSeat — claim → enrollment", () => {
           _id: "tok-1",
           email: "employee@acme.com",
           tokenHash,
-          purpose: "learner_activation",
+          purpose: "seat_invite",
+          seatPackId: "pack-1",
           expiresAt: now + 1_000_000,
           createdAt: now,
         },
@@ -339,7 +389,8 @@ describe("claimSeat — claim → enrollment", () => {
           _id: "tok-oc",
           email: "employee@acme.com",
           tokenHash,
-          purpose: "learner_activation",
+          purpose: "seat_invite",
+          seatPackId: "pack-1",
           expiresAt: now + 1_000_000,
           createdAt: now,
         },
@@ -393,7 +444,8 @@ describe("claimSeat — claim → enrollment", () => {
           _id: "tok-dup",
           email: "employee@acme.com",
           tokenHash,
-          purpose: "learner_activation",
+          purpose: "seat_invite",
+          seatPackId: "pack-1",
           expiresAt: now + 1_000_000,
           createdAt: now,
         },
@@ -433,6 +485,86 @@ describe("claimSeat — claim → enrollment", () => {
       })
     ).rejects.toThrow(/ya fue usada/);
     expect(tables.lmsEnrollments).toHaveLength(1);
+  });
+
+  it("CROSS-PACK GUARD — a seat_invite token bound to pack-1 is REJECTED when claimed against a different pack of the same org", async () => {
+    const rawToken = "d".repeat(64);
+    const tokenHash = await hashOpaqueToken(rawToken);
+    const now = Date.now();
+    const seed = baseSeed();
+    // A second pack in the SAME org with an available seat.
+    seed.packs.push({
+      _id: "pack-2",
+      orderId: "order-2",
+      organizationId: "org-1",
+      courseId: "course-2",
+      totalSeats: 1,
+      availableSeats: 1,
+      claimedSeats: 0,
+      validFrom: 1,
+      createdAt: 1,
+    });
+    seed.seats.push({ _id: "seat-p2", seatPackId: "pack-2", status: "available", createdAt: 1 });
+    const { db, tables } = makeStore({
+      ...seed,
+      tokens: [
+        {
+          _id: "tok-bound-p1",
+          email: "employee@acme.com",
+          tokenHash,
+          purpose: "seat_invite",
+          seatPackId: "pack-1", // bound to pack-1
+          expiresAt: now + 1_000_000,
+          createdAt: now,
+        },
+      ],
+    });
+    // Attempt to redeem the pack-1 token against pack-2 (URL tamper).
+    await expect(
+      claimHandler(db_ctx(db), {
+        token: rawToken,
+        claimRequestId: "claim-cross",
+        organizationId: "org-1",
+        seatPackId: "pack-2",
+        employeeEmail: "employee@acme.com",
+      })
+    ).rejects.toThrow(/inválida para este pack/);
+    // No seat consumed on pack-2, no enrollment minted, token NOT burned.
+    expect(tables.lmsEnrollments).toHaveLength(0);
+    expect(tables.lmsSeats.find((s) => s._id === "seat-p2")?.status).toBe("available");
+    expect(tables.lmsMagicLinkTokens[0].usedAt).toBeUndefined();
+  });
+
+  it("B2C-TOKEN GUARD — a learner_activation token is REJECTED by claimSeat", async () => {
+    const rawToken = "e".repeat(64);
+    const tokenHash = await hashOpaqueToken(rawToken);
+    const now = Date.now();
+    const seed = baseSeed();
+    const { db, tables } = makeStore({
+      ...seed,
+      tokens: [
+        {
+          _id: "tok-b2c",
+          email: "employee@acme.com",
+          tokenHash,
+          // A B2C activation token (no seatPackId) must not be honored here.
+          purpose: "learner_activation",
+          expiresAt: now + 1_000_000,
+          createdAt: now,
+        },
+      ],
+    });
+    await expect(
+      claimHandler(db_ctx(db), {
+        token: rawToken,
+        claimRequestId: "claim-b2c",
+        organizationId: "org-1",
+        seatPackId: "pack-1",
+        employeeEmail: "employee@acme.com",
+      })
+    ).rejects.toThrow(/inválida para esta operación/);
+    expect(tables.lmsEnrollments).toHaveLength(0);
+    expect(tables.lmsMagicLinkTokens[0].usedAt).toBeUndefined();
   });
 });
 

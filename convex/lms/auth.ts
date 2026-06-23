@@ -198,6 +198,13 @@ export const consumeMagicLink = mutation({
     if (Date.now() > row.expiresAt) {
       throw new AuthError("link expirado");
     }
+    // A B2B seat-invite token MUST NOT mint a B2C session here: it is claimed
+    // exclusively by lms/seats.ts:claimSeat (which binds the org_learner to the
+    // org + a seat). Rejecting it explicitly keeps the two surfaces isolated
+    // even though the arg validator already excludes "seat_invite" as a purpose.
+    if (row.purpose === "seat_invite") {
+      throw new AuthError("link inválido para esta operación");
+    }
     // Cross-purpose escalation guard: an activation token must not be
     // accepted on the sign-in path (and vice-versa).
     if (row.purpose !== args.purpose) {

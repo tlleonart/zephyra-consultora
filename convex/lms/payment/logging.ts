@@ -49,6 +49,9 @@ export type MoneyEvent =
   | "provider_not_configured"
   // Sprint 3a (Sales Pack) money-path events.
   | "pack_order_created"
+  // A stale pending pack order cancelled because its snapshot no longer matched
+  // the freshly recomputed quote (e.g. abandoned 10-seat order, new 25-seat req).
+  | "pack_order_superseded"
   | "pack_checkout_preference_created"
   | "seat_pack_minted"
   | "seat_pack_mint_idempotent_noop";

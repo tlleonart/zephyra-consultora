@@ -6,9 +6,31 @@ import { Id } from '../../../../convex/_generated/dataModel';
 // LEARNER_JWT_SECRET cannot validate against the admin verify path (and
 // vice-versa) — the cross-surface escalation guard rests on this boundary
 // PLUS the distinct cookie name (PDD §7.5, SDD §6 SC #3).
-const secretKey = new TextEncoder().encode(
-  process.env.LEARNER_JWT_SECRET || 'fallback-learner-secret-for-development-only'
-);
+//
+// Fail-closed in production: a missing LEARNER_JWT_SECRET in a prod deploy must
+// NOT silently fall back to a source-controlled dev key — that would let anyone
+// forge an org_admin learner session (trusted by requireOrgOwner via
+// callerCustomerId). We throw when the secret is needed (first sign/verify) in
+// production, mirroring the LAZY MAGIC_LINK_HMAC_KEY discipline in
+// convex/model/passwords.ts (getHmacKey). Resolution is LAZY (not at module
+// load) so `next build`'s page-data collection — which runs with
+// NODE_ENV=production but no runtime env — does not crash at import time; the
+// guard fires on the first actual session operation in a running prod deploy.
+// The dev fallback is kept ONLY for non-production (local dev + tests).
+let cachedSecretKey: Uint8Array | null = null;
+const getSecretKey = (): Uint8Array => {
+  if (cachedSecretKey) return cachedSecretKey;
+  const fromEnv = process.env.LEARNER_JWT_SECRET;
+  if (!fromEnv && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'LEARNER_JWT_SECRET is not set in environment; learner session signing requires it in production.'
+    );
+  }
+  cachedSecretKey = new TextEncoder().encode(
+    fromEnv || 'fallback-learner-secret-for-development-only'
+  );
+  return cachedSecretKey;
+};
 
 const SESSION_COOKIE = 'session-learner';
 // 7 days. Learners expect long-lived sessions (browse courses, come back next
@@ -38,7 +60,7 @@ export const createLearnerSession = async (learner: {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
-    .sign(secretKey);
+    .sign(getSecretKey());
 
   return token;
 };
@@ -47,7 +69,7 @@ export const verifyLearnerSession = async (
   token: string
 ): Promise<LearnerSessionPayload | null> => {
   try {
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify(token, getSecretKey());
     return payload as unknown as LearnerSessionPayload;
   } catch {
     return null;

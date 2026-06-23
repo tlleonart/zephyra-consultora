@@ -19,11 +19,12 @@
  * SECURITY / PRIVACY INVARIANTS:
  *   - requireOrgOwner on EVERY org-scoped function (invite, release, roster,
  *     aggregate, nominal) — cross-org isolation (Risk R3), same control as 3a.
- *   - The invite is an opaque random token stored as HMAC-SHA-256 in
+ *   - The invite is an opaque random token (purpose "seat_invite", a DEDICATED
+ *     purpose — never the B2C "learner_activation") stored as HMAC-SHA-256 in
  *     lmsMagicLinkTokens (REUSE of the lms/auth.ts discipline). The raw token is
- *     returned once, never persisted. The (org, seatPack, claimRequest) binding
- *     is carried in the invite URL (the frozen token row has no columns for it),
- *     and re-verified server-side at claim time.
+ *     returned once, never persisted. The token row is BOUND to its seatPackId
+ *     (column) and re-verified at claim time; the (org, claimRequest) context
+ *     travels in the invite URL and is also re-verified server-side at claim.
  *   - claimSeat is IDEMPOTENT: lookup-before-insert on claimRequestId via
  *     lmsSeats.by_claim_request. A replayed claim returns the existing seat +
  *     enrollment and mints NOTHING new.
@@ -58,13 +59,14 @@ import { requireOrgOwner } from "./org";
 // Constants
 // ============================================================================
 
-// The invite magic-link reuses the frozen lmsMagicLinkTokens.purpose union;
-// "learner_activation" is the closest existing purpose — the invited employee
-// is activating their (org-managed) account by claiming the seat. The frozen
-// schema has no dedicated "seat_invite" literal, so we reuse this one and bind
-// the (org, seatPack, claimRequest) context in the invite URL + re-verify it
-// server-side at claim time.
-const INVITE_PURPOSE = "learner_activation" as const;
+// The invite magic-link uses a DEDICATED purpose ("seat_invite"), distinct from
+// the B2C "learner_activation"/"learner_signin"/"learner_recovery" purposes. A
+// seat-invite token must NEVER be honored by the B2C consume path
+// (consumeMagicLink rejects it) and a B2C token must NEVER be honored by
+// claimSeat — the two surfaces are isolated by purpose. The token row is also
+// bound to its seatPackId (column on lmsMagicLinkTokens), re-verified at claim
+// time, so an invitee cannot redeem against a different pack of the same org.
+const INVITE_PURPOSE = "seat_invite" as const;
 
 // Invite TTL: 7 days. An employee may not check email immediately; this is
 // longer than the 30-min self-activation token (a manager-initiated invite is a
@@ -124,14 +126,12 @@ async function countAvailableSeats(
 // Pre-check: the pack must have ≥ 1 available seat (block on a full pack with a
 // clear error — the safer choice; do not invite into a pack with no capacity).
 //
-// Re-invite idempotency: a second invite for the SAME (seatPack, email) while a
-// pending (unused, unexpired) invite token already exists does NOT mint a second
-// token. We surface `alreadyPending: true` and return null rawToken (the prior
-// link is still live; the action can re-send the stored claimRequestId). The
-// claimRequestId for the pending invite is recreated deterministically is NOT
-// possible (the token row has no claimRequestId column), so on a re-invite the
-// caller must rely on the originally returned claimRequestId; we therefore
-// return alreadyPending so the action does not issue a duplicate seat claim.
+// Re-invite idempotency: a second invite for the SAME (seatPackId, email) while
+// a pending (unused, unexpired) seat_invite token already exists does NOT mint a
+// second token. We surface `alreadyPending: true` and return null rawToken (the
+// prior link is still live). The guard is SCOPED to (email, seatPackId): an
+// invite to a DIFFERENT pack for the same email — or any B2C token (different
+// purpose) — does NOT match, so a real second-pack invite is never swallowed.
 export const requestSeatInvite = mutation({
   args: {
     callerCustomerId: v.id("lmsCustomers"),
@@ -168,7 +168,10 @@ export const requestSeatInvite = mutation({
     const now = Date.now();
 
     // Re-invite idempotency: if a pending (unused, unexpired) invite token for
-    // this email already exists, do not mint a second one.
+    // this email AND THIS SAME PACK already exists, do not mint a second one.
+    // Scoped to (email, seatPackId): an invite to a DIFFERENT pack (or any B2C
+    // token — those carry a different purpose and are excluded by the index)
+    // must NOT suppress a real invite email for this pack.
     const existingTokens = await ctx.db
       .query("lmsMagicLinkTokens")
       .withIndex("by_email_purpose", (q) =>
@@ -176,7 +179,10 @@ export const requestSeatInvite = mutation({
       )
       .collect();
     const pending = existingTokens.find(
-      (t) => t.usedAt === undefined && t.expiresAt > now
+      (t) =>
+        t.usedAt === undefined &&
+        t.expiresAt > now &&
+        t.seatPackId === args.seatPackId
     );
     if (pending) {
       return {
@@ -196,13 +202,18 @@ export const requestSeatInvite = mutation({
       email,
       tokenHash,
       purpose: INVITE_PURPOSE,
+      // Bind the token to THIS pack. claimSeat re-verifies the seatPackId arg
+      // against this column, so the invite can only ever be redeemed against
+      // the pack it was issued for (cross-pack redemption guard).
+      seatPackId: args.seatPackId,
       expiresAt,
       createdAt: now,
     });
 
     // The raw token + claimRequestId are returned ONCE for the invite URL and
     // never persisted (only the HMAC of the token lives in the DB). The (org,
-    // seatPack) binding travels in the URL and is re-verified at claim time.
+    // seatPack) binding travels in the URL AND is anchored on the token row,
+    // and is re-verified at claim time.
     return {
       rawToken,
       claimRequestId,
@@ -300,8 +311,17 @@ export const claimSeat = mutation({
     if (Date.now() > tokenRow.expiresAt) {
       throw new AuthError("invitación expirada");
     }
+    // Purpose guard: only a dedicated "seat_invite" token may claim a seat. A
+    // B2C token (learner_activation / signin / recovery) is rejected here — the
+    // seat-claim surface and the B2C consume surface never honor each other.
     if (tokenRow.purpose !== INVITE_PURPOSE) {
       throw new AuthError("invitación inválida para esta operación");
+    }
+    // Cross-pack guard: the token is bound to ONE seatPackId at mint time. The
+    // seatPackId arg (carried in the claim URL) must match the bound pack, so an
+    // invitee cannot edit the URL to redeem against a different pack of the org.
+    if (tokenRow.seatPackId !== args.seatPackId) {
+      throw new AuthError("invitación inválida para este pack");
     }
     // The token's email must match the email being claimed (defense in depth:
     // the invite was minted for a specific employee address).

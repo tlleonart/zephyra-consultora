@@ -355,8 +355,16 @@ export default defineSchema({
     purpose: v.union(
       v.literal("learner_activation"),
       v.literal("learner_signin"),
-      v.literal("learner_recovery")
+      v.literal("learner_recovery"),
+      // B2B seat-claim invite. A dedicated purpose (NOT a reused
+      // "learner_activation") so the B2C consume path and the seat-claim path
+      // can never honor each other's tokens (cross-purpose escalation guard).
+      v.literal("seat_invite")
     ),
+    // Bound ONLY for purpose "seat_invite": the pack the invite grants a seat
+    // in. Verified at claim time so an invitee cannot redeem against a
+    // different pack of the same org by editing the URL (cross-pack guard).
+    seatPackId: v.optional(v.id("lmsSeatPacks")),
     expiresAt: v.number(),
     usedAt: v.optional(v.number()),
     createdAt: v.number(),

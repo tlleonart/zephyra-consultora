@@ -218,6 +218,40 @@ export const getOpenPackOrder = internalQuery({
 });
 
 // ============================================================================
+// B2 — cancelPackOrder (supersede a stale pending pack order)
+// ============================================================================
+//
+// internalMutation. Used by the checkout action when a reusable open pack order
+// is found whose snapshot (seatCount / total) NO LONGER matches the freshly
+// recomputed quote (e.g. the buyer abandoned a 10-seat order and returned to buy
+// 25). We mark the stale order `cancelled` so it can never be paid later (a
+// late MP approval for a superseded preference must NOT mint the old seatCount),
+// then snapshot a fresh order at the current quote. Only acts on a still-open
+// `pending_payment` pack order; idempotent / no-op otherwise.
+export const cancelPackOrder = internalMutation({
+  args: { orderId: v.id("lmsOrders") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.deletedAt) return { cancelled: false as const };
+    if (order.orderType !== "pack" || order.status !== "pending_payment") {
+      return { cancelled: false as const };
+    }
+    await ctx.db.patch(args.orderId, {
+      status: "cancelled",
+      updatedAt: Date.now(),
+    });
+    logMoney("info", "pack_order_superseded", "Stale pending pack order cancelled (quote mismatch)", {
+      orderId: args.orderId,
+      organizationId: order.organizationId,
+      courseId: order.courseId,
+      seatCount: order.seatCount,
+      amountUsd: order.priceUsd,
+    });
+    return { cancelled: true as const };
+  },
+});
+
+// ============================================================================
 // B2 — createPackOrder (snapshot the server-computed pack order)
 // ============================================================================
 //

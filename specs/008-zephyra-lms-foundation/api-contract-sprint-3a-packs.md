@@ -133,9 +133,17 @@ create the org. The frontend orchestrates both steps.
     - **Invalid seatCount:** `Cantidad de seats inválida: <reason>`.
     - **Course not purchasable:** `Curso no disponible para compra`.
     - **Not the owner:** `no autorizado` (from `requireOrgOwner`).
-    - **Retry-reuse:** calling again for the SAME `(organizationId, courseId)`
-      while an order is still `pending_payment` REUSES that order (same
-      `orderId`) instead of creating a duplicate — safe to call on a back-click.
+    - **Retry-reuse (reuse-ON-MATCH only):** calling again for the SAME
+      `(organizationId, courseId)` while an order is still `pending_payment`
+      REUSES that order (same `orderId`) ONLY when its snapshot still matches the
+      freshly recomputed quote — i.e. the same `seatCount` AND the same server
+      `priceUsd` total. Safe to call on a back-click with the SAME seat count.
+    - **Quote changed ⇒ fresh order:** if the buyer returns with a DIFFERENT
+      `seatCount` (e.g. abandoned a 10-seat order, now requests 25), the stale
+      `pending_payment` order is `cancelled` (so a late MP approval can never pay
+      the old amount) and a NEW order is snapshotted at the current quote. The MP
+      preference ALWAYS carries the current `seatCount` + server total — never the
+      stale figure. A new `orderId` is returned in this case.
 
 ### Return-page status read (REUSE the Sprint-2 function)
 - `getOrderById({ orderId })` — `query` — `convex/lms/payment/orders.ts`

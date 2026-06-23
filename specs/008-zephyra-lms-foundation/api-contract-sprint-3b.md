@@ -26,10 +26,24 @@ the target org (cross-org isolation). Learner-side consent functions take
 `learnerCustomerId` derived the same way (self-scoped).
 
 The seat **invite** is an opaque random token stored as HMAC-SHA-256 in
-`lmsMagicLinkTokens` (the same discipline as the learner magic link). The raw
-token + a `claimRequestId` are returned ONCE; the (org, seatPack) binding lives
-in the invite URL the frontend composes (not in the token row) and is
-re-verified server-side at claim time.
+`lmsMagicLinkTokens` (the same discipline as the learner magic link), minted with
+a DEDICATED purpose `seat_invite` (NOT the B2C `learner_activation`). The raw
+token + a `claimRequestId` are returned ONCE. The token row is BOUND to its
+`seatPackId` (a column on `lmsMagicLinkTokens`) and re-verified at claim time, so
+an invitee cannot redeem against a different pack of the same org by editing the
+URL. The `org` + `claimRequestId` context also travels in the invite URL the
+frontend composes and is re-verified server-side at claim time.
+
+**Purpose isolation:** a `seat_invite` token is claimable ONLY by `claimSeat`;
+the B2C `consumeMagicLink` REJECTS it (it must not mint a B2C session), and
+`claimSeat` REJECTS any B2C purpose token. The two surfaces never honor each
+other's tokens.
+
+> **Schema note (additive, this branch only):** `lmsMagicLinkTokens.purpose`
+> gains a `v.literal("seat_invite")` and the table gains an optional
+> `seatPackId: v.optional(v.id("lmsSeatPacks"))` column. Additive (the literal
+> widens the union; the column is optional ⇒ all existing rows remain valid), so
+> no backfill / migration is required.
 
 ---
 
@@ -47,8 +61,8 @@ re-verified server-side at claim time.
     }
     ```
   - **Auth:** `requireOrgOwner` (caller must own the org; the pack must belong to it).
-  - **Effect:** mints an invite token (purpose `learner_activation`, the frozen
-    union has no dedicated invite literal). Does NOT send the email — the server
+  - **Effect:** mints an invite token (purpose `seat_invite`, BOUND to
+    `seatPackId` on the token row). Does NOT send the email — the server
     action composes the claim URL from `rawToken` + `claimRequestId` +
     `organizationId` + `seatPackId` and sends it (use the `SeatInvite` React Email
     template in `src/emails/SeatInvite.tsx` via `src/lib/mailer/learner.ts`
@@ -58,9 +72,13 @@ re-verified server-side at claim time.
   - **Edge cases (thrown `Error` the UI catches):**
     - **Pack full:** `el pack no tiene asientos disponibles para invitar` — blocked
       when `availableSeats === 0` (don't invite into a full pack).
-    - **Re-invite idempotency:** a second invite for the SAME email while a pending
-      (unused, unexpired) invite token exists returns `alreadyPending: true` with
-      `rawToken: null` — do NOT issue a new link; the prior one is still live.
+    - **Re-invite idempotency (scoped to (email, seatPackId)):** a second invite
+      for the SAME email AND THE SAME pack while a pending (unused, unexpired)
+      `seat_invite` token exists returns `alreadyPending: true` with
+      `rawToken: null` — do NOT issue a new link; the prior one is still live. An
+      invite to a DIFFERENT pack for the same email (or any B2C token) does NOT
+      match and DOES issue a fresh token + email — a real second-pack invite is
+      never swallowed.
     - **Not the owner / pack not in org:** `no autorizado`.
     - **Empty email:** `el email del empleado es obligatorio`.
 
@@ -103,6 +121,11 @@ re-verified server-side at claim time.
       consumed by a DIFFERENT claimRequestId (a true second claim, not a retry).
     - **Invalid/expired token:** `invitación inválida o expirada` / `invitación
       expirada` / `invitación inválida para este email`.
+    - **Cross-pack redemption (URL tamper):** `invitación inválida para este pack`
+      — the token is bound to ONE `seatPackId`; the `pack` URL param must match
+      the bound pack, else rejected (the token is NOT burned).
+    - **Wrong purpose (B2C token):** `invitación inválida para esta operación` — a
+      `learner_activation`/`signin`/`recovery` token is rejected by `claimSeat`.
 
 ---
 

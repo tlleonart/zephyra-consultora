@@ -460,6 +460,31 @@ describe("consumeMagicLink", () => {
       })
     ).rejects.toThrow(/inválido o expirado/);
   });
+
+  it("SEAT-INVITE GUARD: a seat_invite token is REJECTED by consumeMagicLink (must not mint a B2C session)", async () => {
+    const rawToken = "f".repeat(64);
+    const tokenHash = await hashOpaqueToken(rawToken);
+    // A B2B seat_invite token (claimed only by lms/seats.ts:claimSeat). The
+    // MockToken.purpose union is B2C-only, so cast to seed the cross-purpose row.
+    const token = {
+      _id: "tok-seat",
+      email: "emp@acme.com",
+      tokenHash,
+      purpose: "seat_invite",
+      expiresAt: Date.now() + 60_000,
+      createdAt: Date.now(),
+    } as unknown as MockToken;
+    const { ctx, customers } = buildCtx({ tokens: [token] });
+    await expect(
+      consumeHandler(ctx, {
+        token: rawToken,
+        // Even claiming it as activation must fail — the row is seat_invite.
+        purpose: "learner_activation",
+      })
+    ).rejects.toThrow(/inválido para esta operación/);
+    // No B2C customer minted.
+    expect(customers).toHaveLength(0);
+  });
 });
 
 // ============================================================================
