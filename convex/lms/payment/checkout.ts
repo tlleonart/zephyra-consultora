@@ -110,3 +110,126 @@ export const createCheckout = action({
     return { redirectUrl };
   },
 });
+
+/**
+ * createPackCheckout — the B2B pack checkout path (Sprint 3a Phase B2).
+ *
+ * The org-owner-gated sibling of createCheckout. An action (outbound HTTP to MP
+ * + env access). Owner-gated, server-authoritative pricing, retry-reuse, 50+
+ * rejection. The client sends ONLY (callerCustomerId, organizationId, courseId,
+ * seatCount) — NEVER a price. Any client-supplied price would be impossible to
+ * pass here (the arg doesn't exist) and is recomputed regardless.
+ *
+ * Flow:
+ *   1. requireOrgOwner gate (via internalQuery) — fails closed for any non-owner.
+ *      This is the cross-org isolation control (Risk R3); a forged caller can
+ *      only ever open a checkout for an org they actually own.
+ *   2. Resolve the course server-side (authoritative per-seat price + purchasable).
+ *   3. RECOMPUTE the pack total server-side from the volume tiers. Reject the
+ *      50+ band (selfCheckoutAllowed:false → "Contactanos") and any invalid quote.
+ *   4. Reuse an OPEN pending_payment pack order for (org, course) on retry, else
+ *      snapshot a fresh pack order (orderType "pack" + the server pricing).
+ *   5. Open the MP Checkout Pro preference in USD; stamp the preference id.
+ *   6. Return { redirectUrl, orderId } — the return pages read order status from
+ *      the DB (reusing the S2 /compra/{exito|error|pendiente} pattern).
+ */
+export const createPackCheckout = action({
+  args: {
+    callerCustomerId: v.id("lmsCustomers"),
+    organizationId: v.id("lmsOrganizations"),
+    courseId: v.id("lmsCourses"),
+    seatCount: v.number(),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ redirectUrl: string; orderId: string }> => {
+    // --- 1. Owner gate (fails closed for any non-owner) ---------------------
+    // assertOrgOwner throws AuthError if the caller is not the org's owner.
+    const { ownerEmail } = await ctx.runQuery(
+      internal.lms.org.assertOrgOwner,
+      {
+        callerCustomerId: args.callerCustomerId,
+        organizationId: args.organizationId,
+      }
+    );
+
+    // --- 2. Resolve the course (authoritative per-seat price + gate) --------
+    const course = await ctx.runQuery(
+      internal.lms.packs.getCourseForPackCheckout,
+      { courseId: args.courseId }
+    );
+    if (!course) {
+      throw new Error("Curso no disponible para compra");
+    }
+
+    // --- 3. RECOMPUTE the pack total server-side (ignore any client price) --
+    const quoteResult = await ctx.runQuery(
+      internal.lms.packs.quotePackPriceInternal,
+      { unitPriceUsd: course.priceUsd, seatCount: args.seatCount }
+    );
+    if (!quoteResult.ok) {
+      throw new Error(`Cantidad de seats inválida: ${quoteResult.reason}`);
+    }
+    const quote = quoteResult.quote;
+    // 50+ band: no self-serve checkout — the UI shows "Contactanos".
+    if (!quote.selfCheckoutAllowed) {
+      throw new Error(
+        "Para 50 o más seats, contactanos para una cotización personalizada"
+      );
+    }
+
+    // --- 4. Reuse an open pending pack order or snapshot a fresh one ---------
+    let order = await ctx.runQuery(internal.lms.packs.getOpenPackOrder, {
+      organizationId: args.organizationId,
+      courseId: args.courseId,
+    });
+    if (!order) {
+      order = await ctx.runMutation(internal.lms.packs.createPackOrder, {
+        organizationId: args.organizationId,
+        customerId: args.callerCustomerId,
+        courseId: args.courseId,
+        seatCount: quote.seatCount,
+        unitPriceUsd: quote.unitPriceUsd,
+        appliedDiscountPct: quote.appliedDiscountPct,
+        totalPriceUsd: quote.totalPriceUsd,
+      });
+    }
+
+    // --- 5. Open the MP preference (USD) ------------------------------------
+    const adapter = new MercadoPagoAdapter();
+    const { externalId, redirectUrl } = await adapter.createCheckoutSession({
+      orderId: order._id,
+      customerId: args.callerCustomerId,
+      courseId: args.courseId,
+      priceUsd: order.priceUsd, // the SERVER pack total
+      currency: "USD",
+      payerEmail: ownerEmail,
+      courseTitle: `${course.title} — ${quote.seatCount} licencias`,
+      courseSlug: course.slug,
+    });
+
+    await ctx.runMutation(
+      internal.lms.packs.updatePackOrderWithMpPreference,
+      { orderId: order._id, mpPreferenceId: externalId }
+    );
+
+    logMoney(
+      "info",
+      "pack_checkout_preference_created",
+      "MP Checkout Pro preference created for pack order",
+      {
+        orderId: order._id,
+        externalReference: order._id,
+        mpPreferenceId: externalId,
+        organizationId: args.organizationId,
+        courseId: args.courseId,
+        seatCount: quote.seatCount,
+        amountUsd: order.priceUsd,
+        currency: "USD",
+      }
+    );
+
+    return { redirectUrl, orderId: order._id };
+  },
+});

@@ -120,9 +120,15 @@ const confirmationEmailText = (props: {
 export const sendBuyerConfirmationEmail = internalAction({
   args: {
     learnerId: v.id("lmsCustomers"),
-    enrollmentId: v.id("lmsEnrollments"),
+    // Optional: present for a B2C purchase (drives the direct player link);
+    // ABSENT for a pack purchase (the buyer is the org Owner Admin, who claims
+    // seats to learners rather than receiving a direct enrollment).
+    enrollmentId: v.optional(v.id("lmsEnrollments")),
     courseTitle: v.string(),
-    courseSlug: v.string(),
+    // Optional: drives the /cursos/<slug>/player link on a B2C purchase. For a
+    // pack purchase the buyer manages seats from the org console, so we link to
+    // the public site root instead of a player they don't directly enrol into.
+    courseSlug: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<void> => {
     // Resolve the learner email (action has no ctx.db). getLearnerById strips
@@ -141,8 +147,12 @@ export const sendBuyerConfirmationEmail = internalAction({
     // Player link keys on the course SLUG (the real route is
     // /cursos/<slug>/player — NOT courseId). The player page gates access via
     // the learner's session cookie + active enrollment, so no token is needed
-    // in the URL.
-    const playerUrl = `${publicBaseUrl()}/cursos/${args.courseSlug}/player`;
+    // in the URL. For a pack purchase (no enrollment / no slug) we link to the
+    // public site root — the org owner manages seats from the console, not a
+    // direct player they enrolled into.
+    const playerUrl = args.courseSlug
+      ? `${publicBaseUrl()}/cursos/${args.courseSlug}/player`
+      : `${publicBaseUrl()}/`;
 
     // lmsCustomers has no displayName field — greet by email (same shape as
     // LearnerMagicLink's optional recipientName).

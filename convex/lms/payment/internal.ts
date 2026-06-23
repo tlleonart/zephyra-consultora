@@ -44,6 +44,14 @@ type ProcessOutcome =
       enrollmentId: Id<"lmsEnrollments">;
     }
   | {
+      // B2B pack approved: seats are MINTED (a pack + N seats), not enrolled.
+      // The org owner later claims seats to learners; no enrollment at payment.
+      outcome: "approved_pack";
+      paymentId: Id<"lmsPayments">;
+      orderId: Id<"lmsOrders">;
+      seatPackId: Id<"lmsSeatPacks">;
+    }
+  | {
       outcome: "rejected" | "cancelled";
       paymentId: Id<"lmsPayments">;
       orderId: Id<"lmsOrders">;
@@ -183,18 +191,49 @@ export const processVerifiedPayment = internalMutation({
 
       await ctx.db.patch(order._id, { status: "paid", updatedAt: now });
 
-      const enrollment = await ctx.runMutation(
-        internal.lms.enrollments.grantEnrollmentForOrder,
-        { orderId: order._id }
-      );
-      logMoney("info", "enrollment_granted", "Enrollment granted for paid order", {
-        orderId: order._id,
-        mpPaymentId: fetched.id,
-        learnerId: order.customerId,
-        courseId: order.courseId,
-        enrollmentId: enrollment.enrollmentId,
-      });
+      // --- ENTITLEMENT BRANCH (Sprint 3a) ----------------------------------
+      // Branch on order.orderType. ABSENT ⇒ "b2c" (default-b2c semantics —
+      // pre-3a orders carry no orderType). A "pack" order MINTS a seat pack +
+      // N seats (idempotent, keyed on orderId); the org owner later claims
+      // seats to learners — there is NO enrollment at payment time. recordRevenue
+      // Share + the buyer email stay COMMON to both branches below.
+      const isPack = order.orderType === "pack";
 
+      // The entitlement step. For b2c it returns an enrollmentId; for a pack it
+      // returns a seatPackId. Captured for the common email + the outcome shape.
+      let enrollmentId: Id<"lmsEnrollments"> | null = null;
+      let seatPackId: Id<"lmsSeatPacks"> | null = null;
+
+      if (isPack) {
+        const mint = await ctx.runMutation(
+          internal.lms.packs.mintSeatPackForOrder,
+          { orderId: order._id }
+        );
+        seatPackId = mint.seatPackId;
+        logMoney("info", "seat_pack_minted", "Seat pack minted for paid pack order", {
+          orderId: order._id,
+          mpPaymentId: fetched.id,
+          organizationId: order.organizationId,
+          courseId: order.courseId,
+          seatPackId: mint.seatPackId,
+          seatCount: order.seatCount,
+        });
+      } else {
+        const enrollment = await ctx.runMutation(
+          internal.lms.enrollments.grantEnrollmentForOrder,
+          { orderId: order._id }
+        );
+        enrollmentId = enrollment.enrollmentId;
+        logMoney("info", "enrollment_granted", "Enrollment granted for paid order", {
+          orderId: order._id,
+          mpPaymentId: fetched.id,
+          learnerId: order.customerId,
+          courseId: order.courseId,
+          enrollmentId: enrollment.enrollmentId,
+        });
+      }
+
+      // --- COMMON: revenue share (same 80/20 split for b2c AND pack) --------
       await ctx.runMutation(internal.lms.payment.ledger.recordRevenueShare, {
         paymentId,
         grossUsd: order.priceUsd,
@@ -202,14 +241,17 @@ export const processVerifiedPayment = internalMutation({
         feeDetails: fetched.feeDetails,
       });
 
-      // (P1.6) Buyer confirmation email — SCHEDULED, never awaited. A mutation
-      // cannot await an action; it schedules one. Scheduling also isolates the
-      // send from this transaction: a mail failure must not roll back the
-      // committed enrollment/payment/ledger. This branch is reached EXACTLY
-      // once per payment (the by_mp_payment_id dedupe above short-circuits a
-      // replayed webhook to `already_processed` before here), so a dup webhook
-      // never schedules a second email. Best-effort: if the course row is gone
-      // we skip the email rather than fail the money path.
+      // --- COMMON: buyer confirmation email — SCHEDULED, never awaited. -----
+      // A mutation cannot await an action; it schedules one. Scheduling also
+      // isolates the send from this transaction: a mail failure must not roll
+      // back the committed entitlement/payment/ledger. This branch is reached
+      // EXACTLY once per payment (the by_mp_payment_id dedupe above
+      // short-circuits a replayed webhook to `already_processed` before here),
+      // so a dup webhook never schedules a second email. For a B2C order the
+      // email carries the enrollmentId + courseSlug (direct player link); for a
+      // pack the buyer is the org owner who manages seats from the console, so
+      // we omit both and the email links to the site root. Best-effort: if the
+      // course row is gone we skip the email rather than fail the money path.
       const course = await ctx.db.get(order.courseId);
       if (course && !course.deletedAt) {
         await ctx.scheduler.runAfter(
@@ -217,9 +259,9 @@ export const processVerifiedPayment = internalMutation({
           internal.lms.payment.email.sendBuyerConfirmationEmail,
           {
             learnerId: order.customerId,
-            enrollmentId: enrollment.enrollmentId,
+            enrollmentId: enrollmentId ?? undefined,
             courseTitle: course.title,
-            courseSlug: course.slug,
+            courseSlug: isPack ? undefined : course.slug,
           }
         );
       } else {
@@ -230,11 +272,20 @@ export const processVerifiedPayment = internalMutation({
         });
       }
 
+      if (isPack) {
+        // seatPackId is always set here (mint either created or found the pack).
+        return {
+          outcome: "approved_pack" as const,
+          paymentId,
+          orderId: order._id,
+          seatPackId: seatPackId as Id<"lmsSeatPacks">,
+        };
+      }
       return {
         outcome: "approved" as const,
         paymentId,
         orderId: order._id,
-        enrollmentId: enrollment.enrollmentId,
+        enrollmentId: enrollmentId as Id<"lmsEnrollments">,
       };
     }
 

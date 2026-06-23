@@ -147,6 +147,16 @@ export const handleMercadoPagoWebhook = httpAction(async (ctx, request) => {
         requestId,
       });
       break;
+    case "approved_pack":
+      // B2B pack approved: seats MINTED (not enrolled). The org owner claims
+      // seats to learners afterward; no enrollment exists at this point.
+      logMoney("info", "payment_approved", "Pack payment approved and seat pack minted", {
+        orderId: result.orderId,
+        mpPaymentId: verification.paymentId,
+        seatPackId: result.seatPackId,
+        requestId,
+      });
+      break;
     case "already_processed":
       logMoney("info", "webhook_idempotent_noop", "Duplicate webhook — already processed, no side effects", {
         mpPaymentId: verification.paymentId,
