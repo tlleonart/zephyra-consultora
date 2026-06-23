@@ -47,7 +47,11 @@ export default async function PackCompraExitoPage({
             : 'Recibimos tu pago y lo estamos confirmando. En cuanto se acredite, los lugares de tu equipo se habilitan automáticamente.'}
         </p>
         {order ? (
-          <p className={styles.total}>{formatUsd(order.priceUsd)}</p>
+          <p className={styles.total}>
+            {order.seatCount
+              ? `${order.seatCount} ${order.seatCount === 1 ? 'licencia' : 'licencias'} · ${formatUsd(order.priceUsd)}`
+              : formatUsd(order.priceUsd)}
+          </p>
         ) : null}
         <div className={styles.actions}>
           <Link href="/empresa" className={styles.button}>
