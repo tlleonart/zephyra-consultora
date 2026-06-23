@@ -144,21 +144,6 @@ export const Footer = () => {
             ))}
           </div>
         </div>
-
-        {/* Developer Credit */}
-        <div className={styles.developerCredit}>
-          <p>
-            Desarrollado por{" "}
-            <a
-              href="https://carbono14.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.developerLink}
-            >
-              Carbono14
-            </a>
-          </p>
-        </div>
       </div>
     </footer>
   );
