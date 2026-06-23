@@ -205,3 +205,76 @@ MP credentials are read **only** from the Convex env inside Convex functions —
 never hardcoded, never in `.env` files, never logged. The money-path logger
 (`convex/lms/payment/logging.ts`) emits the buyer's `learnerId` (opaque id) and
 never the email address or any card data.
+
+---
+
+## Sprint 3 — Sales Pack + Org Admin (B2B seats + privacy)
+
+**Branch:** `feature/010-zephyra-lms-packs` · **Convex dev:** `dev:exuberant-corgi-88`
+**ADRs:** 0013 (data model), 0014 (pricing), 0015 (seat state machine), 0016 (privacy).
+
+The B2B revenue spine: an organization buys a *pack* of seats for one course at a
+volume-discounted price, a single Owner Admin assigns those seats to employees by
+email, the invited employee claims a seat (becoming an `org_learner` with the same
+player UX as B2C), and the admin sees the team's progress — aggregate by default,
+nominal only for learners who consent.
+
+### Capabilities (S3.1 – S3.10)
+
+- **S3.1 — Org sign-up.** Magic-link-verified org creation; a single
+  `ownerCustomerId` (no role matrix in V1). Routes `/empresa/registro[/crear]`.
+- **S3.2 — B2B catalog.** Owner-gated catalog over the same `lmsCourses`, B2B
+  framing. Route `/empresa/cursos`.
+- **S3.3 — Volume-discount calculator + pack checkout.** Live quote
+  (`computePackPrice`), server-authoritative pricing (ADR-0014); `50+` is
+  contact-only. Pack checkout → MercadoPago Checkout Pro; the approved webhook
+  mints `lmsSeatPacks` + N `lmsSeats` (idempotent on `orderId`, ADR-0015).
+  Route `/empresa/cursos/[slug]` + `/empresa/compra/{exito,pendiente,error}`.
+- **S3.4 — Seat invite.** "Asignar cupo" → `requestSeatInvite` mints an opaque
+  invite token; the server action composes the claim URL and emails `SeatInvite`.
+  Idempotent re-invite (live link) → "ya invitado". Single email (CSV is V1.5).
+- **S3.5 — Seat claim → enrollment.** Claim landing `/empresa/invitacion` →
+  `claimSeat` burns the token, creates/resolves the `org_learner`, claims one
+  seat, creates ONE active enrollment, and routes into the B2C player. Replay
+  (same `claimRequestId`) is idempotent; over-claim is rejected.
+- **S3.6 — Seat release (marcar baja).** `releaseSeat` returns an UNSTARTED seat
+  to the pool and ends the enrollment; a started learner cannot be released
+  (zero-engagement gate, ADR-0015).
+- **S3.7 — Org-Admin dashboard.** `/empresa` replaces the 3a shell: contracted
+  courses (`getOrgSeatPacks` — total/asignados/disponibles + Asignar cupo /
+  Comprar más cupos / Ver progreso), members (`getOrgRoster` — display email
+  only), aggregate progress (`getOrgCourseProgress`). Course titles joined
+  client-side via `listPublished`.
+- **S3.8 — Consent (privacy-aware display).** Learner opt-in/out
+  (`grantProgressConsent` / `revokeProgressConsent`, default OPT-OUT) at
+  `/cursos/privacidad`. Admin nominal view (`getNominalProgress`) is gated
+  server-side; denial → "sin consentimiento — solo agregado" (ADR-0016).
+- **S3.9 — Money-path release gates.** Pack mint idempotency (one pack + N seats
+  per paid order) + anti-tamper (server total, not client price). See
+  `tests/unit/convex/lms/packMoneyPath.test.ts`.
+- **S3.10 — Docs.** ADRs 0014–0016 + this spec section + quickstart org/pack flow.
+
+### Test the full flow
+
+- **Unit (Vitest):** pricing tiers, money-path gates, seat mutations, consent,
+  and the frontend server actions (invite URL compose, claim session mint,
+  nominal consent-denial mapping, release). 265 tests green.
+- **E2E (Playwright):** `tests/e2e/org-packs.spec.ts` (sign-up → calculator →
+  checkout redirect boundary) and `tests/e2e/org-seats.spec.ts` (invite → claim →
+  player opens → dashboard reflects one consumed seat → nominal-without-consent
+  state). The seats e2e SIMULATES only the MP purchase (drives the internal
+  `createPackOrder` → `mintSeatPackForOrder` the approved webhook would call, via
+  `npx convex run`); everything else runs for real against the dev deploy.
+
+### Spec drifts resolved
+
+- **Vitalicia supersedes PDD §10 (expiring licenses).** V1 ships lifetime
+  licenses; the no-expiration model is recorded in ADR-0015 as superseding
+  PDD §10. Re-introducing expiry is additive.
+- **Single Owner Admin (no role matrix).** Locked in ADR-0013.
+- **Dev learner-session secret parity.** `middleware.ts` used a different dev
+  fallback secret than `auth-learner/lib/session.ts`, silently bouncing a
+  freshly-minted learner (e.g. a just-claimed `org_learner`) to sign-in in any
+  env without `LEARNER_JWT_SECRET`. Aligned to
+  `fallback-learner-secret-for-development-only`. Production sets the secret, so
+  this was a local-dev-only divergence.

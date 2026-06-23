@@ -308,3 +308,59 @@ in the Convex console (Logs tab), filtering on `domain: "lms.payment"`.
 
 See [ADR-0009](../../docs/decisions/0009-paymentprovider-interface-checkout-pro.md)–[ADR-0012](../../docs/decisions/0012-order-payment-state-machine.md) for the money-path design and
 [`ops/payout-runbook.md`](../../ops/payout-runbook.md) for the monthly settlement.
+
+---
+
+## Sprint 3 — B2B org/pack flow (vs the MP sandbox)
+
+**Branch** `feature/010-zephyra-lms-packs` · **Convex dev** `dev:exuberant-corgi-88`.
+The B2B path: an organization buys a seat pack, the Owner Admin invites employees,
+each employee claims a seat and lands in the player, and the dashboard reflects it.
+
+### Manual e2e (sign-up → buy → invite → claim → dashboard)
+
+1. **Org sign-up.** Go to `/empresa/registro`, enter org name + admin name +
+   email → "Recibir link". Open the magic link (dev: the mailer logs it to the
+   console when `EMAIL_USER` is unset) → lands on `/empresa/registro/crear` →
+   creates the org and signs you in as the Owner Admin.
+2. **Buy a pack.** `/empresa/cursos` → pick a purchasable course → the volume
+   calculator. Enter a seat count (e.g. 15 → 10% off); the price is computed
+   server-side. "Comprar para mi equipo" → MP Checkout Pro (sandbox) → complete
+   the mock payment → auto-return to `/empresa/compra/exito`. The approved webhook
+   mints the `lmsSeatPacks` + N `lmsSeats` server-side (idempotent on the order).
+3. **Dashboard.** `/empresa` now shows the contracted course with
+   **total / asignados / disponibles**, the aggregate progress section, and the
+   team roster.
+4. **Invite (Asignar cupo).** On the pack card → "Asignar cupo" → enter the
+   employee's email → an invite email is sent (dev: logged to console) carrying
+   the claim URL `…/empresa/invitacion?token=…&cr=…&org=…&pack=…`. A re-invite
+   while the link is live says "ya invitado".
+5. **Claim.** Open the claim URL (as the employee) → confirm the email →
+   "Activar mi acceso" → the seat is claimed, an enrollment is created, and "Ir al
+   curso" opens the SAME player as a B2C learner. `disponibles` decrements by one.
+6. **Consent + nominal.** The employee can opt in/out at `/cursos/privacidad`
+   (default OPT-OUT, reachable from the player). Back on `/empresa`, "Ver
+   progreso" on a member shows nominal detail ONLY if they consented; otherwise it
+   shows the **"sin consentimiento — solo agregado"** state. The aggregate
+   progress section never needs consent.
+7. **Marcar baja.** "Marcar baja" releases an UNSTARTED seat back to the pool; a
+   learner who already started cannot be released (the UI surfaces the rejection).
+
+### Automated e2e (what's real vs simulated)
+
+`tests/e2e/org-seats.spec.ts` drives steps 4–7 for REAL against the dev deploy.
+The MP purchase (step 2) cannot complete headlessly, so the test SIMULATES the
+approved/minted state by running the internal mutations the webhook would call
+(`createPackOrder` → `mintSeatPackForOrder`) via `npx convex run`, then continues
+invite → claim → player → dashboard for real. To run:
+
+```bash
+npm run dev                       # or let Playwright manage the server
+npx playwright test tests/e2e/org-seats.spec.ts
+```
+
+Requires the dev deploy reachable via `NEXT_PUBLIC_CONVEX_URL`, the 3b functions
+deployed + a published purchasable course, and `npx convex` authenticated against
+the same deploy.
+
+See [ADR-0014](../../docs/decisions/0014-volume-discount-engine-server-authoritative-pricing.md)–[ADR-0016](../../docs/decisions/0016-privacy-enforcement-server-side-nominal-gate.md) for pricing, the seat state machine, and the privacy gate.

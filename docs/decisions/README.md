@@ -31,6 +31,9 @@ correct home.
 | [ADR-0011](./0011-usd-pricing-mp-side-ars-conversion.md) | USD pricing with MercadoPago-side ARS conversion | Accepted |
 | [ADR-0012](./0012-order-payment-state-machine.md) | Order/payment state machine (no intermediate states) | Accepted |
 | [ADR-0013](./0013-seat-pack-data-model-vitalicia-licenses-single-owner.md) | Seat-pack data model: vitalicia licenses + single Owner Admin | Accepted |
+| [ADR-0014](./0014-volume-discount-engine-server-authoritative-pricing.md) | Volume-discount engine + server-authoritative pricing | Accepted |
+| [ADR-0015](./0015-seat-state-machine-and-minting-idempotency.md) | Seat state machine + minting/claim idempotency (vitalicias supersede PDD §10) | Accepted |
+| [ADR-0016](./0016-privacy-enforcement-server-side-nominal-gate.md) | Privacy enforcement: server-side nominal gate (Habeas Data) | Accepted |
 
 ### Why ADR-0003 is dropped
 
