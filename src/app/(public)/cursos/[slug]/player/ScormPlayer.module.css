@@ -22,6 +22,20 @@
   margin: 0;
 }
 
+.privacyLink {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-brand-main);
+  text-decoration: none;
+}
+
+.privacyLink:hover,
+.privacyLink:focus-visible {
+  text-decoration: underline;
+}
+
 .progressRow {
   margin-top: 8px;
   display: flex;

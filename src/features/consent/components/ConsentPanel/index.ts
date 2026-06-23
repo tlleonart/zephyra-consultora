@@ -1,0 +1,1 @@
+export { ConsentPanel } from './ConsentPanel';

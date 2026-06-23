@@ -1,0 +1,126 @@
+.panel {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-xl);
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.lead {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-lg);
+}
+
+.loading {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.statusRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badgeOn {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid var(--color-success);
+}
+
+.badgeOff {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.statusText {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.grantButton,
+.revokeButton {
+  align-self: flex-start;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast);
+}
+
+.grantButton {
+  background-color: var(--color-brand-main);
+  color: white;
+}
+
+.grantButton:hover:not(:disabled),
+.grantButton:focus-visible:not(:disabled) {
+  background-color: var(--color-brand-main-hover);
+}
+
+.revokeButton {
+  background-color: var(--color-bg);
+  color: var(--color-brand-main);
+  border-color: var(--color-brand-main);
+}
+
+.revokeButton:hover:not(:disabled),
+.revokeButton:focus-visible:not(:disabled) {
+  background-color: var(--color-bg-secondary);
+}
+
+.grantButton:disabled,
+.revokeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.grantButton:focus-visible,
+.revokeButton:focus-visible {
+  outline: 3px solid rgba(30, 60, 46, 0.35);
+  outline-offset: 2px;
+}
+
+.error {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: #fef2f2;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin: 0;
+}

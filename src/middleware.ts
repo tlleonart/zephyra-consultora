@@ -9,8 +9,14 @@ const secretKey = new TextEncoder().encode(process.env.SESSION_SECRET || 'fallba
 // SDD §6 SC #3). Edge runtime cannot import from
 // src/features/auth-learner/lib/session.ts (Next.js bundler constraint on
 // server-only helpers), so the verify logic is inlined here.
+// MUST match the dev fallback in features/auth-learner/lib/session.ts. When
+// LEARNER_JWT_SECRET is unset (local dev), the session is signed with
+// 'fallback-learner-secret-for-development-only'; a divergent fallback here
+// silently fails verification and bounces a freshly-minted learner (e.g. a
+// just-claimed org_learner) to sign-in. Production sets LEARNER_JWT_SECRET, so
+// this only affects dev parity — but the divergence is a real local-dev bug.
 const learnerSecretKey = new TextEncoder().encode(
-  process.env.LEARNER_JWT_SECRET || 'fallback-secret-for-development-only'
+  process.env.LEARNER_JWT_SECRET || 'fallback-learner-secret-for-development-only'
 );
 
 const protectedRoutes = ['/admin'];

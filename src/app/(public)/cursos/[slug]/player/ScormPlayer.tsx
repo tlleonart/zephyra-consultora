@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { Scorm12API } from "scorm-again";
 import { api } from "../../../../../../convex/_generated/api";
@@ -276,6 +277,9 @@ export function ScormPlayer({
     <div className={styles.player}>
       <header className={styles.header}>
         <h1 className={styles.title}>{courseTitle}</h1>
+        <Link href="/cursos/privacidad" className={styles.privacyLink}>
+          Privacidad de mi progreso
+        </Link>
         <div className={styles.progressRow}>
           <div
             className={styles.progressTrack}
