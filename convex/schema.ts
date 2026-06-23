@@ -250,7 +250,10 @@ export default defineSchema({
   // to Id<"lmsCustomers"> now that learner identity exists (Sprint 1 C). The
   // real seat-claim flow (lmsSeats + claimRequest aggregates) lands in Sprint 2.
   lmsEnrollments: defineTable({
-    seatId: v.optional(v.string()), // Sprint 2: unique once real seats exist
+    // Sprint 3a: a claimed seat (lmsSeats._id, stringified) owns at most one
+    // enrollment — enforced via the UNIQUE `by_seat` index below (app-enforced
+    // single-row-per-seatId on claim, Convex indexes are not unique-constrained).
+    seatId: v.optional(v.string()),
     learnerId: v.id("lmsCustomers"),
     courseId: v.id("lmsCourses"),
     status: v.union(
@@ -287,7 +290,9 @@ export default defineSchema({
     .index("by_course", ["courseId"])
     .index("by_learner", ["learnerId"])
     .index("by_learner_course_status", ["learnerId", "courseId", "status"])
-    .index("by_claim_request", ["claimRequestId"]),
+    .index("by_claim_request", ["claimRequestId"])
+    // Sprint 3a UNIQUE (app-enforced): one enrollment per claimed seat.
+    .index("by_seat", ["seatId"]),
 
   // SCORM event log — append-only audit trail. Never updated or deleted.
   lmsScormEvents: defineTable({
@@ -318,7 +323,12 @@ export default defineSchema({
       v.literal("org_learner")
     ),
     passwordHash: v.optional(v.string()), // argon2id encoded string; absent until learner opts to set
-    organizationId: v.optional(v.string()), // lmsOrganizations lands in Sprint 3 — string placeholder for now
+    // Sprint 3a TYPED MIGRATION: narrowed v.optional(v.string()) (Sprint-1
+    // placeholder) → v.optional(v.id("lmsOrganizations")) now that the org
+    // aggregate exists. Verified safe @ e71dfa3: all 4 live customers are
+    // type "individual" with NO organizationId set (zero non-null values),
+    // so no backfill is required. Set for org_admin / org_learner rows.
+    organizationId: v.optional(v.id("lmsOrganizations")),
     activatedAt: v.optional(v.number()), // set on first successful magic-link consume
     lastLoginAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -371,6 +381,9 @@ export default defineSchema({
   lmsOrders: defineTable({
     customerId: v.id("lmsCustomers"),
     courseId: v.id("lmsCourses"),
+    // For a "pack" order this holds the SERVER-COMPUTED pack total
+    // (= seatCount × unitPriceUsd × (1 − appliedDiscountPct/100)); for a
+    // "b2c" order it is the single-course price. Always USD (SDD §9.4).
     priceUsd: v.number(),
     status: v.union(
       v.literal("pending_payment"),
@@ -380,6 +393,15 @@ export default defineSchema({
     ),
     mpPreferenceId: v.optional(v.string()), // MercadoPago preference ID
     externalReference: v.string(), // orderId echoed by the MP webhook
+    // --- Sprint 3a additions (Sales Pack / Org checkout). ALL optional. ---
+    // ABSENT orderType ⇒ treat as "b2c" (default-b2c semantics in code). The
+    // seat-mint branch in convex/lms/payment/internal.ts (APPROVED block)
+    // branches on this field; recordRevenueShare + buyer email stay common.
+    orderType: v.optional(v.union(v.literal("b2c"), v.literal("pack"))),
+    organizationId: v.optional(v.id("lmsOrganizations")), // set only for pack orders
+    seatCount: v.optional(v.number()), // pack: number of seats purchased
+    unitPriceUsd: v.optional(v.number()), // pack: per-seat list price (USD) before discount
+    appliedDiscountPct: v.optional(v.number()), // pack: volume-tier discount applied (0–100)
     createdAt: v.number(),
     updatedAt: v.number(),
     // Soft delete (repo convention). Admin-initiated only.
@@ -388,6 +410,9 @@ export default defineSchema({
   })
     .index("by_learner_course_status", ["customerId", "courseId", "status"])
     .index("by_external_reference", ["externalReference"])
+    // Supports reuse of an open `pending_payment` pack order on retry
+    // (lookup an existing unpaid pack for the same org+course before creating).
+    .index("by_org_course_status", ["organizationId", "courseId", "status"])
     .index("by_deleted", ["deletedAt"]),
 
   // Payment aggregate. One row per MercadoPago payment. `mpPaymentId` carries
@@ -445,4 +470,104 @@ export default defineSchema({
     .index("by_period", ["period"])
     .index("by_payment_id", ["paymentId"])
     .index("by_deleted", ["deletedAt"]),
+
+  // ============================================
+  // LMS — Sprint 3a additions (Sales Pack + Org Admin — revenue spine)
+  // B2B seat-pack model. An organization buys a pack of seats for ONE course;
+  // its single Owner Admin claims seats to learners. Additive only — all
+  // institutional + prior LMS tables keep their existing shape (the lone
+  // exception is the documented type-narrow of lmsCustomers.organizationId,
+  // safe because no orgs existed before this sprint).
+  // ============================================
+
+  // Organization aggregate. One row per buyer organization.
+  // MODELING DECISION (diverges from the SDD draft): the draft proposed
+  // `adminCustomerIds: Id[]` (an array of admins). Commercial §9.1 LOCKS a
+  // SINGLE Owner Admin with no role matrix, so we model a single
+  // `ownerCustomerId` instead — cleaner, matches the lock, and avoids a
+  // premature N-N. (Re-introducing multi-admin later is itself additive.)
+  lmsOrganizations: defineTable({
+    name: v.string(),
+    taxId: v.optional(v.string()), // CUIT/tax id — optional at creation
+    ownerCustomerId: v.id("lmsCustomers"), // the single Owner Admin (org_admin)
+    createdAt: v.number(),
+    // Soft delete (repo convention). Admin-initiated only.
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("adminUsers")),
+  }).index("by_owner", ["ownerCustomerId"]),
+
+  // Seat-pack aggregate. One pack = one paid pack order = one course.
+  // INVARIANT (enforced transactionally in mutations on every mint/claim/release):
+  //   availableSeats + claimedSeats ≤ totalSeats.
+  // MINT IDEMPOTENCY: exactly one pack (+ its lmsSeats rows) is created per
+  // paid order, keyed on orderId — lookup-via `by_order` BEFORE insert; the
+  // lmsPayments.mpPaymentId UNIQUE index is the upstream webhook backstop.
+  lmsSeatPacks: defineTable({
+    orderId: v.id("lmsOrders"),
+    organizationId: v.id("lmsOrganizations"),
+    courseId: v.id("lmsCourses"), // one pack grants seats for exactly one course
+    totalSeats: v.number(),
+    availableSeats: v.number(), // unclaimed pool
+    claimedSeats: v.number(), // currently held by a learner
+    validFrom: v.number(),
+    // VESTIGIAL / nullable: licenses are vitalicias (no expiration) in V1.
+    // Kept nullable so a future expiring-license SKU is an additive change,
+    // not a migration. Always null when minted today. (ADR-0013.)
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    // UNIQUE (app-enforced) — the mint-idempotency lookup key.
+    .index("by_order", ["orderId"])
+    .index("by_organization", ["organizationId"]),
+
+  // Seat aggregate. One row per seat in a pack. Lifecycle is a STATUS change,
+  // never a soft-delete: release returns a seat to the `available` pool. There
+  // is deliberately NO "expired" status in V1 (licenses are vitalicias).
+  // The releasing actor is an org_admin (lmsCustomers), not adminUsers — which
+  // is exactly why release ≠ deletedBy soft-delete.
+  lmsSeats: defineTable({
+    seatPackId: v.id("lmsSeatPacks"),
+    status: v.union(
+      v.literal("available"),
+      v.literal("claimed"),
+      v.literal("released") // released back to the pool; re-claimable
+    ),
+    claimedBy: v.optional(v.id("lmsCustomers")), // the org_learner holding it
+    claimedAt: v.optional(v.number()),
+    // CLAIM IDEMPOTENCY: claimSeat looks up by_claim_request BEFORE inserting.
+    claimRequestId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_seatpack_status", ["seatPackId", "status"])
+    .index("by_claim_request", ["claimRequestId"]),
+
+  // Progress-consent gate (PRIVACY). Nominal (named) learner progress is
+  // reachable by an org admin ONLY when a row here exists with granted: true
+  // for the (learner, org) pair. courseId is optional: absent ⇒ org-wide
+  // consent; present ⇒ scoped to one course. The backend MUST check this on
+  // every nominal-progress read path.
+  lmsProgressConsents: defineTable({
+    learnerCustomerId: v.id("lmsCustomers"),
+    organizationId: v.id("lmsOrganizations"),
+    courseId: v.optional(v.id("lmsCourses")), // null ⇒ org-wide consent
+    granted: v.boolean(),
+    grantedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  }).index("by_learner_org", ["learnerCustomerId", "organizationId"]),
+
+  // Volume-discount tier config. Lets Zephyra tune discount bands WITHOUT a
+  // code change. Seed bands (seeded by the backend; SDD commercial §9.x):
+  //   1–9   → 0%,  selfCheckout: true
+  //   10–24 → 10%, selfCheckout: true
+  //   25–49 → 20%, selfCheckout: true
+  //   50+   → custom, selfCheckout: false ("Contactanos")
+  // maxSeats null = open-ended (the top band). Server is authoritative on
+  // which tier applies to a given seatCount.
+  lmsVolumeDiscountTiers: defineTable({
+    minSeats: v.number(),
+    maxSeats: v.optional(v.number()), // null = open-ended top band
+    discountPct: v.number(), // 0–100
+    selfCheckout: v.boolean(), // false ⇒ "Contactanos" (no self-serve)
+    createdAt: v.number(),
+  }).index("by_min_seats", ["minSeats"]),
 });

@@ -30,6 +30,7 @@ correct home.
 | [ADR-0010](./0010-webhook-idempotency-verify-before-trust.md) | Webhook idempotency (triple) + verify-before-trust | Accepted |
 | [ADR-0011](./0011-usd-pricing-mp-side-ars-conversion.md) | USD pricing with MercadoPago-side ARS conversion | Accepted |
 | [ADR-0012](./0012-order-payment-state-machine.md) | Order/payment state machine (no intermediate states) | Accepted |
+| [ADR-0013](./0013-seat-pack-data-model-vitalicia-licenses-single-owner.md) | Seat-pack data model: vitalicia licenses + single Owner Admin | Accepted |
 
 ### Why ADR-0003 is dropped
 
