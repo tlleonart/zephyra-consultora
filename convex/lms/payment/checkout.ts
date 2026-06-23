@@ -207,6 +207,10 @@ export const createPackCheckout = action({
       payerEmail: ownerEmail,
       courseTitle: `${course.title} — ${quote.seatCount} licencias`,
       courseSlug: course.slug,
+      // Pack buyers must land on the empresa seat-assignment return pages
+      // (/empresa/compra/{exito|error|pendiente}), NOT the B2C course pages —
+      // a pack purchase grants seats to assign, not direct course access.
+      returnBase: "/empresa/compra",
     });
 
     await ctx.runMutation(

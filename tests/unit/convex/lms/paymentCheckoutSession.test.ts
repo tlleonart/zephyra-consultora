@@ -121,6 +121,51 @@ describe("createCheckoutSession — happy path", () => {
     );
   });
 
+  it("routes a pack order's back_urls to /empresa/compra (returnBase), not the B2C course route", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      json: { id: "pref-pack", init_point: "https://mp.com/pack" },
+    });
+    const adapter = new MercadoPagoAdapter();
+    // The pack flow (createPackCheckout) passes returnBase: "/empresa/compra".
+    await adapter.createCheckoutSession({
+      ...ORDER,
+      orderId: "lmsOrders-pack",
+      returnBase: "/empresa/compra",
+    });
+
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    const body = JSON.parse(init.body as string);
+    expect(body.back_urls.success).toBe(
+      "https://zephyra.test/empresa/compra/exito?orderId=lmsOrders-pack"
+    );
+    expect(body.back_urls.failure).toBe(
+      "https://zephyra.test/empresa/compra/error?orderId=lmsOrders-pack"
+    );
+    expect(body.back_urls.pending).toBe(
+      "https://zephyra.test/empresa/compra/pendiente?orderId=lmsOrders-pack"
+    );
+    // The B2C course slug must NOT appear in a pack order's back_urls.
+    expect(body.back_urls.success).not.toContain("/cursos/");
+  });
+
+  it("keeps the B2C default course route when returnBase is absent", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      json: { id: "pref-b2c", init_point: "https://mp.com/b2c" },
+    });
+    const adapter = new MercadoPagoAdapter();
+    // No returnBase ⇒ unchanged B2C behavior.
+    await adapter.createCheckoutSession(ORDER);
+
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    const body = JSON.parse(init.body as string);
+    expect(body.back_urls.success).toBe(
+      "https://zephyra.test/cursos/sostenibilidad-101/compra/exito?orderId=lmsOrders-abc"
+    );
+    expect(body.back_urls.success).not.toContain("/empresa/compra");
+  });
+
   it("points notification_url at the Convex webhook (.convex.site), not the app", async () => {
     const fetchMock = mockFetchOnce({
       ok: true,

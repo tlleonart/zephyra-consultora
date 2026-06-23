@@ -223,7 +223,13 @@ export class MercadoPagoAdapter implements PaymentProvider {
   async createCheckoutSession(
     order: CheckoutOrderInput
   ): Promise<CheckoutSession> {
-    const returnBase = `${this.siteUrl}/cursos/${order.courseSlug}/compra`;
+    // back_urls return-route base. Default = the B2C course route
+    // (/cursos/{slug}/compra) — unchanged for any caller that does not pass a
+    // returnBase. The B2B pack flow passes "/empresa/compra" so MP lands the
+    // buyer on the seat-assignment return pages, not the B2C course pages.
+    const returnBase = order.returnBase
+      ? `${this.siteUrl}${order.returnBase}`
+      : `${this.siteUrl}/cursos/${order.courseSlug}/compra`;
     const ref = encodeURIComponent(order.orderId);
 
     const res = await fetch(`${this.baseUrl}/checkout/preferences`, {

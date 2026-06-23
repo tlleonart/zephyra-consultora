@@ -28,6 +28,15 @@ export interface CheckoutOrderInput {
   courseTitle: string;
   /** Course slug — drives the back_urls return routes (/cursos/{slug}/compra/...). */
   courseSlug: string;
+  /**
+   * Optional return-route base for the back_urls (no trailing slash, no
+   * site origin — the adapter prepends `siteUrl`). When absent the adapter
+   * defaults to the B2C course route `/cursos/{slug}/compra` (unchanged
+   * behavior). The B2B pack flow passes `/empresa/compra` so MP redirects the
+   * buyer to the seat-assignment return pages instead of the B2C course pages.
+   * The adapter always appends the /{exito|error|pendiente}?orderId= suffix.
+   */
+  returnBase?: string;
 }
 
 /** Result of opening a checkout session — the redirect target for the buyer. */

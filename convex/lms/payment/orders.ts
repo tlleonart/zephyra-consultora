@@ -144,6 +144,13 @@ export const getOrderById = query({
       courseId: order.courseId,
       status: order.status,
       priceUsd: order.priceUsd,
+      // Additive (Sprint 3a packs): lets the empresa return pages distinguish a
+      // pack order from a B2C one and render "N licencias" + total. ABSENT
+      // orderType ⇒ treat as "b2c" (pre-3a orders carry none). seatCount is
+      // undefined for B2C. No PII added — both are non-identifying scalars; the
+      // B2C return pages simply ignore them.
+      orderType: order.orderType,
+      seatCount: order.seatCount,
     };
   },
 });
