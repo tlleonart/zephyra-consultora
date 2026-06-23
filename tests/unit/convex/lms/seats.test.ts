@@ -26,6 +26,7 @@ import {
   claimSeat,
   releaseSeat,
   getOrgRoster,
+  getOrgSeatPacks,
   getOrgCourseProgress,
   getNominalProgress,
 } from "../../../../convex/lms/seats";
@@ -36,6 +37,7 @@ const inviteHandler = (requestSeatInvite as any)._handler;
 const claimHandler = (claimSeat as any)._handler;
 const releaseHandler = (releaseSeat as any)._handler;
 const rosterHandler = (getOrgRoster as any)._handler;
+const seatPacksHandler = (getOrgSeatPacks as any)._handler;
 const aggregateHandler = (getOrgCourseProgress as any)._handler;
 const nominalHandler = (getNominalProgress as any)._handler;
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -564,6 +566,66 @@ describe("getOrgRoster — membership, display name only", () => {
     expect(res.members).toHaveLength(1);
     expect(res.members[0]).toMatchObject({ email: "emp@acme.com", courseId: "course-1" });
     expect(res.members[0]).not.toHaveProperty("progressPercent");
+  });
+});
+
+// ============================================================================
+// D1 — getOrgSeatPacks (pack capacity listing — pure Access-side read)
+// ============================================================================
+describe("getOrgSeatPacks — org-owner-gated pack capacity listing", () => {
+  function packsSeed() {
+    return {
+      customers: [
+        { _id: "owner-1", email: "owner@acme.com", type: "org_admin", activatedAt: 1, organizationId: "org-1" },
+      ] as Row[],
+      orgs: [
+        { _id: "org-1", name: "Acme", ownerCustomerId: "owner-1", createdAt: 1 },
+        // A second org owned by someone else — its packs MUST NOT leak.
+        { _id: "org-2", name: "Other", ownerCustomerId: "owner-2", createdAt: 1 },
+      ],
+      packs: [
+        { _id: "pack-1", orderId: "o1", organizationId: "org-1", courseId: "course-1", totalSeats: 10, availableSeats: 7, claimedSeats: 3, validFrom: 1, createdAt: 100 },
+        { _id: "pack-2", orderId: "o2", organizationId: "org-1", courseId: "course-2", totalSeats: 5, availableSeats: 5, claimedSeats: 0, validFrom: 1, createdAt: 200 },
+        { _id: "pack-x", orderId: "o3", organizationId: "org-2", courseId: "course-1", totalSeats: 4, availableSeats: 4, claimedSeats: 0, validFrom: 1, createdAt: 300 },
+      ],
+    };
+  }
+
+  it("returns the org's packs with correct total/asignados/disponibles balances and the seatPackId", async () => {
+    const { db } = makeStore(packsSeed());
+    const res = await seatPacksHandler(db_ctx(db), { callerCustomerId: "owner-1", organizationId: "org-1" });
+
+    // Only the caller-org's packs (cross-org isolation: pack-x is NOT included).
+    expect(res.packs).toHaveLength(2);
+    const byId = Object.fromEntries(res.packs.map((p: Record<string, unknown>) => [p.seatPackId, p]));
+    expect(byId["pack-1"]).toEqual({
+      seatPackId: "pack-1",
+      courseId: "course-1",
+      totalSeats: 10, // total
+      claimedSeats: 3, // asignados
+      availableSeats: 7, // disponibles
+      createdAt: 100,
+    });
+    expect(byId["pack-2"]).toMatchObject({
+      seatPackId: "pack-2",
+      courseId: "course-2",
+      totalSeats: 5,
+      claimedSeats: 0,
+      availableSeats: 5,
+    });
+    // Pure Access-side read: no learner identity / progress field leaks.
+    const blob = JSON.stringify(res);
+    expect(blob).not.toContain("progressPercent");
+    expect(blob).not.toContain("pack-x");
+  });
+
+  it("REJECTS a non-owner caller (cross-org isolation)", async () => {
+    const seed = packsSeed();
+    seed.customers.push({ _id: "rando", email: "r@x.com", type: "individual", activatedAt: 1 });
+    const { db } = makeStore(seed);
+    await expect(
+      seatPacksHandler(db_ctx(db), { callerCustomerId: "rando", organizationId: "org-1" })
+    ).rejects.toThrow(/no autorizado/);
   });
 });
 

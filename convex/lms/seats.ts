@@ -566,6 +566,51 @@ export const getOrgRoster = query({
 });
 
 // ============================================================================
+// D1 — getOrgSeatPacks (pack capacity listing — pure Access-side read)
+// ============================================================================
+//
+// Org-owner-gated. Lists the org's minted lmsSeatPacks with their seat balances
+// so the Org-Admin dashboard can render `total / asignados / disponibles` per
+// pack and obtain the seatPackId required by requestSeatInvite ("Asignar cupo").
+//
+// PRIVACY: this is a PURE ACCESS-SIDE read of lmsSeatPacks.by_organization —
+// capacity counts only (totalSeats/claimedSeats/availableSeats). It crosses NO
+// Learning/progress boundary and emits NO learner identity, so it carries no
+// consent/privacy concern (unlike getOrgCourseProgress / getNominalProgress).
+// Course titles are joined frontend-side via api.lms.courses.listPublished.
+//
+// No status filter: an lmsSeatPacks row only exists post-mint (the 3a money path
+// writes it on a `paid` order), so every row is a real, payable pack — there is
+// no draft/unpaid pack state to hide.
+export const getOrgSeatPacks = query({
+  args: {
+    callerCustomerId: v.id("lmsCustomers"),
+    organizationId: v.id("lmsOrganizations"),
+  },
+  handler: async (ctx, args) => {
+    await requireOrgOwner(ctx, args.callerCustomerId, args.organizationId);
+
+    const rows = await ctx.db
+      .query("lmsSeatPacks")
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+
+    const packs = rows.map((pack) => ({
+      seatPackId: pack._id,
+      courseId: pack.courseId,
+      totalSeats: pack.totalSeats, // total
+      claimedSeats: pack.claimedSeats, // asignados
+      availableSeats: pack.availableSeats, // disponibles
+      createdAt: pack.createdAt,
+    }));
+
+    return { packs };
+  },
+});
+
+// ============================================================================
 // D1 — getOrgCourseProgress (AGGREGATE-only — the only Access × Learning path)
 // ============================================================================
 //

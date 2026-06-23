@@ -144,6 +144,35 @@ re-verified server-side at claim time.
   - **Auth:** `requireOrgOwner`. Members = learners holding a CLAIMED seat in the
     org's packs. NO progress/score here — membership is not progress.
 
+- **`getOrgSeatPacks`** — `query` — `convex/lms/seats.ts`
+  - **Args:** `{ callerCustomerId: Id<"lmsCustomers">, organizationId: Id<"lmsOrganizations"> }`
+  - **Returns:**
+    ```ts
+    { packs: Array<{
+        seatPackId: Id<"lmsSeatPacks">,
+        courseId: Id<"lmsCourses">,
+        totalSeats: number,      // total
+        claimedSeats: number,    // asignados
+        availableSeats: number,  // disponibles
+        createdAt: number
+    }> }
+    ```
+  - **Auth:** `requireOrgOwner` (caller must own the org; cross-org isolation —
+    only the caller-org's packs are returned).
+  - **Effect:** PURE Access-side read over `lmsSeatPacks.by_organization` —
+    capacity counts only. Crosses NO Learning/progress boundary and emits NO
+    learner identity, so no consent/privacy gate applies (unlike
+    `getOrgCourseProgress` / `getNominalProgress`). One row per minted pack.
+  - **Use:** drives the dashboard pack cards (`total/asignados/disponibles`) and
+    supplies the `seatPackId` that `requestSeatInvite` ("Asignar cupo") needs.
+    Resolve course **titles** frontend-side via `api.lms.courses.listPublished`
+    (join on `courseId`) — no new title query.
+  - **Notes:** NO status filter — an `lmsSeatPacks` row only exists post-mint
+    (the 3a money path writes it on a `paid` order), so every returned pack is a
+    real, payable pack; there is no draft/unpaid pack state to hide.
+  - **Edge cases:** **Not the owner:** `no autorizado`. **Org missing:**
+    `organización no encontrada`. **No packs yet:** `{ packs: [] }`.
+
 - **`getOrgCourseProgress`** — `query` — `convex/lms/seats.ts`
   - **Args:** `{ callerCustomerId: Id<"lmsCustomers">, organizationId: Id<"lmsOrganizations">, courseId?: Id<"lmsCourses"> }`
   - **Returns (AGGREGATE-ONLY — NEVER identities):**
