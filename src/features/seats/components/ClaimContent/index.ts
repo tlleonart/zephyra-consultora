@@ -1,0 +1,1 @@
+export { ClaimContent } from './ClaimContent';

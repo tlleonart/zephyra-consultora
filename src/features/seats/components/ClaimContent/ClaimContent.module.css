@@ -1,0 +1,114 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.lead {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-sm);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-brand-main);
+  outline-offset: 1px;
+  border-color: var(--color-brand-main);
+}
+
+.cta {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background-color: var(--color-brand-main);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color var(--transition-fast);
+}
+
+.cta:hover:not(:disabled),
+.cta:focus-visible:not(:disabled) {
+  background-color: var(--color-brand-main-hover);
+}
+
+.cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cta:focus-visible {
+  outline: 3px solid rgba(30, 60, 46, 0.35);
+  outline-offset: 2px;
+}
+
+.error {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: #fef2f2;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin: var(--spacing-xs) 0 0;
+}
+
+.footerLink {
+  display: block;
+  text-align: center;
+  margin-top: var(--spacing-md);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.footerLink:hover,
+.footerLink:focus-visible {
+  text-decoration: underline;
+  color: var(--color-text);
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-md);
+}
+
+.doneIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  background-color: #ecfdf5;
+  color: var(--color-success);
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 2px solid var(--color-success);
+}
+
+.doneText {
+  font-size: 1rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin: 0;
+}
