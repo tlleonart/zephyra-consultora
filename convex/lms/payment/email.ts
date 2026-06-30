@@ -49,6 +49,7 @@ import { internalAction } from "../../_generated/server";
 import { api } from "../../_generated/api";
 import { v } from "convex/values";
 import { createTransport } from "nodemailer";
+import { Resend } from "resend";
 import { logMoney } from "./logging";
 
 // Public base URL for the buyer-facing player link. Mirrors the convention
@@ -168,12 +169,12 @@ export const sendBuyerConfirmationEmail = internalAction({
     // Dev fallback (mirrors src/lib/mailer/learner.ts): when SMTP creds are
     // absent, render to the log instead of throwing, so dev does not require
     // Ferozo credentials.
-    if (!process.env.EMAIL_USER) {
-      // Dev-only fallback (no SMTP creds). The email address appears here ONLY
-      // in dev; this branch never runs in prod, so the PII-hygiene rule (no
+    if (!process.env.RESEND_API_KEY && !process.env.EMAIL_USER) {
+      // Dev-only fallback (no provider creds). The email address appears here
+      // ONLY in dev; this branch never runs in prod, so the PII-hygiene rule (no
       // buyer email in logs) is preserved for production.
       console.warn(
-        "[lms-buyer-email-dev] EMAIL_USER not set; rendering to log only"
+        "[lms-buyer-email-dev] no RESEND_API_KEY / EMAIL_USER set; rendering to log only"
       );
       console.warn(
         `[lms-buyer-email-dev] to=${learner.email} subject=${subject} playerUrl=${playerUrl}`
@@ -186,22 +187,41 @@ export const sendBuyerConfirmationEmail = internalAction({
     }
 
     try {
-      const transporter = createTransport({
-        host: "c2810738.ferozo.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
-        },
-      });
-      await transporter.sendMail({
-        from: `"Zephyra Consultora" <${process.env.EMAIL_USER}>`,
-        to: learner.email,
-        subject,
-        html,
-        text,
-      });
+      // Primary: Resend (handles deliverability; not blocked as spam like the
+      // shared-host SMTP). Fallback: legacy Ferozo SMTP when RESEND_API_KEY is
+      // absent. Both read creds from the Convex env only.
+      if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const { error } = await resend.emails.send({
+          from: process.env.EMAIL_FROM ?? "Zephyra <no-reply@zephyraconsultora.com>",
+          to: learner.email,
+          subject,
+          html,
+          text,
+        });
+        if (error) {
+          throw new Error(
+            `Resend send failed: ${error.message ?? JSON.stringify(error)}`
+          );
+        }
+      } else {
+        const transporter = createTransport({
+          host: "c2810738.ferozo.com",
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        });
+        await transporter.sendMail({
+          from: `"Zephyra Consultora" <${process.env.EMAIL_USER}>`,
+          to: learner.email,
+          subject,
+          html,
+          text,
+        });
+      }
       // PII hygiene: log the learnerId, never the buyer's email address.
       logMoney("info", "confirmation_email_sent", "Buyer confirmation email dispatched", {
         learnerId: args.learnerId,
