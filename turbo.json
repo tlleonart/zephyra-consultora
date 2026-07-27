@@ -30,11 +30,31 @@
       "dependsOn": ["^lint"]
     },
     "typecheck": {
-      // Depends on upstream *builds*, not upstream typechecks: an extracted
-      // package that emits declarations must emit before a consumer can be
-      // typechecked. `^typecheck` covers the source-exported (non-emitting)
-      // package case. Undefined tasks are skipped, so both shapes work.
-      "dependsOn": ["^build", "^typecheck"],
+      // Three entries, three distinct jobs — none is redundant:
+      //
+      // "build"      (NO caret) = this package's OWN build must finish first.
+      //              Load-bearing, not cosmetic: tsconfig.json includes
+      //              ".next/types/**/*.ts", which `next build` GENERATES. The
+      //              caret means "upstream workspace dependencies only", and
+      //              apps/legacy has none, so with only carets nothing ordered
+      //              build before typecheck inside the same package and turbo
+      //              ran them concurrently — tsc read .next/types while next
+      //              was rewriting it, yielding ~66 spurious
+      //              "error TS6053: File '.next/types/.../page.ts' not found".
+      //              That made `turbo run typecheck build` a coin flip: green
+      //              or red depending on interleaving. The caret cannot express
+      //              a same-package edge; only the un-carated form can.
+      // "^build"     = upstream packages that EMIT must emit before a consumer
+      //              is typechecked. Transitively implied by "build" here, but
+      //              kept explicit for the case of a workspace that has a
+      //              typecheck script and no build script of its own.
+      // "^typecheck" = upstream source-exported (non-emitting) packages.
+      //
+      // Consequence to know: `turbo run typecheck` now triggers a build. That
+      // is a cost, and also a correctness gain — before this, a fresh checkout
+      // had no .next at all, so the ".next/types/**" glob matched nothing and
+      // the generated route types were never actually typechecked.
+      "dependsOn": ["build", "^build", "^typecheck"],
       "outputs": ["tsconfig.tsbuildinfo"]
     },
     "test": {
