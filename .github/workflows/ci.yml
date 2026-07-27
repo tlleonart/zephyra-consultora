@@ -20,24 +20,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # pnpm/action-setup MUST run before setup-node: setup-node's `cache: pnpm`
+      # shells out to `pnpm store path`, which requires pnpm to already be on
+      # PATH. Version is intentionally omitted so the action reads the
+      # `packageManager` field in package.json (single source of truth).
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
 
   typecheck:
     name: Typecheck (tsc --noEmit)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npx tsc --noEmit
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
 
   test:
     name: Test (Vitest)
@@ -51,19 +57,20 @@ jobs:
       SESSION_SECRET: "test-session-secret-not-for-production-use"
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm test
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
 # NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job here in
 # Sprint 1 either. The SCORM demo loop requires a live Convex dev deploy
 # (NEXT_PUBLIC_CONVEX_URL pointing at dev:exuberant-corgi-88) plus a running
 # Next.js server. Adding a separate `e2e.yml` workflow gated on a
 # `CONVEX_DEPLOY_KEY` secret + a per-PR ephemeral preview is tracked for
-# Sprint 2. For now `npm run test:e2e` is a local-only dev tool documented
+# Sprint 2. For now `pnpm test:e2e` is a local-only dev tool documented
 # in tests/e2e/demo-loop.spec.ts.
 #
 # NOTE — Vercel preview deploys (AC-4) are triggered by the Vercel Git
