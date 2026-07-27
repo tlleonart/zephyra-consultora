@@ -30,7 +30,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
+      # `turbo run` fans the task out across every workspace that defines it and
+      # skips the ones that do not, so the future www/backoffice/academia apps
+      # and the packages/* are covered by this same job with no CI edit.
+      - run: pnpm turbo run lint
 
   typecheck:
     name: Typecheck (tsc --noEmit)
@@ -43,7 +46,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
+      - run: pnpm turbo run typecheck
 
   test:
     name: Test (Vitest)
@@ -63,16 +66,24 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      # turbo 2 defaults to `strict` env mode: the vars above reach vitest only
+      # because turbo.json declares them on the `test` task. Adding a new env
+      # var here without declaring it there makes it arrive undefined.
+      - run: pnpm turbo run test
 
 # NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job here in
 # Sprint 1 either. The SCORM demo loop requires a live Convex dev deploy
 # (NEXT_PUBLIC_CONVEX_URL pointing at dev:exuberant-corgi-88) plus a running
 # Next.js server. Adding a separate `e2e.yml` workflow gated on a
 # `CONVEX_DEPLOY_KEY` secret + a per-PR ephemeral preview is tracked for
-# Sprint 2. For now `pnpm test:e2e` is a local-only dev tool documented
-# in tests/e2e/demo-loop.spec.ts.
+# Sprint 2. For now `pnpm --filter @zephyra/legacy test:e2e` is a local-only
+# dev tool documented in apps/legacy/tests/e2e/demo-loop.spec.ts.
 #
 # NOTE — Vercel preview deploys (AC-4) are triggered by the Vercel Git
-# integration on push/PR, outside this workflow. Keeping `build` green is
-# covered transitively: `next build` runs on Vercel for every preview.
+# integration on push/PR, outside this workflow. That preview is EXPECTED TO
+# FAIL on the monorepo-scaffold branch and until the split lands: the existing
+# Vercel project's Root Directory still points at the repo root, where there is
+# no longer a Next.js app. Per-app Vercel projects (one Root Directory each) are
+# wired in M6.2; production is unaffected because it deploys from `main` only.
+# Until then `build` is NOT covered transitively — run `pnpm turbo run build`
+# locally before handing off.
