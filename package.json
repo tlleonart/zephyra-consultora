@@ -2,6 +2,7 @@
   "name": "zephyra-consultora",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.7.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -37,6 +38,7 @@
     "scorm-again": "^3.0.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.2",
     "@types/nodemailer": "^7.0.11",
@@ -46,5 +48,12 @@
     "eslint-config-next": "^15.1.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
