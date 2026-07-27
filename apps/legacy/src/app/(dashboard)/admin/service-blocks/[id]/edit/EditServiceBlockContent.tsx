@@ -6,10 +6,10 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
 import { ServiceBlockForm } from '@/features/services/components/ServiceBlockForm';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { useToast } from '@/providers/ToastProvider';
+import { Skeleton } from '@zephyra/ui';
+import { Card, CardHeader, CardContent } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
+import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import styles from './EditServiceBlockContent.module.css';
 
 interface EditServiceBlockContentProps {

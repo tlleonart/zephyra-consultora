@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card';
-import { ImageUpload } from '@/components/ui/ImageUpload';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
+import { Card, CardHeader, CardContent, CardFooter } from '@zephyra/ui';
+import { ImageUpload } from '@zephyra/ui';
 import { WysiwygEditor } from '@/features/blog/components/WysiwygEditor';
 import { AchievementsList } from '../AchievementsList';
-import { useToast } from '@/providers/ToastProvider';
+import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import styles from './ProjectForm.module.css';
 
 interface ProjectAchievement {

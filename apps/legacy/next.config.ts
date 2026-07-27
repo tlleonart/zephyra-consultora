@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   // compilation (`_generated/api.js` is already plain ESM and
   // `_generated/dataModel` is types-only, so consumers elide it). The rule is
   // per-package, not a blanket "all workspace deps" — see packages/*/README.md.
-  transpilePackages: ["@zephyra/utils"],
+  transpilePackages: ["@zephyra/ui", "@zephyra/utils"],
   // Lint is a dedicated CI job (`pnpm turbo run lint`) and a separate local step, not a
   // build-time gate. Before an ESLint config existed in this repo, `next build`
   // skipped linting entirely; adding the config (Sprint 0 Phase C) otherwise

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { ResetPasswordForm } from '@/features/auth/components/ResetPasswordForm';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 
 export const dynamic = 'force-dynamic';
 

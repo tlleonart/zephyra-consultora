@@ -3,13 +3,13 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Table, Column } from '@/components/ui/Table';
-import { Card, CardContent } from '@/components/ui/Card';
-import { ConfirmDialog } from '@/components/ui/Modal';
+import { Button } from '@zephyra/ui';
+import { Input } from '@zephyra/ui';
+import { Table, Column } from '@zephyra/ui';
+import { Card, CardContent } from '@zephyra/ui';
+import { ConfirmDialog } from '@zephyra/ui';
 import { ExportButton } from '../ExportButton';
-import { useToast } from '@/providers/ToastProvider';
+import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
 import styles from './SubscriberList.module.css';
 

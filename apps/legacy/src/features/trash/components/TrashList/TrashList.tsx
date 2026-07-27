@@ -2,10 +2,10 @@
 
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
-import { ConfirmDialog } from '@/components/ui/Modal';
-import { useToast } from '@/providers/ToastProvider';
+import { Button } from '@zephyra/ui';
+import { Card, CardHeader, CardContent } from '@zephyra/ui';
+import { ConfirmDialog } from '@zephyra/ui';
+import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
 import styles from './TrashList.module.css';
 

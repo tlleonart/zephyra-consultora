@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
 import { requestOrgSignup } from '../../actions/request-org-signup';
 import styles from './OrgSignupForm.module.css';
 

@@ -3,7 +3,7 @@
 import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import styles from './TeamSection.module.css';
-import { Skeleton } from '@/components/ui/Skeleton/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 import Image from 'next/image';
 import { getTeamMemberImage } from '@/lib/staticImages';
 

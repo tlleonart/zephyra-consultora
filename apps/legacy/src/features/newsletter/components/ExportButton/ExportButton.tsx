@@ -2,7 +2,7 @@
 
 import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@zephyra/ui';
 import { useState } from 'react';
 
 export const ExportButton = () => {

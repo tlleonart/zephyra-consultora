@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
 import { TeamForm } from '@/features/team/components/TeamForm';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 
 interface EditTeamMemberContentProps {
   id: string;

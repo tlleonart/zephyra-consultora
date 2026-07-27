@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
 import { AllianceForm } from '@/features/alliances/components/AllianceForm';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 
 interface EditAllianceContentProps {
   id: string;

@@ -1,0 +1,17 @@
+{
+  // Typecheck config for the @zephyra/ui workspace.
+  //
+  // HERMETIC BY CONSTRUCTION, like packages/convex and packages/utils: this
+  // package emits nothing and has no build step (consumers transpile the
+  // source), so `include` names only checked-in source and the `typecheck` task
+  // can never race a generator. No tsconfig.typecheck.json here — that split
+  // exists in apps/legacy only because Next.js re-injects ".next/types/**" into
+  // its own tsconfig.json, which does not apply to a non-Next package.
+  //
+  // `jsx: "preserve"` and the DOM lib come from tsconfig.base.json, which is the
+  // exact configuration these components were already checked under inside
+  // apps/legacy — nothing tightened, nothing relaxed.
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "types/**/*.d.ts"],
+  "exclude": ["node_modules"]
+}

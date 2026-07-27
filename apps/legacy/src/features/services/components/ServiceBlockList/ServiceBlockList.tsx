@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@/components/ui/Button';
-import { Table, Column } from '@/components/ui/Table';
-import { ConfirmDialog } from '@/components/ui/Modal';
-import { useToast } from '@/providers/ToastProvider';
+import { Button } from '@zephyra/ui';
+import { Table, Column } from '@zephyra/ui';
+import { ConfirmDialog } from '@zephyra/ui';
+import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
 import styles from './ServiceBlockList.module.css';
 

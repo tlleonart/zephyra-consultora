@@ -1,7 +1,7 @@
-import './globals.css';
+import '@zephyra/ui/styles/globals.css';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
-import { ConvexProvider } from '@/providers/ConvexProvider';
-import { ToastProvider } from '@/providers/ToastProvider';
+import { ConvexProvider } from '@zephyra/ui/providers/ConvexProvider';
+import { ToastProvider } from '@zephyra/ui/providers/ToastProvider';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],

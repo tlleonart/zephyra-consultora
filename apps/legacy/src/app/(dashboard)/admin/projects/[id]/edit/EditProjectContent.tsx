@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
 import { ProjectForm } from '@/features/projects/components/ProjectForm';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 
 interface EditProjectContentProps {
   id: string;

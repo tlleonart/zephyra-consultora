@@ -2,8 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
 import { setLearnerPassword } from '../../actions/set-password';
 import styles from './LearnerSetPasswordForm.module.css';
 

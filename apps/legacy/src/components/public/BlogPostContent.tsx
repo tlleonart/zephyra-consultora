@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@zephyra/convex/_generated/api';
 import { BlogContent } from '@/components/public/BlogContent';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 import { getBlogCoverImage } from '@/lib/staticImages';
 import styles from '@/app/(public)/blog/[slug]/BlogPost.module.css';
 

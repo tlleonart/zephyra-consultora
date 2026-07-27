@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, KeyboardEvent } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@zephyra/ui';
+import { Input } from '@zephyra/ui';
 import styles from './AchievementsList.module.css';
 
 interface AchievementsListProps {

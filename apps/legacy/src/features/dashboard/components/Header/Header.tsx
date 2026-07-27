@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
+import { Button } from '@zephyra/ui';
 import { logout } from '@/features/auth/actions/logout';
 import styles from './Header.module.css';
 

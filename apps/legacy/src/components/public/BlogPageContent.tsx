@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@zephyra/convex/_generated/api";
 import { BlogCard } from "@/components/public/BlogCard";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@zephyra/ui";
 import styles from "@/app/(public)/blog/BlogPage.module.css";
 
 export function BlogPageContent() {

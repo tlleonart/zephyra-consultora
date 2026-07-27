@@ -3,8 +3,8 @@
 import { useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
 import { resetPassword } from '../../actions/password-reset';
 import styles from './ResetPasswordForm.module.css';
 

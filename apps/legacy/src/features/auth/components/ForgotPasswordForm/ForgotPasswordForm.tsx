@@ -2,8 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
 import { requestPasswordReset } from '../../actions/password-reset';
 import styles from './ForgotPasswordForm.module.css';
 

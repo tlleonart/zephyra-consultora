@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@zephyra/convex/_generated/api';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@zephyra/ui';
 import { getProjectImage } from '@/lib/staticImages';
 import styles from '@/app/(public)/proyectos/[slug]/ProyectoDetail.module.css';
 

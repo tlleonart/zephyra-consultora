@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@zephyra/ui';
+import { Button } from '@zephyra/ui';
 import { requestMagicLink } from '../../actions/request-magic-link';
 import { signInLearnerWithPassword } from '../../actions/signin-password';
 import styles from './LearnerSigninForm.module.css';
