@@ -1,5 +1,5 @@
 import { SelectHTMLAttributes, forwardRef } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '@zephyra/utils';
 import styles from './Select.module.css';
 
 export interface SelectOption {

@@ -1,0 +1,13 @@
+{
+  // Typecheck config for the @zephyra/utils workspace.
+  //
+  // HERMETIC BY CONSTRUCTION, like packages/convex/tsconfig.json: this package
+  // emits nothing and has no build step, so `include` names only checked-in
+  // source and the `typecheck` task can never race a generator. There is
+  // deliberately no tsconfig.typecheck.json here — that split exists in
+  // apps/legacy only because Next.js re-injects ".next/types/**" into its own
+  // tsconfig.json, which does not apply to a non-Next package.
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

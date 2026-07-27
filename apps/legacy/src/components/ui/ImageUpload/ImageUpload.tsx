@@ -4,7 +4,7 @@ import { useState, useRef, ChangeEvent } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { cn } from '@/lib/cn';
+import { cn } from '@zephyra/utils';
 import { Button } from '../Button';
 import styles from './ImageUpload.module.css';
 

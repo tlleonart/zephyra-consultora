@@ -16,6 +16,7 @@
   "dependencies": {
     "@react-email/components": "^0.0.30",
     "@zephyra/convex": "workspace:*",
+    "@zephyra/utils": "workspace:*",
     "@tiptap/extension-image": "^2.10.4",
     "@tiptap/extension-link": "^2.10.4",
     "@tiptap/extension-table": "^2.10.4",

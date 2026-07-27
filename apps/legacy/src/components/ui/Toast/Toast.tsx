@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@zephyra/utils';
 import styles from './Toast.module.css';
 
 export type ToastVariant = 'success' | 'error' | 'warning';

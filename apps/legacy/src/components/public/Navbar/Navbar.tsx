@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { cn } from "@/lib/cn";
+import { cn } from "@zephyra/utils";
 import styles from "./Navbar.module.css";
 
 const navLinks = [

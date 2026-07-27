@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '@zephyra/utils';
 import styles from './Table.module.css';
 
 export interface Column<T> {

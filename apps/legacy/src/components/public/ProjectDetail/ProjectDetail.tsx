@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { cn } from '@/lib/cn';
+import { cn } from '@zephyra/utils';
 import { AchievementsList } from '@/components/public/AchievementsList';
 import styles from './ProjectDetail.module.css';
 

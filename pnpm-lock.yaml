@@ -57,6 +57,9 @@ importers:
       '@zephyra/convex':
         specifier: workspace:*
         version: link:../../packages/convex
+      '@zephyra/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       convex:
         specifier: ^1.17.4
         version: 1.31.6(react@19.2.4)
@@ -160,7 +163,20 @@ importers:
 
   packages/ui: {}
 
-  packages/utils: {}
+  packages/utils:
+    devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3.2.0
+        version: 3.3.3
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.2
+      eslint-config-next:
+        specifier: ^15.1.0
+        version: 15.5.10(eslint@9.39.2)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
 packages:
 
