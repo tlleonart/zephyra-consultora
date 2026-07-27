@@ -29,7 +29,7 @@ import path from "node:path";
 import { test, expect } from "@playwright/test";
 import { ConvexHttpClient } from "convex/browser";
 import { SignJWT } from "jose";
-import { api } from "../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 
 // Playwright's node runner does not load .env.local; read the Convex URL from it
 // so the setup client targets the same dev deploy the app uses.

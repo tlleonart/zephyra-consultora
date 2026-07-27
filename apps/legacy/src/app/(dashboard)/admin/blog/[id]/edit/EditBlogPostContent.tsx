@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
-import { api } from '../../../../../../../convex/_generated/api';
-import { Id } from '../../../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { BlogForm } from '@/features/blog/components/BlogForm';
 import { Skeleton } from '@/components/ui/Skeleton';
 

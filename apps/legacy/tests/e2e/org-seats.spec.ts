@@ -40,7 +40,7 @@ import path from "node:path";
 import { test, expect } from "@playwright/test";
 import { ConvexHttpClient } from "convex/browser";
 import { SignJWT } from "jose";
-import { api } from "../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 
 function readEnvLocal(key: string): string | undefined {
   if (process.env[key]) return process.env[key];

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '@zephyra/convex/_generated/api';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 

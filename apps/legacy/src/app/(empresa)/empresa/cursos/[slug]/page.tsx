@@ -2,8 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { ConvexHttpClient } from 'convex/browser';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { PackCalculator } from '@/features/packs/components/PackCalculator';
-import { api } from '../../../../../../convex/_generated/api';
-import type { Id } from '../../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 
 // Owner-gated per-course pack page. force-dynamic: owner gate + course read are
 // per-request; pricing is reactive client-side via computePackPrice.

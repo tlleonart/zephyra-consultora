@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { ConvexHttpClient } from 'convex/browser';
 import { PackPendingPoller } from '@/features/packs/components/PackPendingPoller';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
-import { api } from '../../../../../../convex/_generated/api';
-import type { Id } from '../../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import styles from '../Compra.module.css';
 
 // DB is truth: the order status drives the copy. If the webhook already landed

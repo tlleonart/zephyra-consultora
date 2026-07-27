@@ -1,0 +1,21 @@
+{
+  // Typecheck config for the @zephyra/convex workspace.
+  //
+  // HERMETIC BY CONSTRUCTION, like apps/legacy/tsconfig.typecheck.json: this
+  // package emits nothing and has no build step, so `include` names only
+  // checked-in source and the `typecheck` task can never race a generator.
+  // There is deliberately no second tsconfig.typecheck.json here — the split in
+  // apps/legacy exists only because Next.js re-injects ".next/types/**" into its
+  // tsconfig.json, which does not apply to a non-Next package.
+  //
+  // NOTE — convex/tsconfig.json is a DIFFERENT, Convex-CLI-owned file that
+  // describes the Convex V8 runtime and is used by `convex dev`/`convex
+  // codegen` to typecheck the functions before pushing. It is generated and
+  // maintained by the CLI; do not merge the two. This config is the monorepo's
+  // view of the same sources (shared compilerOptions from tsconfig.base.json,
+  // identical to the options these files were checked under while they lived in
+  // apps/legacy) plus the test suite, which convex/tsconfig.json cannot see.
+  "extends": "../../tsconfig.base.json",
+  "include": ["convex/**/*.ts", "convex/**/*.js", "tests/**/*.ts"],
+  "exclude": ["node_modules"]
+}

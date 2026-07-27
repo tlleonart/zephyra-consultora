@@ -1,12 +1,12 @@
 'use server';
 
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '@zephyra/convex/_generated/api';
 import {
   createLearnerSession,
   setLearnerSessionCookie,
 } from '../lib/session';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 
 type Purpose =
   | 'learner_activation'

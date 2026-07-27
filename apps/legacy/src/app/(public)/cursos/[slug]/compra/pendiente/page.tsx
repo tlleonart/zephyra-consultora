@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
 import { PendingPoller } from "@/features/lms-checkout/components/PendingPoller";
-import { api } from "../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "../Compra.module.css";
 
 // DB is truth: the order status drives the copy, not the /pendiente path. If

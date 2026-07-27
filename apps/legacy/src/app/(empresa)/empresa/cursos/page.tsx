@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { ConvexHttpClient } from 'convex/browser';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '@zephyra/convex/_generated/api';
 import styles from './Catalog.module.css';
 
 // Owner-gated B2B catalog. force-dynamic so a newly-published/priced course is

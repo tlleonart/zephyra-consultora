@@ -5,7 +5,7 @@ import {
   getNominalProgress,
   type NominalProgressResult,
 } from '@/features/seats/actions/get-nominal-progress';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardMember } from '../../types';
 import styles from './NominalProgressDialog.module.css';
 

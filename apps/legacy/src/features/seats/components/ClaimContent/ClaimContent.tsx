@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import Link from 'next/link';
 import { claimSeat } from '@/features/seats/actions/claim-seat';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import styles from './ClaimContent.module.css';
 
 interface ClaimContentProps {

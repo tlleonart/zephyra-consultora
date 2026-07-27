@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '@zephyra/convex/_generated/api';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/Modal';

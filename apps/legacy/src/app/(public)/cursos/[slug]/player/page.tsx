@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
 import { getLearnerSession } from "@/features/auth-learner/lib/session";
-import { api } from "../../../../../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 import { ScormPlayer } from "./ScormPlayer";
 
 export const dynamic = "force-dynamic";

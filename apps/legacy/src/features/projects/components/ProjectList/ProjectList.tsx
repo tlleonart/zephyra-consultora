@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import { Id } from "@zephyra/convex/_generated/dataModel";
 import { Button } from "@/components/ui/Button";
 import { Table, Column } from "@/components/ui/Table";
 import { ConfirmDialog } from "@/components/ui/Modal";

@@ -1,8 +1,8 @@
 'use server';
 
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../../convex/_generated/api';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { sendLearnerEmail } from '@/lib/mailer/learner';
 import SeatInvite from '@/emails/SeatInvite';

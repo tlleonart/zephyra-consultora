@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCheckout } from "@/features/lms-checkout/actions/create-checkout";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "./BuyButton.module.css";
 
 interface BuyButtonProps {

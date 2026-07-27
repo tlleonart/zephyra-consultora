@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 
 interface LmsCourseListProps {
   userId: Id<"adminUsers">;

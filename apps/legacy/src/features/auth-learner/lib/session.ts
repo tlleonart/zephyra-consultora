@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 
 // Distinct signing key from the admin SESSION_SECRET. A cookie minted with
 // LEARNER_JWT_SECRET cannot validate against the admin verify path (and

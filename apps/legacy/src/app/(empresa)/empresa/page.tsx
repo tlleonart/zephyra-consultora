@@ -4,8 +4,8 @@ import { ConvexHttpClient } from 'convex/browser';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { OrgDashboard } from '@/features/org-dashboard/components/OrgDashboard';
 import type { OrgDashboardData } from '@/features/org-dashboard/types';
-import { api } from '../../../../convex/_generated/api';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import styles from './Console.module.css';
 
 // Owner-gated dashboard. force-dynamic: every owner-scoped read (roster /

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { ConsentPanel } from '@/features/consent/components/ConsentPanel';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import styles from './Privacy.module.css';
 
 // force-dynamic: the learner session is a per-request read.

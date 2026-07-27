@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { releaseSeat } from '@/features/seats/actions/release-seat';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardData, OrgDashboardMember } from '../../types';
 import { InviteDialog } from '../InviteDialog';
 import { NominalProgressDialog } from '../NominalProgressDialog';

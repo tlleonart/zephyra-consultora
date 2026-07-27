@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 import { BlogCard } from "@/components/public/BlogCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import styles from "@/app/(public)/blog/BlogPage.module.css";

@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { Scorm12API } from "scorm-again";
-import { api } from "../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "./ScormPlayer.module.css";
 
 /**

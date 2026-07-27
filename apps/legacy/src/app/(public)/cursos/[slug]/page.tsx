@@ -6,7 +6,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { getLearnerSession } from "@/features/auth-learner/lib/session";
 import { BuyButton } from "@/features/lms-checkout/components/BuyButton";
 import { formatUsd } from "@/features/lms-checkout/lib/format-price";
-import { api } from "../../../../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 import styles from "./CourseDetail.module.css";
 
 // Same rendering strategy as the catalog: SEO + share previews need the

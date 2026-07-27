@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 import { CourseCard, type CourseCardData } from "@/components/public/CourseCard";
 import styles from "./CoursesPage.module.css";
 

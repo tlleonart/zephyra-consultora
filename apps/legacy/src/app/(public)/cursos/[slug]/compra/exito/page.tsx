@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "../Compra.module.css";
 
 // DB is truth: never trust the /exito path MercadoPago redirected to as proof

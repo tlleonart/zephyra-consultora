@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { requestSeatInvite } from '@/features/seats/actions/request-seat-invite';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardPack } from '../../types';
 import styles from './InviteDialog.module.css';
 

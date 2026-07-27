@@ -3,8 +3,8 @@
 import { useState, SyntheticEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
-import { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';

@@ -22,7 +22,7 @@ import {
   createSession,
   verifySession,
 } from "../../../../src/features/auth/lib/session";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "@zephyra/convex/_generated/dataModel";
 
 const learnerInput = {
   _id: "lms_c14_smoke_learner_id" as unknown as Id<"lmsCustomers">,

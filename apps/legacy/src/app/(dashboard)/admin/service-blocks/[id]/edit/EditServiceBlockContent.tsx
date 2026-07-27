@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../../../../../convex/_generated/api';
-import { Id } from '../../../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { ServiceBlockForm } from '@/features/services/components/ServiceBlockForm';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';

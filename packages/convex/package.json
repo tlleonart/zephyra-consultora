@@ -1,5 +1,37 @@
 {
   "name": "@zephyra/convex",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./_generated/api": {
+      "types": "./convex/_generated/api.d.ts",
+      "default": "./convex/_generated/api.js"
+    },
+    "./_generated/dataModel": {
+      "types": "./convex/_generated/dataModel.d.ts"
+    }
+  },
+  "scripts": {
+    "convex:dev": "convex dev",
+    "codegen": "convex codegen",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "convex": "^1.17.4",
+    "hash-wasm": "^4.12.0",
+    "nodemailer": "^8.0.4",
+    "resend": "^6.16.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^7.0.11",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
 }

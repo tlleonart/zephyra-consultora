@@ -1,7 +1,7 @@
 'use server';
 
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '@zephyra/convex/_generated/api';
 import { createTransport } from 'nodemailer';
 import { Resend } from 'resend';
 

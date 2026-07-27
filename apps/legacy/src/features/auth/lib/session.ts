@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 
 // Fail-closed in production: a missing SESSION_SECRET in a prod deploy must NOT
 // silently fall back to a source-controlled dev key — that would let anyone

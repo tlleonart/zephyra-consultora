@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 
 interface PendingPollerProps {
   orderId: Id<"lmsOrders">;

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation } from "convex/react";
 import JSZip from "jszip";
-import { api } from "../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../convex/_generated/dataModel";
+import { api } from "@zephyra/convex/_generated/api";
+import type { Id } from "@zephyra/convex/_generated/dataModel";
 
 /**
  * SCORM ingestion form (Phase D — AC-D01.1 .. AC-D01.4; E03 polish).

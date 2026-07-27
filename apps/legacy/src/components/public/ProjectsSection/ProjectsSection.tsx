@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@zephyra/convex/_generated/api";
 import styles from "./ProjectsSection.module.css";
 import { Skeleton } from "@/components/ui/Skeleton/Skeleton";
 import Link from "next/link";

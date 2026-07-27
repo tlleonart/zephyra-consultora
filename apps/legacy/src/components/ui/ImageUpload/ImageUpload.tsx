@@ -2,8 +2,8 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { cn } from '@/lib/cn';
 import { Button } from '../Button';
 import styles from './ImageUpload.module.css';

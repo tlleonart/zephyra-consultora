@@ -54,6 +54,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^2.10.4
         version: 2.27.2
+      '@zephyra/convex':
+        specifier: workspace:*
+        version: link:../../packages/convex
       convex:
         specifier: ^1.17.4
         version: 1.31.6(react@19.2.4)
@@ -118,7 +121,42 @@ importers:
 
   apps/www: {}
 
-  packages/convex: {}
+  packages/convex:
+    dependencies:
+      convex:
+        specifier: ^1.17.4
+        version: 1.31.6(react@19.2.4)
+      hash-wasm:
+        specifier: ^4.12.0
+        version: 4.12.0
+      nodemailer:
+        specifier: ^8.0.4
+        version: 8.0.4
+      resend:
+        specifier: ^6.16.0
+        version: 6.16.0(@react-email/render@1.0.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+    devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3.2.0
+        version: 3.3.3
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.7
+      '@types/nodemailer':
+        specifier: ^7.0.11
+        version: 7.0.11
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.2
+      eslint-config-next:
+        specifier: ^15.1.0
+        version: 15.5.10(eslint@9.39.2)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.7)
 
   packages/ui: {}
 

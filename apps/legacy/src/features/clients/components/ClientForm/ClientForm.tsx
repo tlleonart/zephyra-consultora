@@ -3,8 +3,8 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
-import { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card';

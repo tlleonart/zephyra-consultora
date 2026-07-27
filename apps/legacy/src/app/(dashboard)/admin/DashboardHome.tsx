@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { api } from '@zephyra/convex/_generated/api';
+import { Id } from '@zephyra/convex/_generated/dataModel';
 import { StatsCard } from '@/features/dashboard/components/StatsCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import styles from './DashboardHome.module.css';
