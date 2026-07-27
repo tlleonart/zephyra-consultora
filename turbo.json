@@ -1,0 +1,57 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  // Env vars are hashed into the task cache key AND, because turbo 2 defaults
+  // to `strict` env mode, they are the ONLY vars a task's command receives.
+  // Anything the app or the test suite reads from process.env must therefore be
+  // declared here or it silently arrives undefined.
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "build": {
+      // `^build` = build every upstream workspace dependency first. Nothing
+      // depends on anything yet (apps/legacy is self-contained and the
+      // packages/* are empty), but wiring it now means the convex/ui/utils
+      // extractions land without touching this file.
+      "dependsOn": ["^build"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "CONVEX_*",
+        "MAGIC_LINK_HMAC_KEY",
+        "SESSION_SECRET",
+        "LEARNER_JWT_SECRET",
+        "EMAIL_*",
+        "RESEND_API_KEY",
+        "MP_*",
+        "ZEPHYRA_PUBLIC_URL",
+        "DEV_ADMIN_DEFAULT_PASSWORD"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      // Depends on upstream *builds*, not upstream typechecks: an extracted
+      // package that emits declarations must emit before a consumer can be
+      // typechecked. `^typecheck` covers the source-exported (non-emitting)
+      // package case. Undefined tasks are skipped, so both shapes work.
+      "dependsOn": ["^build", "^typecheck"],
+      "outputs": ["tsconfig.tsbuildinfo"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": [
+        "MAGIC_LINK_HMAC_KEY",
+        "SESSION_SECRET",
+        "LEARNER_JWT_SECRET",
+        "E2E_*",
+        "NEXT_PUBLIC_*"
+      ]
+      // No `outputs`: `vitest run` writes no artifacts (coverage is not
+      // enabled), and declaring one turbo cannot find warns on every run.
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

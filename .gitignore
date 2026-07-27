@@ -50,5 +50,8 @@ next-env.d.ts
 .cache/
 *.log
 
+# Turborepo (root + per-workspace task cache and logs)
+.turbo/
+
 # Playwright MCP browser-test artifacts (screenshots/snapshots)
 .playwright-mcp/

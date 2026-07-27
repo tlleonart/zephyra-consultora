@@ -2,8 +2,12 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 
-// Node environment is the default; suites that need DOM (e.g. middleware
-// thin shim) opt-in via the per-file pragma `// @vitest-environment jsdom`.
+// Node is the only environment available: `jsdom` is deliberately NOT a
+// dependency of this workspace and no suite uses the `// @vitest-environment
+// jsdom` pragma. The pragma is therefore a trap — vitest resolves the
+// environment lazily, so the first file to add it fails at collection with
+// "Cannot find package 'jsdom'". If a future suite genuinely needs a DOM, add
+// `jsdom` to devDependencies in the same change that adds the pragma.
 // We keep node here because convex/model + convex/lms tests run faster and
 // closer to the V8 isolate they target.
 export default defineConfig({
