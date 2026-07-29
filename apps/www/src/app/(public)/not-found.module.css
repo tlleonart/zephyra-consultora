@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: var(--spacing-2xl);
+}
+
+.content {
+  text-align: center;
+  max-width: 450px;
+}
+
+.code {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: clamp(5rem, 15vw, 8rem);
+  font-weight: 700;
+  color: var(--color-brand-main);
+  line-height: 1;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.3;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.message {
+  font-size: 1.0625rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-xl);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background-color: var(--color-brand-main);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.button:hover {
+  background-color: var(--color-brand-main-hover);
+}
