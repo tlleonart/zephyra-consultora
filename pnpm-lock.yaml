@@ -17,7 +17,99 @@ importers:
 
   apps/academia: {}
 
-  apps/backoffice: {}
+  apps/backoffice:
+    dependencies:
+      '@tiptap/extension-image':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-link':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      '@tiptap/extension-table':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      '@tiptap/extension-table-cell':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-header':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-row':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-youtube':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/pm':
+        specifier: ^2.10.4
+        version: 2.27.2
+      '@tiptap/react':
+        specifier: ^2.10.4
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@tiptap/starter-kit':
+        specifier: ^2.10.4
+        version: 2.27.2
+      '@zephyra/convex':
+        specifier: workspace:*
+        version: link:../../packages/convex
+      '@zephyra/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@zephyra/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      convex:
+        specifier: ^1.17.4
+        version: 1.31.6(react@19.2.4)
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
+      next:
+        specifier: ^15.1.0
+        version: 15.5.10(@playwright/test@1.58.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      nodemailer:
+        specifier: ^8.0.4
+        version: 8.0.4
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+      resend:
+        specifier: ^6.16.0
+        version: 6.16.0(@react-email/render@1.0.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+    devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3.2.0
+        version: 3.3.3
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.7
+      '@types/nodemailer':
+        specifier: ^7.0.11
+        version: 7.0.11
+      '@types/react':
+        specifier: ^19.0.2
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.2.3(@types/react@19.2.10)
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.2
+      eslint-config-next:
+        specifier: ^15.1.0
+        version: 15.5.10(eslint@9.39.2)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.7)
 
   apps/legacy:
     dependencies:
