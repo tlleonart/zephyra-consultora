@@ -12,6 +12,18 @@
  *
  * The distinct secrets (SESSION_SECRET vs LEARNER_JWT_SECRET) are set in
  * tests/setup.ts; the cross-surface tests rely on those being different.
+ *
+ * SPLIT NOTE (T-fe-007). This is the only file in the repo that imports BOTH
+ * session surfaces, so the app split has no home for it: the admin module went
+ * to apps/backoffice and the learner module goes to apps/academia at T-fe-008,
+ * and after that no single workspace contains both. apps/legacy therefore
+ * retains a byte-identical COPY of src/features/auth/lib/session.ts purely so
+ * this guard keeps compiling and running until T-fe-009 redistributes the
+ * suite. Nothing in apps/legacy's own source imports that copy — do not build
+ * on it. The guard itself must NOT be dropped: it is the cross-surface
+ * escalation gate (PDD §7.5, SDD §6 SC #3), and once the modules live in two
+ * apps it needs a real home (a shared test package, or an E2E assertion across
+ * the two deployed hosts).
  */
 import { describe, it, expect } from "vitest";
 import {
