@@ -87,3 +87,30 @@ There are no tests in this package. That is not an omission introduced by the
 extraction: these components had no unit tests inside `apps/legacy` either, so
 none were moved and none were invented. Adding component tests needs `jsdom` and
 `esbuild.jsx: "automatic"` in a new vitest config — a real task, not a refactor.
+
+## `sideEffects` — tree-shaking vs CSS
+
+`package.json` declares:
+
+```json
+"sideEffects": ["**/*.css"]
+```
+
+**Why the field exists at all.** `src/index.ts` is a barrel re-exporting 12
+components, one of which (`ImageUpload`) pulls in `convex/react` +
+`@zephyra/convex/_generated/api`. With **no** `sideEffects` field a bundler must
+assume every module in the package has side effects, so it cannot drop the
+unused re-exports — a route that imports only `Skeleton` still makes that whole
+Convex graph reachable. Roughly 49 app files import this barrel.
+
+**Why the value is not `false`.** `"sideEffects": false` is the obvious fix and
+it is the wrong one here. Webpack treats `import styles from './X.module.css'`
+as a side-effectful import, and `false` licenses dropping it — which silently
+ships the components with no styles. Listing CSS as the side-effectful set lets
+the JavaScript tree-shake while every stylesheet survives.
+
+**How to re-verify after touching it.** A green typecheck proves nothing about
+this. Boot a consumer app and confirm a token-driven computed style still
+resolves — for `apps/www`, `next start` and grep the served CSS for the brand
+green `#1E3C2E`. A change that trims the bundle by dropping styles is worse than
+the original finding.
