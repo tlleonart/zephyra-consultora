@@ -81,8 +81,9 @@ jobs:
       #
       # The value below is a deliberate PLACEHOLDER, not the dev deployment
       # (dev:exuberant-corgi-88). The build only needs the Convex client to be
-      # CONSTRUCTIBLE, not reachable: src/app/api/lms/asset/[slug]/[...path]/route.ts
-      # calls `new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)` at
+      # CONSTRUCTIBLE, not reachable: apps/academia/src/app/api/lms/asset/[slug]/[...path]/route.ts
+      # (moved there from apps/legacy at T-fe-008) calls
+      # `new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)` at
       # MODULE scope, so `next build`'s page-data collection throws "Client
       # created with undefined deployment address" when the var is absent — that
       # is the single reason this repo had no build job until now. A
@@ -101,7 +102,9 @@ jobs:
       #
       # SESSION_SECRET / LEARNER_JWT_SECRET / MAGIC_LINK_HMAC_KEY are also
       # intentionally absent — no placeholders. All three resolve LAZILY (see the
-      # comment block above getSecretKey in src/features/auth/lib/session.ts)
+      # comment block above getSecretKey in
+      # apps/backoffice/src/features/auth/lib/session.ts and
+      # apps/academia/src/features/auth-learner/lib/session.ts)
       # exactly so that `next build`, which runs with NODE_ENV=production but no
       # runtime env, does not crash at import time. Feeding placeholders in here
       # would mask a regression that moves any of them to a module-scope read —
@@ -115,26 +118,49 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # `turbo run build` fans out to every workspace that defines a `build`
-      # script. Today that is only apps/legacy (the packages/* are
-      # SOURCE-exported and emit nothing), so this is one task; the future
-      # www/backoffice/academia apps are picked up with no CI edit.
+      # script. Since T-fe-008 that is all four apps -- www, backoffice, academia
+      # and legacy (the packages/* are SOURCE-exported and emit nothing). No CI
+      # edit was needed to pick each one up as it gained a `build` script, which
+      # is exactly why the artifact assertion below enumerates them explicitly:
+      # a workspace turbo SKIPS is indistinguishable from one that succeeded.
       - run: pnpm turbo run build
       # A build job that silently skipped the build looks identical to a green
       # one, so assert the compile actually produced an artifact. `next build`
       # writes .next/BUILD_ID at the end of a successful run.
       - name: Assert a real build artifact was produced
         run: |
-          test -f apps/legacy/.next/BUILD_ID || {
-            echo "::error::apps/legacy/.next/BUILD_ID is missing — next build produced no artifact"
-            exit 1
-          }
-          echo "BUILD_ID=$(cat apps/legacy/.next/BUILD_ID)"
+          for app in academia backoffice legacy www; do
+            test -f "apps/$app/.next/BUILD_ID" || {
+              echo "::error::apps/$app/.next/BUILD_ID is missing — next build produced no artifact"
+              exit 1
+            }
+            echo "$app BUILD_ID=$(cat "apps/$app/.next/BUILD_ID")"
+          done
           # The SCORM asset proxy is load-bearing for the same-origin premise
           # (see route.ts); confirm it survived into the route manifest.
-          grep -qF '"/api/lms/asset/[slug]/[...path]"' apps/legacy/.next/routes-manifest.json || {
-            echo "::error::the SCORM asset-proxy route is missing from routes-manifest.json"
+          #
+          # RE-POINTED at T-fe-008: the proxy moved from apps/legacy to
+          # apps/academia, which is the app that also serves the player page and
+          # mints the session-learner cookie. Asserting it against apps/legacy
+          # would now be asserting the WRONG app, and asserting it against both
+          # would license the very duplication the same-origin premise forbids.
+          # Not deleted and not weakened: this grep is what makes a silently
+          # skipped or route-less build impossible to mistake for a green one.
+          # Its in-source companion is
+          # apps/academia/tests/unit/app/asset-proxy-same-origin.test.ts.
+          grep -qF '"/api/lms/asset/[slug]/[...path]"' apps/academia/.next/routes-manifest.json || {
+            echo "::error::the SCORM asset-proxy route is missing from apps/academia/.next/routes-manifest.json"
             exit 1
           }
+          # And it must NOT reappear anywhere else: a second copy on another host
+          # would serve assets cross-origin from the player and silently kill the
+          # window.parent.API bridge.
+          for app in backoffice legacy www; do
+            if grep -qF '"/api/lms/asset/[slug]/[...path]"' "apps/$app/.next/routes-manifest.json"; then
+              echo "::error::the SCORM asset-proxy route also appears in apps/$app — it must exist ONLY in apps/academia (same-origin premise)"
+              exit 1
+            fi
+          done
 
 # NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job here in
 # Sprint 1 either. The SCORM demo loop requires a live Convex dev deploy
