@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@zephyra/convex/_generated/api";
 import { CourseCard, type CourseCardData } from "@/components/public/CourseCard";
+import { requireOrigin } from "@zephyra/utils";
 import styles from "./CoursesPage.module.css";
 
 // Server-rendered: the catalog SEO surface needs the document to ship with
@@ -10,8 +11,20 @@ import styles from "./CoursesPage.module.css";
 // no stale ISR cache.
 export const dynamic = "force-dynamic";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://zephyraconsultora.com";
+// SEO canonical / OpenGraph origin. This is ACADEMIA's own host
+// (academia.zephyraconsultora.com); the PATH is unchanged — /cursos survives on
+// this host verbatim (boundaries v1.1 §3.1 D1), only the host moves.
+//
+// The old `|| "https://zephyraconsultora.com"` was actively harmful post-split:
+// served from the academia host it would tell crawlers the catalog's canonical
+// home is the apex, i.e. hand academia's SEO to a host that does not serve
+// /cursos. Module scope on purpose — `next build` then fails loudly in the
+// Vercel project that forgot the variable, which is the cheapest place to
+// discover it.
+const SITE_URL = requireOrigin(
+  "NEXT_PUBLIC_APP_URL",
+  process.env.NEXT_PUBLIC_APP_URL
+);
 
 export const metadata: Metadata = {
   title: "Cursos — Zephyra Consultora",

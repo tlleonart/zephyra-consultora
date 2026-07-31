@@ -29,6 +29,7 @@ import type {
   RefundResult,
   WebhookVerification,
 } from "./types";
+import { academiaBaseUrl } from "../../model/publicUrls";
 
 const MP_API_BASE = "https://api.mercadopago.com";
 
@@ -184,27 +185,47 @@ export class MercadoPagoAdapter implements PaymentProvider {
     this.webhookSecret = webhookSecret;
     this.publicKey = publicKey;
 
-    // back_urls land the buyer on the public Next.js app. ZEPHYRA_PUBLIC_URL is
-    // the site origin; falls back to the prod domain so a missing-env dev never
-    // mints an http://localhost back_url MP would reject (MP requires https for
-    // auto_return). Trailing slash trimmed for clean concatenation.
-    this.siteUrl = (
-      process.env.ZEPHYRA_PUBLIC_URL ?? "https://zephyraconsultora.com"
-    ).replace(/\/+$/, "");
+    // back_urls land the buyer on apps/academia — /cursos/<slug>/compra/* (B2C)
+    // and /empresa/compra/* (B2B pack). Neither path is served by the apex, and
+    // /empresa/* is not even in the planned 301 map (boundaries §3.1), so the
+    // former "?? https://zephyraconsultora.com" default meant: take the money,
+    // then return the buyer to a 404. academiaBaseUrl() throws instead (trailing
+    // slash trimmed there, origin shape asserted).
+    //
+    // Throwing HERE is the safest possible placement: the constructor runs
+    // before any preference is created, so a misconfigured deployment cannot
+    // charge anyone against a broken callback — it fails checkout outright,
+    // exactly like the missing-MP-credentials guard directly above.
+    this.siteUrl = academiaBaseUrl();
 
     // notification_url MUST point at the Convex deployment's HTTP endpoint
     // (convex/http.ts mounts /api/lms/mp/webhook), NOT the Next.js app — Next.js
     // never sees the webhook. CONVEX_SITE_URL is the .convex.site HTTP origin
     // Convex injects; we fall back to deriving it from the cloud URL if unset.
+    //
+    // The third fallback used to be `this.siteUrl` — the Next.js app. That is
+    // never correct: apps/academia mounts no /api/lms/mp/webhook route, so a
+    // deployment that hit that branch would hand MercadoPago a notification_url
+    // that 404s and NO payment would ever be processed, silently. Post-split it
+    // is worse than silent, it is cross-host. Fail loudly instead; both vars are
+    // injected by Convex in every action/httpAction runtime, so this throw is
+    // reachable only from a broken harness.
     const explicitSite = process.env.CONVEX_SITE_URL;
     const cloudUrl = process.env.CONVEX_CLOUD_URL;
     const derived = cloudUrl
       ? cloudUrl.replace(".convex.cloud", ".convex.site")
       : null;
-    this.webhookUrl = (explicitSite ?? derived ?? this.siteUrl).replace(
-      /\/+$/,
-      ""
-    );
+    const site = explicitSite ?? derived;
+    if (!site) {
+      throw new Error(
+        "Cannot resolve the Convex HTTP origin for the MercadoPago " +
+          "notification_url: neither CONVEX_SITE_URL nor CONVEX_CLOUD_URL is " +
+          "set. The webhook must stay on the Convex deployment " +
+          "(convex/http.ts mounts /api/lms/mp/webhook); it is never served by " +
+          "any Next.js app."
+      );
+    }
+    this.webhookUrl = site.replace(/\/+$/, "");
   }
 
   /**

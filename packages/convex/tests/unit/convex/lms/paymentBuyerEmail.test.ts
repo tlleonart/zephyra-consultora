@@ -111,6 +111,9 @@ beforeEach(() => {
   process.env = { ...ORIGINAL_ENV };
 });
 
+/** Production origin of apps/academia (boundaries v1.1 §3.1). */
+const ACADEMIA = "https://academia.zephyraconsultora.com";
+
 // ============================================================================
 // (A) sendBuyerConfirmationEmail — the action
 // ============================================================================
@@ -118,7 +121,10 @@ describe("sendBuyerConfirmationEmail — send path (EMAIL_USER set)", () => {
   beforeEach(() => {
     process.env.EMAIL_USER = "no-reply@zephyraconsultora.com";
     process.env.EMAIL_PASSWORD = "secret";
-    process.env.NEXT_PUBLIC_SITE_URL = "https://zephyraconsultora.com";
+    // boundaries v1.1 §5 row 6: the buyer's player link is served by ACADEMIA.
+    // Pre-M4 this line set NEXT_PUBLIC_SITE_URL to the apex, which is now the
+    // institutional site and serves no /cursos route.
+    process.env.ZEPHYRA_ACADEMIA_URL = ACADEMIA;
   });
 
   it("renders the template and sends via the Ferozo transport", async () => {
@@ -145,21 +151,38 @@ describe("sendBuyerConfirmationEmail — send path (EMAIL_USER set)", () => {
     // Template carries the course title + a player link keyed on SLUG.
     expect(mail.html).toContain("Diversidad, Equidad e Inclusión");
     expect(mail.html).toContain(
-      "https://zephyraconsultora.com/cursos/diversidad-equidad-inclusion/player"
+      `${ACADEMIA}/cursos/diversidad-equidad-inclusion/player`
     );
     expect(mail.html).toContain("Compra confirmada");
     // Plain-text alternative present.
     expect(mail.text).toContain("ha sido confirmada");
   });
 
-  it("falls back to ZEPHYRA_PUBLIC_URL, then the prod host, for the player link", async () => {
-    delete process.env.NEXT_PUBLIC_SITE_URL;
+  it("honours the deprecated ZEPHYRA_PUBLIC_URL alias for the player link", async () => {
+    // Transition-only: the shared dev deployment defines ONLY this variable, so
+    // M4 kept the alias rather than break the dev money path. Deleting the alias
+    // is an M6 action item (T-be-015).
+    delete process.env.ZEPHYRA_ACADEMIA_URL;
     process.env.ZEPHYRA_PUBLIC_URL = "https://staging.zephyra.test";
     await emailHandler(makeActionCtx(), EMAIL_ARGS);
     const mail = sendMailMock.mock.calls[0][0] as unknown as { html: string };
     expect(mail.html).toContain(
       "https://staging.zephyra.test/cursos/diversidad-equidad-inclusion/player"
     );
+  });
+
+  it("does NOT fall back to the apex when no origin is configured", async () => {
+    // The removed default. A throw here fails the SCHEDULED action, after the
+    // enrollment/payment transaction has already committed — so it costs the
+    // confirmation email and logs loudly, but cannot roll back an enrollment
+    // (DoD: "email failure doesn't block enrollment"). Mailing the buyer a link
+    // to a host that does not serve /cursos is the strictly worse outcome.
+    delete process.env.ZEPHYRA_ACADEMIA_URL;
+    delete process.env.ZEPHYRA_PUBLIC_URL;
+    await expect(emailHandler(makeActionCtx(), EMAIL_ARGS)).rejects.toThrow(
+      /ZEPHYRA_ACADEMIA_URL/
+    );
+    expect(sendMailMock).not.toHaveBeenCalled();
   });
 
   it("escapes HTML in the course title (no injection via title)", async () => {
@@ -184,6 +207,10 @@ describe("sendBuyerConfirmationEmail — send path (EMAIL_USER set)", () => {
 describe("sendBuyerConfirmationEmail — dev fallback + edge cases", () => {
   it("dev fallback: no EMAIL_USER ⇒ logs, never constructs a transport", async () => {
     delete process.env.EMAIL_USER;
+    // This case is about the missing EMAIL PROVIDER, not the missing host. The
+    // player link is composed before the provider check, so the origin must be
+    // configured for the case under test to be the one actually exercised.
+    process.env.ZEPHYRA_ACADEMIA_URL = ACADEMIA;
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     await emailHandler(makeActionCtx(), EMAIL_ARGS);
     expect(createTransportMock).not.toHaveBeenCalled();

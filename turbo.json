@@ -23,6 +23,11 @@
         "EMAIL_*",
         "RESEND_API_KEY",
         "MP_*",
+        // Academia's origin as the Convex backend addresses it (buyer email +
+        // MercadoPago back_urls). ZEPHYRA_PUBLIC_URL is the deprecated alias
+        // still honoured until the deployments are updated at M6 — both are
+        // declared so neither arrives undefined under envMode: strict.
+        "ZEPHYRA_ACADEMIA_URL",
         "ZEPHYRA_PUBLIC_URL",
         "DEV_ADMIN_DEFAULT_PASSWORD"
       ],

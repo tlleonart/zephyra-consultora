@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@zephyra/convex/_generated/api';
 import { createTransport } from 'nodemailer';
 import { Resend } from 'resend';
+import { requireOrigin } from '@zephyra/utils';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -25,7 +26,11 @@ export const requestPasswordReset = async (
 
     // If we got a token, send the email
     if (result.token && result.userEmail) {
-      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${result.token}`;
+      // Admin password reset is a BACKOFFICE flow (boundaries §5): /reset-password
+      // is served by this app and is NOT in the M6 301 map (boundaries §3.1), so
+      // it must name backoffice.* explicitly. Previously this interpolated
+      // `undefined` when the var was unset, mailing an admin a dead link.
+      const resetUrl = `${requireOrigin('NEXT_PUBLIC_APP_URL', process.env.NEXT_PUBLIC_APP_URL)}/reset-password?token=${result.token}`;
       const subject = 'Restablecer contraseña - Zephyra Consultora';
       const html = `
           <h1>Hola ${result.userName},</h1>

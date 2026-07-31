@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@zephyra/convex/_generated/api';
 import { sendLearnerEmail } from '@/lib/mailer/learner';
 import LearnerMagicLink from '@/emails/LearnerMagicLink';
+import { requireOrigin } from '@zephyra/utils';
 
 export interface RequestOrgSignupResult {
   success: boolean;
@@ -44,8 +45,11 @@ export const requestOrgSignup = async (
       // the org details the owner typed. The values are NOT trusted as identity
       // — only the consumed magic link proves the email, and createOrganization
       // re-asserts the activated-customer gate before stamping the org.
+      // Org signup verification is an ACADEMIA flow (boundaries §5) and
+      // /empresa/registro/crear has NO 301 rule in the M6 map (boundaries §3.1),
+      // so a wrong origin here is an unrecoverable 404 for a paying prospect.
       const magicLinkUrl =
-        `${process.env.NEXT_PUBLIC_APP_URL}/empresa/registro/crear` +
+        `${requireOrigin('NEXT_PUBLIC_APP_URL', process.env.NEXT_PUBLIC_APP_URL)}/empresa/registro/crear` +
         `?token=${result.rawToken}` +
         `&orgName=${encodeURIComponent(orgName)}` +
         `&adminName=${encodeURIComponent(adminName)}` +

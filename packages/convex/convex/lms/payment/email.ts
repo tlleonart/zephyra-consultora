@@ -39,8 +39,9 @@
  *   webhook never schedules a second email.
  *
  * Secrets: EMAIL_USER / EMAIL_PASSWORD read from the Convex env only (never
- * files, never logged). NEXT_PUBLIC_SITE_URL / ZEPHYRA_PUBLIC_URL drive the
- * public player link; falls back to the production host.
+ * files, never logged). ZEPHYRA_ACADEMIA_URL drives the player link and has NO
+ * fallback — see convex/model/publicUrls.ts for why the apex default was removed
+ * at M4 (domain-boundaries v1.1 §5).
  */
 
 "use node";
@@ -51,15 +52,20 @@ import { v } from "convex/values";
 import { createTransport } from "nodemailer";
 import { Resend } from "resend";
 import { logMoney } from "./logging";
+import { academiaBaseUrl } from "../../model/publicUrls";
 
-// Public base URL for the buyer-facing player link. Mirrors the convention
-// used across the app (NEXT_PUBLIC_SITE_URL in the Next.js pages,
-// ZEPHYRA_PUBLIC_URL in convex/lms/payment/mercadopago.ts); accept either and
-// fall back to the production host so a missing env never yields a broken link.
-const publicBaseUrl = (): string =>
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  process.env.ZEPHYRA_PUBLIC_URL ??
-  "https://zephyraconsultora.com";
+// Buyer-facing links point at apps/academia and nowhere else (boundaries §5):
+// /cursos/<slug>/player is served by that app only. academiaBaseUrl() THROWS on
+// a missing ZEPHYRA_ACADEMIA_URL rather than falling back to the apex.
+//
+// Tolerating the throw here is deliberate and safe: this action is SCHEDULED
+// from the approved branch of processVerifiedPayment, i.e. after the
+// enrollment/payment/ledger transaction has already committed. A throw fails
+// the scheduled action — loudly, in the Convex function logs, naming the
+// variable — and costs the buyer their confirmation email; it CANNOT roll back
+// the enrollment (DoD: "email failure doesn't block enrollment" still holds).
+// The alternative, an apex link, is a 404 for the learner with no signal at all.
+const publicBaseUrl = academiaBaseUrl;
 
 // Inline HTML template — plain string, no React render (keeps the Node bundle
 // light; the visual shape mirrors src/emails/LearnerMagicLink.tsx: black brand

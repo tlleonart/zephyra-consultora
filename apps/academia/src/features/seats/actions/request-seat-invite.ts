@@ -6,6 +6,7 @@ import { Id } from '@zephyra/convex/_generated/dataModel';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { sendLearnerEmail } from '@/lib/mailer/learner';
 import SeatInvite from '@/emails/SeatInvite';
+import { requireOrigin } from '@zephyra/utils';
 
 export interface RequestSeatInviteResult {
   success: boolean;
@@ -104,10 +105,14 @@ export const requestSeatInvite = async (args: {
 
   // Claim URL shape (api-contract §C1): the (org, seatPack) binding lives in the
   // URL, not in the token row, and is re-verified server-side at claim time.
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://zephyraconsultora.com';
+  // Seat invites are an ACADEMIA flow (boundaries §5) and /empresa/invitacion is
+  // served by this app alone. The former apex fallback was the worst of the
+  // three: /empresa/* is not in the 301 map (boundaries §3.1), so an invite that
+  // fell back would 404 for a real invited learner. requireOrigin throws.
+  const baseUrl = requireOrigin(
+    'NEXT_PUBLIC_APP_URL',
+    process.env.NEXT_PUBLIC_APP_URL
+  );
   const claimUrl =
     `${baseUrl}/empresa/invitacion` +
     `?token=${encodeURIComponent(invite.rawToken)}` +

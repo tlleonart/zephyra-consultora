@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@zephyra/convex/_generated/api';
 import { sendLearnerEmail } from '@/lib/mailer/learner';
 import LearnerMagicLink from '@/emails/LearnerMagicLink';
+import { requireOrigin } from '@zephyra/utils';
 
 type Purpose =
   | 'learner_activation'
@@ -52,8 +53,12 @@ export const requestMagicLink = async (
       const returnToParam = returnTo
         ? `&returnTo=${encodeURIComponent(returnTo)}`
         : '';
+      // Learner magic links are an ACADEMIA flow (boundaries §5) — /cursos/auth/
+      // verify is served by this app. requireOrigin throws on a missing var
+      // rather than interpolating `undefined`, which is what this line used to
+      // do: `undefined/cursos/auth/verify` in every email.
       const magicLinkUrl =
-        `${process.env.NEXT_PUBLIC_APP_URL}/cursos/auth/verify` +
+        `${requireOrigin('NEXT_PUBLIC_APP_URL', process.env.NEXT_PUBLIC_APP_URL)}/cursos/auth/verify` +
         `?token=${result.rawToken}&purpose=${purpose}${returnToParam}`;
       const expiresInMinutes = ttlMinutesByPurpose[purpose];
 

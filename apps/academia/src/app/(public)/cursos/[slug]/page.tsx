@@ -7,14 +7,20 @@ import { getLearnerSession } from "@/features/auth-learner/lib/session";
 import { BuyButton } from "@/features/lms-checkout/components/BuyButton";
 import { formatUsd } from "@/features/lms-checkout/lib/format-price";
 import { api } from "@zephyra/convex/_generated/api";
+import { requireOrigin } from "@zephyra/utils";
 import styles from "./CourseDetail.module.css";
 
 // Same rendering strategy as the catalog: SEO + share previews need the
 // per-course metadata to ship server-side so OpenGraph crawlers see it.
 export const dynamic = "force-dynamic";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://zephyraconsultora.com";
+// Same rule as the catalog: ACADEMIA's own origin, path unchanged
+// (/cursos/[slug]) per boundaries v1.1 §3.1 D1. See ../page.tsx for why the apex
+// fallback was removed rather than repointed.
+const SITE_URL = requireOrigin(
+  "NEXT_PUBLIC_APP_URL",
+  process.env.NEXT_PUBLIC_APP_URL
+);
 
 type ScoStructure = {
   organizations?: {
