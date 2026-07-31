@@ -96,6 +96,24 @@ jobs:
       # a paused dev deploy into a red CI). The artifact assertion below is what
       # guards against a silently skipped build.
       NEXT_PUBLIC_CONVEX_URL: "https://ci-build-placeholder.convex.cloud"
+      # NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_ACADEMIA_URL — added after M4
+      # (T-be-010) replaced the silent apex fallbacks with fail-fast throws.
+      # Those throws fire at MODULE scope during page-data collection, so a
+      # missing value now fails `next build` by design: the omission is meant to
+      # surface in a deploy rather than in a learner's inbox. CI has no
+      # .env.local (gitignored), so without these the build job goes red on
+      # every commit — which is exactly what happened on 4347035.
+      #
+      # PLACEHOLDERS again, and public by definition. One caveat worth being
+      # explicit about: a single job-level env cannot give academia and
+      # backoffice DIFFERENT values, so this build does not exercise "each app
+      # names its own origin". That is deliberately not the build's job —
+      # apps/backoffice/tests/.../academiaLinks.test.ts asserts it in the `test`
+      # job, and only a real deploy can catch a variable missing in Vercel.
+      # The build job's contract is narrower: the code compiles and emits an
+      # artifact.
+      NEXT_PUBLIC_APP_URL: "https://ci-build-placeholder.zephyraconsultora.com"
+      NEXT_PUBLIC_ACADEMIA_URL: "https://ci-build-placeholder-academia.zephyraconsultora.com"
       # NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL are intentionally absent: the
       # build tolerates them being undefined and the artifact is discarded here.
       # A job that ever PUBLISHES an artifact would have to supply them.
