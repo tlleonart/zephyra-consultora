@@ -47,6 +47,18 @@ export async function middleware(request: NextRequest) {
 // Unchanged from apps/legacy: the pattern already catches /admin/* and the
 // three (auth) routes while excluding api/static. This app serves no /cursos/*,
 // so no learner pattern is needed.
+//
+// ⚠️ THE DOUBLE BACKSLASH IN `.*\\..*` IS LOAD-BEARING — DO NOT "SIMPLIFY" IT.
+// This is a JS string, so `'\\.'` is what produces the regex escape `\.` ("a
+// literal dot" => exclude dotted static assets). Written as `'\.'` the string
+// collapses to `.` and the alternative becomes `.*..*`, which matches ANY
+// non-empty path — the negative lookahead then rejects every route and Next.js
+// invokes this middleware for `/` only, leaving the whole /admin surface
+// UNGUARDED. That regression was live on this file between T-fe-008 and
+// T-fe-009 (confirmed against the compiled regexp in
+// .next/server/middleware-manifest.json) and every behavioural test still
+// passed, because calling middleware(request) directly bypasses this matcher.
+// tests/unit/middleware.test.ts now asserts config.matcher itself.
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\..*).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };
