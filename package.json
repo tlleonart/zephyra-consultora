@@ -8,7 +8,9 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "convex:check": "node ops/convex-identity.mjs --check",
+    "convex:sync": "node ops/convex-identity.mjs --sync"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
