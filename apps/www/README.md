@@ -76,12 +76,17 @@ here comes from `lint` + `typecheck` + `build`.
   `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SITE_URL` and the canonical host sweep are
   a separate task (M4).
 
-## Still shared with `apps/legacy` until it is retired
+## Formerly shared with `apps/legacy` (retired at T-fe-009)
 
 `(public)/layout.tsx` (+ its CSS), `(public)/error.tsx`, `(public)/not-found.tsx`,
 `components/public/Navbar`, `components/public/Footer` and `public/images/` were
-**copied**, not moved: `apps/legacy` still serves `(public)/cursos/*` from the
-same route group and still references `/images/*`, so removing them would have
-broken it before its retirement task. Everything else was `git mv`'d, so
-`git log --follow` traces the full history. When `apps/legacy` is deleted, these
-duplicates disappear with it — there is nothing left to reconcile.
+**copied** here, not moved, because `apps/legacy` still served
+`(public)/cursos/*` from the same route group and still referenced `/images/*`
+at the time. Everything else was `git mv`'d, so `git log --follow` traces the
+full history.
+
+`apps/legacy` was deleted at **T-fe-009**, and its copies went with it — nothing
+was left to reconcile. Verified before the deletion: all 22 files under
+`apps/legacy/public/images/` were byte-identical to the copies here (two of them
+also live in `apps/academia`), and `src/app/layout.tsx` was byte-identical
+across all four apps (sha256 `33d6c15f…`). No asset was orphaned.

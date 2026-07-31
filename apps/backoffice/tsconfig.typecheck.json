@@ -1,6 +1,7 @@
 {
   // Config for the standalone `typecheck` task (tsc --noEmit) — mirrors
-  // apps/legacy/tsconfig.typecheck.json, and for the same reason.
+  // apps/academia's and apps/www's, and for the same reason. (The original was
+  // apps/legacy's, retired at T-fe-009; `git log --follow` still has it.)
   //
   // tsconfig.json includes ".next/types/**/*.ts"; Next.js adds and re-adds that
   // entry itself on every build, so it cannot simply be deleted. Those files are

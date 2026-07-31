@@ -118,18 +118,24 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # `turbo run build` fans out to every workspace that defines a `build`
-      # script. Since T-fe-008 that is all four apps -- www, backoffice, academia
-      # and legacy (the packages/* are SOURCE-exported and emit nothing). No CI
-      # edit was needed to pick each one up as it gained a `build` script, which
-      # is exactly why the artifact assertion below enumerates them explicitly:
-      # a workspace turbo SKIPS is indistinguishable from one that succeeded.
+      # script. Since T-fe-009 retired apps/legacy that is the THREE real apps --
+      # www, backoffice, academia (the packages/* are SOURCE-exported and emit
+      # nothing). No CI edit was needed to pick each one up as it gained a
+      # `build` script, which is exactly why the artifact assertion below
+      # enumerates them explicitly: a workspace turbo SKIPS is indistinguishable
+      # from one that succeeded.
       - run: pnpm turbo run build
       # A build job that silently skipped the build looks identical to a green
       # one, so assert the compile actually produced an artifact. `next build`
       # writes .next/BUILD_ID at the end of a successful run.
       - name: Assert a real build artifact was produced
         run: |
-          for app in academia backoffice legacy www; do
+          # apps/legacy removed from this loop at T-fe-009 (the workspace no
+          # longer exists, so asserting its BUILD_ID would red the job for a
+          # non-code reason). The loop is otherwise UNCHANGED and must stay
+          # exhaustive over the real apps: it is the only guard against a
+          # silently-skipped build.
+          for app in academia backoffice www; do
             test -f "apps/$app/.next/BUILD_ID" || {
               echo "::error::apps/$app/.next/BUILD_ID is missing — next build produced no artifact"
               exit 1
@@ -155,7 +161,7 @@ jobs:
           # And it must NOT reappear anywhere else: a second copy on another host
           # would serve assets cross-origin from the player and silently kill the
           # window.parent.API bridge.
-          for app in backoffice legacy www; do
+          for app in backoffice www; do
             if grep -qF '"/api/lms/asset/[slug]/[...path]"' "apps/$app/.next/routes-manifest.json"; then
               echo "::error::the SCORM asset-proxy route also appears in apps/$app — it must exist ONLY in apps/academia (same-origin premise)"
               exit 1
@@ -163,12 +169,20 @@ jobs:
           done
 
 # NOTE — Playwright e2e (`test:e2e`) is intentionally NOT a CI job here in
-# Sprint 1 either. The SCORM demo loop requires a live Convex dev deploy
+# Sprint 1 either. Those specs require a live Convex dev deploy
 # (NEXT_PUBLIC_CONVEX_URL pointing at dev:exuberant-corgi-88) plus a running
 # Next.js server. Adding a separate `e2e.yml` workflow gated on a
 # `CONVEX_DEPLOY_KEY` secret + a per-PR ephemeral preview is tracked for
-# Sprint 2. For now `pnpm --filter @zephyra/legacy test:e2e` is a local-only
-# dev tool documented in apps/legacy/tests/e2e/demo-loop.spec.ts.
+# Sprint 2. For now `pnpm --filter @zephyra/academia test:e2e` is a local-only
+# dev tool; it runs the two single-host specs (org-packs, org-seats).
+#
+# RE-POINTED at T-fe-009: apps/legacy is gone, and the SCORM demo loop it used
+# to host is no longer runnable by ANY workspace — after the split it spans two
+# hosts (/login + /admin on backoffice, /cursos + player on academia) against a
+# single Playwright baseURL. It is quarantined at tests/cross-host/demo-loop.spec.ts,
+# deliberately outside every workspace and every test glob, and is named in
+# T-e2e-019 (M6 cross-host e2e). Do not add it to an app's testDir to "restore"
+# it — a single-baseURL harness cannot express it.
 #
 # NOTE — Vercel preview deploys (AC-4) are triggered by the Vercel Git
 # integration on push/PR, outside this workflow. That preview is EXPECTED TO
