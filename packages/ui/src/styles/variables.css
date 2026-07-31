@@ -1,13 +1,41 @@
 :root {
-  /* Brand Colors */
+  /* Brand Colors
+     L1 (base) layer. Everything here is correct for ALL THREE apps — www,
+     backoffice and academia. The Arena skin that only academia wears lives in
+     ./theme-academia.css (L2), scoped to [data-theme='academia']. Do not move
+     surface/warm-neutral tokens up here: :root repaints www, which "moves
+     as-is". */
   --color-brand-main: #1E3C2E;
-  --color-brand-main-hover: #152b21;
+  /* Canonical dark green. Was ALREADY REFERENCED and UNDEFINED in two places
+     (CourseDetail.module.css, cursos/[slug]/compra/Compra.module.css), both via
+     `var(--color-brand-dark, var(--color-brand-main))`, so the purchase and
+     checkout CTAs did not darken on hover at all. Defining it is a deliberate,
+     declared rendering change. #152B21 on white = 15.01:1. */
+  --color-brand-dark: #152B21;
+  /* Alias, not a rename: 13 existing readers keep working, same computed value. */
+  --color-brand-main-hover: var(--color-brand-dark);
+  /* Additive. Required by the approved direction's gradients (hero art, card
+     thumb, buy-card). Contrast on paper #EFEAE0: mid 6.60:1, soft 4.83:1 —
+     `soft` is for gradient stops, rules and decorative borders, NEVER body
+     copy. Neither is a button colour: buttons use main/dark only. */
+  --color-brand-mid: #2D5A43;
+  --color-brand-soft: #3A7055;
+  --color-brand-tint: #F0F5F2;
+  /* Kept for apps/www's footer band ONLY (its other consumer, the academia
+     footer, was repointed to --color-brand-main). Folding this token to the
+     canonical #1E3C2E would shift the www band too (dE76 1.35) — that is an
+     open decision, D-4, and it is a one-value edit right here. */
   --color-brand-footer: #213C2F;
   --color-brand-secondary: #E5DFD5;
 
   /* Colors */
-  --color-primary: #0066cc;
-  --color-primary-hover: #0052a3;
+  /* DEPRECATED ALIASES. The scaffold blue (#0066cc / #0052a3) is retired. The
+     token NAMES survive as aliases so the retirement is a 2-line edit instead
+     of 74 edits across 34 files, 51 of them in a backoffice that is out of
+     scope for restyling. The rendered result is identical either way.
+     DO NOT ADD NEW CALL SITES — use --color-brand-* directly. */
+  --color-primary: var(--color-brand-main);
+  --color-primary-hover: var(--color-brand-dark);
   --color-secondary: #6b7280;
   --color-success: #16a34a;
   --color-error: #dc2626;
@@ -39,6 +67,14 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-2xl: 48px;
+  /* Additive, from the approved direction's --x3/--x4 (section, detail and band
+     padding + grid gaps). NOT a canonicalisation of the repo's existing
+     60/80/100px rhythms: 24 of those 25 points are in apps/www, which this
+     sprint may not refactor. Folding www's 60px -> 64px is a +4px visible shift
+     x11 and needs its own task and its own visual pass. 100px is deliberately
+     NOT tokenised: two consumers, both in www, and the direction never uses it. */
+  --spacing-3xl: 64px;
+  --spacing-4xl: 80px;
 
   /* Border Radius */
   --radius-sm: 4px;
