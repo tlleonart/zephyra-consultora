@@ -75,15 +75,32 @@ describe("www generates no app URL (the M4 sweep, pinned)", () => {
     expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
   });
 
+  // Same regex, and the same warning, as apps/backoffice's V28 suite: the
+  // `[=({\s]*` run is what lets this match a JSX brace. A draft allowing only
+  // `=`/`(` silently failed to match href={`/cursos/...`} — i.e. it could not see
+  // the bug it exists for. The control below is what makes that detectable.
+  const RELATIVE_CROSS_HOST =
+    /(?:href|router\.(?:push|replace)|location\.(?:assign|replace)|location\.href)\s*[=({\s]*[`'"]\/(?:cursos|empresa|admin)\b/;
+
   it("emits no cross-host relative link into another app's route namespace (V28)", () => {
-    // The V28 failure shape: `href="/cursos/..."` or `router.push('/admin/...')`
-    // from an app that does not serve that prefix. Relative is not "unspecified",
-    // it resolves against THIS host and 404s.
-    const offenders = files.filter((f) =>
-      /(?:href|router\.(?:push|replace))\s*[=(]\s*[`'"]\/(?:cursos|empresa|admin)\b/.test(
-        read(f)
-      )
-    );
+    // The V28 failure shape: a relative link to a prefix this app does not serve.
+    // Relative is not "unspecified" — it resolves against THIS host and 404s.
+    const offenders = files.filter((f) => RELATIVE_CROSS_HOST.test(read(f)));
     expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
+  });
+
+  it("matches the V28 literal shapes (the scan is not vacuous)", () => {
+    expect(
+      RELATIVE_CROSS_HOST.test("<Link href={`/cursos/${c.slug}/player`}>")
+    ).toBe(true);
+    expect(RELATIVE_CROSS_HOST.test('href="/admin/lms"')).toBe(true);
+    expect(
+      RELATIVE_CROSS_HOST.test("router.push('/empresa/registro')")
+    ).toBe(true);
+    // www's own routes and already-absolute links must not trip it.
+    expect(RELATIVE_CROSS_HOST.test('href="/contacto"')).toBe(false);
+    expect(
+      RELATIVE_CROSS_HOST.test('href={`${ACADEMIA}/cursos/x/player`}')
+    ).toBe(false);
   });
 });

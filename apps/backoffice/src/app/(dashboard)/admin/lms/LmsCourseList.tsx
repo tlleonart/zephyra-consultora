@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
+import { academiaPlayerUrl } from "@/features/lms/lib/academia-links";
 
 interface LmsCourseListProps {
   userId: Id<"adminUsers">;
@@ -250,7 +251,11 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                       }}
                     >
                       {c.status === "published" && (
-                        <Link href={`/cursos/${c.slug}/player`}>Abrir player</Link>
+                        // CROSS-HOST (V28): the player is served by academia, not
+                        // by this host. A plain <a> rather than next/link — the
+                        // client router has nothing to prefetch or soft-navigate
+                        // across an origin. Same tab, as before.
+                        <a href={academiaPlayerUrl(c.slug)}>Abrir player</a>
                       )}
                       <Link href={`/admin/lms/courses/${c.slug}/edit`}>
                         Editar

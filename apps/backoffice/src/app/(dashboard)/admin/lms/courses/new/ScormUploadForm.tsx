@@ -6,6 +6,7 @@ import { useAction, useMutation } from "convex/react";
 import JSZip from "jszip";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
+import { academiaPlayerUrl } from "@/features/lms/lib/academia-links";
 
 /**
  * SCORM ingestion form (Phase D — AC-D01.1 .. AC-D01.4; E03 polish).
@@ -368,7 +369,12 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
           )}
           <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
             <button
-              onClick={() => router.push(`/cursos/${result.slug}/player`)}
+              // CROSS-HOST (V28): the player lives on academia, so this is a
+              // full document navigation to another origin. router.push is for
+              // in-app routes only; window.location.assign is the honest call.
+              onClick={() =>
+                window.location.assign(academiaPlayerUrl(result.slug))
+              }
               style={{
                 padding: "8px 14px",
                 background: "#2d7",
