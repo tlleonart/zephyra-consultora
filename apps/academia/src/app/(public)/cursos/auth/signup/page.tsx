@@ -3,7 +3,7 @@ import { LearnerSignupForm } from '@/features/auth-learner/components/LearnerSig
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Empezá tus cursos - Zephyra Consultora',
+  title: "Empezá tus cursos",
   description: 'Activá tu cuenta de Zephyra y empezá a aprender.',
 };
 

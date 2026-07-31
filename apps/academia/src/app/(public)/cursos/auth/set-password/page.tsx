@@ -6,7 +6,7 @@ import { LearnerSetPasswordForm } from '@/features/auth-learner/components/Learn
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Configurá tu contraseña - Zephyra Consultora',
+  title: "Configurá tu contraseña",
 };
 
 export default async function LearnerSetPasswordPage() {

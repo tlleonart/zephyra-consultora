@@ -1,0 +1,36 @@
+.brandmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.mark {
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* The descriptor as LIVE TEXT (D-2's recommended treatment). At a 40px mark
+   height a baked-in descriptor renders about 4.5px tall — unreadable. This stays
+   legible, selectable and available to assistive tech. */
+.descriptor {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  line-height: 1;
+  /* 6.60:1 on paper. */
+  color: var(--color-brand-mid);
+}
+
+/* On the dark/green surfaces (navbar header, footer band) the mid green would
+   disappear, so the descriptor uses the sand token: 9.10:1 on #1E3C2E. */
+.descriptorOnDark {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--color-brand-secondary);
+}

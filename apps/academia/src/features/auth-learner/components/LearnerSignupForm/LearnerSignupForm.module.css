@@ -43,7 +43,7 @@
 }
 
 .success:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-brand-main);
   outline-offset: 2px;
 }
 
@@ -52,12 +52,17 @@
   margin-top: var(--spacing-sm);
 }
 
+/* WCAG 1.4.1 (Use of Color). Blue read as "link" by universal convention;
+   brand green is ALSO the heading and emphasis colour on these screens, so after
+   the blue retirement colour alone no longer distinguishes a link from body text.
+   The underline is not decoration — without it the L1 remap is an accessibility
+   regression. */
 .footerLink {
   display: block;
   text-align: center;
   font-size: 0.875rem;
-  color: var(--color-primary);
-  text-decoration: none;
+  color: var(--color-brand-main);
+  text-decoration: underline;
 }
 
 .footerLink:hover {

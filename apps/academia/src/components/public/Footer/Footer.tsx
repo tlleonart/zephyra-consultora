@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Brandmark } from "@/components/public/Brandmark";
+import { BRAND_ORIGIN_LINE } from "@/lib/brand";
 import styles from "./Footer.module.css";
 
 const quickLinks = [
@@ -61,8 +63,10 @@ export const Footer = () => {
         <div className={styles.content}>
           {/* Company Info Column */}
           <div className={styles.column}>
-            <Link href="/" className={styles.logo}>
-              Zephyra
+            {/* Was a TYPED "Zephyra" wordmark — the brand guide retires typed wordmarks
+                in favour of the mark itself. */}
+            <Link href="/" className={styles.logo} aria-label={BRAND_ORIGIN_LINE}>
+              <Brandmark tone="onDark" height={36} />
             </Link>
             <p className={styles.description}>
               Consultora especializada en sostenibilidad y triple impacto.

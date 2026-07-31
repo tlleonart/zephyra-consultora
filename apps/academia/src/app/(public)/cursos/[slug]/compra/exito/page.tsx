@@ -12,7 +12,7 @@ import { btnClass } from "@zephyra/ui";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Compra confirmada — Zephyra Cursos",
+  title: "Compra confirmada",
 };
 
 export default async function CompraExitoPage({

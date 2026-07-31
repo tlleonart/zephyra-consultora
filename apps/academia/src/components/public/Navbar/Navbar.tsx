@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@zephyra/utils";
+import { Brandmark } from "@/components/public/Brandmark";
 import styles from "./Navbar.module.css";
 
 const navLinks = [
@@ -52,14 +52,8 @@ export const Navbar = () => {
       <header className={cn(styles.header, isScrolled && styles.scrolled, isMobileMenuOpen && styles.menuOpen)}>
         <nav className={styles.nav}>
           <Link href="/" className={styles.logo} onClick={closeMobileMenu}>
-            <Image
-              src="/images/zephyra-logo.png"
-              alt="Zephyra Consultora"
-              width={160}
-              height={40}
-              priority
-              className={styles.logoImage}
-            />
+            {/* D-1/D-2 live in @/lib/brand, not here. */}
+            <Brandmark tone="onDark" height={40} priority />
           </Link>
 
           {/* Desktop Navigation */}

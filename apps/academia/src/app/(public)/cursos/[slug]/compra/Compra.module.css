@@ -10,7 +10,7 @@
 .card {
   max-width: 560px;
   width: 100%;
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   padding: var(--spacing-2xl);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -24,15 +24,16 @@
 }
 
 .iconSuccess {
-  color: var(--color-success, #15803d);
+  color: var(--color-success);
 }
 
 .iconError {
-  color: var(--color-error, #b91c1c);
+  color: var(--color-error);
 }
 
 .iconPending {
-  color: var(--color-warning, #b45309);
+  /* AA on the warm card: the theme resolves this to #92400E = 6.80:1. */
+  color: var(--color-warning);
 }
 
 .title {

@@ -1,5 +1,11 @@
 .footer {
-  background-color: var(--color-brand-footer);
+  /* D-4 IS THIS ONE LINE. --color-brand-footer (#213C2F) had TWO consumers after
+     the split: this footer and the institutional one in apps/www. Folding the
+     token itself would shift the www band too (dE76 1.35), and www moves as-is —
+     so the token stays defined for www and only Academia is repointed to the
+     canonical green. If the bands should unify, fold the token in variables.css
+     and revert this line. VISIBLE: the Academia band shifts #213C2F -> #1E3C2E. */
+  background-color: var(--color-brand-main);
   color: white;
   padding: var(--spacing-2xl) 0 var(--spacing-lg);
 }
@@ -26,9 +32,8 @@
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
   transition: opacity var(--transition-fast);
 }

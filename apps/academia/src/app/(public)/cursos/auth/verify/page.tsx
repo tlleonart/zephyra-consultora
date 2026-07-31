@@ -4,7 +4,7 @@ import { LearnerVerifyContent } from '@/features/auth-learner/components/Learner
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Verificando link - Zephyra Consultora',
+  title: "Verificando link",
 };
 
 export default function LearnerVerifyPage() {

@@ -1,7 +1,7 @@
 .card {
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -50,7 +50,8 @@
   background: linear-gradient(
     135deg,
     var(--color-brand-main) 0%,
-    var(--color-brand-secondary, var(--color-brand-main)) 100%
+    var(--color-brand-mid) 55%,
+    var(--color-brand-soft) 100%
   );
   color: white;
 }
@@ -106,7 +107,7 @@
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
   padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  border-top: 1px solid var(--color-border);
 }
 
 .meta {

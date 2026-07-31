@@ -20,6 +20,12 @@ test-results/
 .env.development.local
 .env.test.local
 .env.production.local
+# Env BACKUPS and variants. The exact-name rules above do NOT cover them:
+# apps/*/.env.local.bak-* exists in this checkout and holds LEARNER_JWT_SECRET,
+# EMAIL_PASSWORD and RESEND_API_KEY. `git add -A apps/...` stages it happily,
+# which is one keystroke from pushing live secrets to a public remote.
+.env*.local
+.env*.bak*
 
 # Logs
 npm-debug.log*

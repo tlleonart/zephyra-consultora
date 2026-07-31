@@ -3,7 +3,7 @@ import { LearnerSignupForm } from '@/features/auth-learner/components/LearnerSig
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Recuperá tu acceso - Zephyra Consultora',
+  title: "Recuperá tu acceso",
   description: 'Te enviamos un link para recuperar el acceso a tu cuenta.',
 };
 

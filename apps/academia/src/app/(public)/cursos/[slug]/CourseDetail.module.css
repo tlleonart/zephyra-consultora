@@ -1,6 +1,11 @@
 .hero {
-  background-color: var(--color-brand-main);
-  padding: var(--spacing-2xl) 0;
+  /* The approved direction paints the hero as a green BAND, not a flat fill. */
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-main) 0%,
+    var(--color-brand-dark) 100%
+  );
+  padding: var(--spacing-3xl) 0;
 }
 
 .heroInner {
@@ -99,7 +104,7 @@
 }
 
 .bodyMain {
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   padding: var(--spacing-xl);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -130,7 +135,7 @@
 .purchasePanel {
   position: sticky;
   top: 100px;
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   padding: var(--spacing-xl);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -162,6 +167,14 @@
   color: var(--color-text-muted);
 }
 
+
+/* The one local modifier on top of the shared .btn contract: the "Próximamente"
+   state keeps its neutral fill rather than a faded green, so an unavailable
+   course does not read as a live CTA. */
+.ctaUnavailable,
+.ctaUnavailable:hover {
+  background-color: var(--color-text-muted);
+}
 .ctaHelp {
   font-size: 0.9375rem;
   color: var(--color-text-secondary);
@@ -174,7 +187,7 @@
   color: var(--color-text-muted);
   margin: 0;
   padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  border-top: 1px solid var(--color-border);
   line-height: 1.5;
 }
 

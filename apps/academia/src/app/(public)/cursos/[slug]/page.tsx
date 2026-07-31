@@ -85,7 +85,7 @@ export async function generateMetadata({
   const result = await fetchCourseForRender(slug);
   if (!result) {
     return {
-      title: "Curso no encontrado — Zephyra Cursos",
+      title: "Curso no encontrado",
       description: "El curso que buscás no existe o no está disponible.",
     };
   }
@@ -94,10 +94,10 @@ export async function generateMetadata({
   const url = `${SITE_URL}/cursos/${course.slug}`;
 
   return {
-    title: `${course.title} — Zephyra Cursos`,
+    title: `${course.title}`,
     description,
     openGraph: {
-      title: `${course.title} — Zephyra Cursos`,
+      title: `${course.title}`,
       description,
       type: "article",
       url,

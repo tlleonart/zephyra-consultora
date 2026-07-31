@@ -27,19 +27,19 @@ const SITE_URL = requireOrigin(
 );
 
 export const metadata: Metadata = {
-  title: "Cursos — Zephyra Consultora",
+  title: "Cursos",
   description:
-    "Catálogo de cursos de Zephyra Consultora. Formación en sostenibilidad, triple impacto y gestión del cambio para personas y organizaciones.",
+    "Catálogo de cursos de Academia Zephyra. Formación en sostenibilidad, triple impacto y gestión del cambio para personas y organizaciones.",
   openGraph: {
-    title: "Cursos — Zephyra Consultora",
+    title: "Cursos",
     description:
-      "Catálogo de cursos de Zephyra Consultora. Formación en sostenibilidad, triple impacto y gestión del cambio para personas y organizaciones.",
+      "Catálogo de cursos de Academia Zephyra. Formación en sostenibilidad, triple impacto y gestión del cambio para personas y organizaciones.",
     type: "website",
     url: `${SITE_URL}/cursos`,
     images: [
       {
         url: `${SITE_URL}/images/hero-background.jpg`,
-        alt: "Zephyra Consultora — Cursos",
+        alt: "Academia Zephyra — Cursos",
       },
     ],
   },
