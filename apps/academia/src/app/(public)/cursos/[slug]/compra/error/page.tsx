@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "../Compra.module.css";
+import { btnClass } from "@zephyra/ui";
 
 // The failure return is purely informational — there is no DB state to trust
 // here beyond "the buyer bounced back on the failure path". We do not mark the
@@ -32,7 +33,7 @@ export default async function CompraErrorPage({
           nuevamente o elegir otro medio de pago.
         </p>
         <div className={styles.actions}>
-          <Link href={`/cursos/${slug}`} className={styles.button}>
+          <Link href={`/cursos/${slug}`} className={btnClass({ size: "lg" })}>
             Intentar de nuevo
           </Link>
         </div>

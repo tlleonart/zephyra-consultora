@@ -3,6 +3,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "../Compra.module.css";
+import { btnClass } from "@zephyra/ui";
 
 // DB is truth: never trust the /exito path MercadoPago redirected to as proof
 // of payment. We read the REAL order status from Convex by id and render
@@ -53,13 +54,13 @@ export default async function CompraExitoPage({
         </p>
         <div className={styles.actions}>
           {isPaid ? (
-            <Link href={`/cursos/${slug}/player`} className={styles.button}>
+            <Link href={`/cursos/${slug}/player`} className={btnClass({ size: "lg" })}>
               Ir al curso
             </Link>
           ) : (
             <Link
               href={`/cursos/${slug}`}
-              className={`${styles.button} ${styles.buttonSecondary}`}
+              className={btnClass({ variant: "outline", size: "lg" })}
             >
               Volver al curso
             </Link>

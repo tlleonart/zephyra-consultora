@@ -117,7 +117,7 @@
   letter-spacing: 0.02em;
 }
 
-.cta {
+.cardAction {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-brand-main);

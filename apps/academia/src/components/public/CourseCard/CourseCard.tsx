@@ -53,7 +53,7 @@ export function CourseCard({
           ) : (
             <span />
           )}
-          <span className={styles.cta} aria-hidden="true">
+          <span className={styles.cardAction} aria-hidden="true">
             Ver más →
           </span>
         </div>

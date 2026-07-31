@@ -1,0 +1,206 @@
+/* The button VISUAL CONTRACT — element-agnostic, on purpose.
+ *
+ * WHY THIS FILE EXISTS. The repo had one <Button> component plus a set of
+ * marketing CSS-Module classes that reimplemented it, and `.cta` was a name
+ * collision meaning four different things (a sticky <aside> panel, an
+ * aria-hidden decorative <span>, a <Link>, and a <button>). "Merge the two
+ * button systems" taken literally would turn anchors into <button>s — killing
+ * href, middle-click, open-in-new-tab and the correct role for assistive tech —
+ * and would try to turn an <aside> into a button.
+ *
+ * So the styles live here and the ELEMENT stays whatever it should be:
+ *   - <Button> composes these classes (see ./btn.ts). It is a CONSUMER of the
+ *     contract, not the owner of it.
+ *   - anything that navigates keeps <Link>/<a> and applies the same classes
+ *     via btnClass(). NEVER swap an anchor for a <button>.
+ *
+ * WHY THE BASE IS BORING. Every declaration in `.btn`, the four pre-existing
+ * variants and the three sizes is VERBATIM the old Button.module.css. That is
+ * deliberate: apps/backoffice renders <Button> on ~every screen and its only
+ * sanctioned change this sprint is the L1 colour remap. If the base carried the
+ * approved direction's flourishes (weight 600, hover lift, focus ring), the
+ * backoffice would silently change too. The flourishes are therefore scoped to
+ * [data-theme='academia'] at the bottom of this file, where they belong.
+ *
+ * Buttons use --color-brand-main / --color-brand-dark only. --color-brand-mid
+ * and --color-brand-soft are NOT button colours.
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  /* Additive for the anchor consumers. Inert for <button>, whose UA default is
+     already `none`, so no existing call site moves. */
+  text-decoration: none;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+.md {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+}
+
+.lg {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1.125rem;
+}
+
+/* Variants */
+.primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.primary:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-primary-hover);
+}
+
+.secondary {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.secondary:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-border);
+}
+
+.danger {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.danger:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: #b91c1c;
+}
+
+.ghost {
+  background-color: transparent;
+  color: var(--color-text);
+}
+
+.ghost:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-bg-tertiary);
+}
+
+/* NEW variants, required by the approved direction and absent before this task.
+   `inverse` is the CTA that sits on a full-green band (white on #1E3C2E =
+   12.06:1); `outline` is the card / secondary action. */
+.inverse {
+  background-color: #ffffff;
+  color: var(--color-brand-main);
+}
+
+.inverse:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-brand-secondary);
+  color: var(--color-brand-main);
+}
+
+.outline {
+  background-color: transparent;
+  color: var(--color-brand-main);
+  border: 1px solid var(--color-brand-main);
+}
+
+.outline:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-brand-main);
+  color: #ffffff;
+}
+
+.block {
+  width: 100%;
+}
+
+/* Loading state (moved verbatim from Button.module.css) */
+.loading {
+  position: relative;
+  color: transparent;
+}
+
+.spinner {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.loading .spinner {
+  color: white;
+}
+
+.loading.secondary .spinner,
+.loading.ghost .spinner,
+.loading.outline .spinner {
+  color: var(--color-text);
+}
+
+.loading.inverse .spinner {
+  color: var(--color-brand-main);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Academia only (L2) ───────────────────────────────────────────────────────
+ * These rules are inert everywhere the [data-theme='academia'] attribute is not
+ * set on <html> — i.e. in apps/www and apps/backoffice they ship as dead CSS
+ * (~40 lines) and match nothing. That is the price of keeping the backoffice
+ * byte-stable, and it is the right trade. They cannot live in theme-academia.css
+ * because that file is plain CSS and cannot name a hashed CSS-Module class.
+ */
+[data-theme='academia'] .btn {
+  font-weight: 600;
+}
+
+[data-theme='academia'] .btn:focus-visible {
+  /* Green-on-green focus rings are invisible. Any button inside a full-green
+     band sets --btn-focus-color to the sand token (9.10:1 on #1E3C2E) — either
+     with the `onGreen` modifier below or by setting the property on the band
+     container. Default is brand-main on light surfaces (12.06:1 on white,
+     10.06:1 on paper). */
+  outline: 3px solid var(--btn-focus-color, var(--color-brand-main));
+  outline-offset: 2px;
+}
+
+[data-theme='academia'] .onGreen {
+  --btn-focus-color: var(--color-border-focus-inverse);
+}
+
+[data-theme='academia'] .primary:hover:not(:disabled):not([aria-disabled='true']),
+[data-theme='academia'] .outline:hover:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(-1px);
+}
+
+[data-theme='academia'] .inverse:hover:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme='academia'] .ghost:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-brand-tint);
+  color: var(--color-brand-main);
+}

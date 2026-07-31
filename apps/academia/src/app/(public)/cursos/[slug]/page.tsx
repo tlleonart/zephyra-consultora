@@ -7,6 +7,7 @@ import { getLearnerSession } from "@/features/auth-learner/lib/session";
 import { BuyButton } from "@/features/lms-checkout/components/BuyButton";
 import { formatUsd } from "@/features/lms-checkout/lib/format-price";
 import { api } from "@zephyra/convex/_generated/api";
+import { btnClass } from "@zephyra/ui";
 import { requireOrigin } from "@zephyra/utils";
 import styles from "./CourseDetail.module.css";
 
@@ -196,7 +197,7 @@ export default async function CourseDetailPage({
             </div>
           </div>
 
-          <aside className={styles.cta} aria-label="Inscripción">
+          <aside className={styles.purchasePanel} aria-label="Inscripción">
             {isBuyable && priceUsd !== null ? (
               <p className={styles.price}>
                 <span className={styles.priceAmount}>
@@ -211,7 +212,7 @@ export default async function CourseDetailPage({
               <>
                 <Link
                   href={`/cursos/${course.slug}/player`}
-                  className={styles.ctaButton}
+                  className={btnClass({ size: "lg", block: true })}
                 >
                   Ir al curso
                 </Link>
@@ -224,7 +225,11 @@ export default async function CourseDetailPage({
               <>
                 <button
                   type="button"
-                  className={styles.ctaButton}
+                  className={btnClass({
+                    size: "lg",
+                    block: true,
+                    className: styles.ctaUnavailable,
+                  })}
                   disabled
                   aria-disabled="true"
                 >
@@ -244,7 +249,7 @@ export default async function CourseDetailPage({
               <>
                 <BuyButton
                   courseId={course._id}
-                  className={styles.ctaButton}
+                  className={btnClass({ size: "lg", block: true })}
                 />
                 <p className={styles.ctaHelp}>
                   Comprá el curso y obtené acceso inmediato al contenido.
@@ -257,7 +262,7 @@ export default async function CourseDetailPage({
                   href={`/cursos/auth/signin?returnTo=${encodeURIComponent(
                     `/cursos/${course.slug}`
                   )}`}
-                  className={styles.ctaButton}
+                  className={btnClass({ size: "lg", block: true })}
                 >
                   Iniciá sesión para comprar
                 </Link>

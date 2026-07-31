@@ -4,6 +4,7 @@ import { PendingPoller } from "@/features/lms-checkout/components/PendingPoller"
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "../Compra.module.css";
+import { btnClass } from "@zephyra/ui";
 
 // DB is truth: the order status drives the copy, not the /pendiente path. If
 // the webhook already landed (status "paid") we send the buyer straight to the
@@ -56,13 +57,13 @@ export default async function CompraPendientePage({
         </p>
         <div className={styles.actions}>
           {isPaid ? (
-            <Link href={`/cursos/${slug}/player`} className={styles.button}>
+            <Link href={`/cursos/${slug}/player`} className={btnClass({ size: "lg" })}>
               Ir al curso
             </Link>
           ) : (
             <Link
               href={`/cursos/${slug}`}
-              className={`${styles.button} ${styles.buttonSecondary}`}
+              className={btnClass({ variant: "outline", size: "lg" })}
             >
               Volver al curso
             </Link>

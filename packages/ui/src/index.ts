@@ -16,6 +16,15 @@
 export { Button } from './components/ui/Button';
 export type { ButtonProps, ButtonVariant, ButtonSize } from './components/ui/Button';
 
+// The button visual contract, element-agnostic. This is the ONE exception to
+// "CSS is imported for effect, never re-exported from TypeScript": btnClass
+// returns hashed CSS-Module class NAMES as a string, so a <Link>, an <a> or a
+// <button> in any app can wear the same button skin without that app importing a
+// package stylesheet — and without anchors being rewritten as <button>, which is
+// how you lose href, middle-click and the right role for assistive tech.
+export { btnClass, btnSpinnerClass } from './styles/btn';
+export type { BtnClassOptions, BtnVariant, BtnSize } from './styles/btn';
+
 export { Card, CardHeader, CardContent, CardFooter } from './components/ui/Card';
 export type {
   CardProps,
