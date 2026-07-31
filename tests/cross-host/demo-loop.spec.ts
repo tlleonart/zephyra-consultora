@@ -24,9 +24,10 @@
  * so the original literal is correct once more. Asserted at module scope below
  * rather than left to fail 30s into a run.
  *
- * WHEN IT COMES BACK. T-e2e-019 (M6 go-live checklist) owns cross-host e2e:
+ * WHEN IT COMES BACK. T-e2e-018 (M6.6 go-live checklist) owns cross-host e2e:
  * SCORM player on prod, pack purchase + seat invite + claim. This spec is named
- * in that task's scope. Running it requires what no single workspace can give
+ * in that task's scope. (The V27/V21 rulings call that row "T-e2e-019"; no such
+ * row exists -- M6.6 is T-e2e-018.) Running it requires what no single workspace can give
  * it: two base URLs (one per host) and a live Convex deploy. Do NOT "fix" it by
  * moving it back into an app — a single-baseURL harness cannot express it.
  *

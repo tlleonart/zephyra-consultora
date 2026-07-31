@@ -37,10 +37,11 @@ real harness for it.
 
 - **`demo-loop.spec.ts`** — the Sprint-0 SCORM centerpiece: admin login → SCORM
   upload → ingest → publish (`apps/backoffice`) → catalog → player → SCORM 1.2
-  API bridge (`apps/academia`). Two hosts. Awaiting **`T-e2e-019`** (M6 go-live
+  API bridge (`apps/academia`). Two hosts. Awaiting **`T-e2e-018`** (M6.6 go-live
   checklist), which owns cross-host e2e — SCORM player on prod, pack purchase +
-  seat invite + claim. It also needs a live Convex deploy, which is why it was
-  never a CI job even before the split.
+  seat invite + claim. (The V27/V21 rulings refer to that row as `T-e2e-019`; no
+  such row exists — M6.6 is `T-e2e-018`.) It also needs a live Convex deploy,
+  which is why it was never a CI job even before the split.
 
 ## How to un-quarantine
 
@@ -48,4 +49,4 @@ Not by moving a file back into an app. A cross-host harness needs, at minimum:
 a Playwright project per host with its own `baseURL` (or absolute URLs derived
 from `NEXT_PUBLIC_*` host vars — note `T-be-010`/M4 is what makes those host
 vars exist), plus a live Convex deployment and admin credentials from secrets.
-That work is `T-e2e-019`'s.
+That work is `T-e2e-018`'s.
