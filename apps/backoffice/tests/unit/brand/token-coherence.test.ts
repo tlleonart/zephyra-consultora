@@ -70,22 +70,105 @@ function token(css: string, name: string): string | undefined {
     ?.trim();
 }
 
-describe('the scaffold blue is retired on BOTH sides of the pair', () => {
-  const BLUE = [
-    /rgba\(\s*0\s*,\s*102\s*,\s*204/i,
-    /rgba\(\s*59\s*,\s*130\s*,\s*246/i,
-    /#0066cc/i,
-    /#0052a3/i,
-    /#3b82f6/i,
-  ];
+/**
+ * NOTATION BLIND SPOT (T-e2e-020) — the third structurally blind measurement of
+ * this sprint. The first: `var()` counts could not see the literals paired with
+ * the token. The second: a build-artifact cache reported stale CSS as current.
+ * The third: the superadmin badge was authored `rgb(147, 51, 234)` /
+ * `rgba(147, 51, 234, .1)` — THE SAME COLOUR IN A DIFFERENT NOTATION — and every
+ * hex-based scan in the sprint, this guard included, was blind to it.
+ *
+ * So the guard no longer pattern-matches notations. It CANONICALISES every colour
+ * literal it finds — hex in any case and any length (3/4/6/8), rgb(), rgba(),
+ * hsl(), hsla() — down to #rrggbb, and compares values. A retired colour cannot
+ * come back by being spelled differently.
+ */
+type Rgb = [number, number, number];
 
-  it('has no scaffold-blue LITERAL left in any source file', () => {
+function hexToRgb(hex: string): Rgb | null {
+  let c = hex.replace('#', '').toLowerCase();
+  if (c.length === 3 || c.length === 4) {
+    c = c
+      .slice(0, 3)
+      .split('')
+      .map((ch) => ch + ch)
+      .join('');
+  } else if (c.length === 6 || c.length === 8) {
+    c = c.slice(0, 6);
+  } else return null;
+  if (!/^[0-9a-f]{6}$/.test(c)) return null;
+  return [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16)) as Rgb;
+}
+
+/** hsl -> rgb, so `hsl(210 100% 40%)` cannot hide `#0066cc`. */
+function hslToRgb(h: number, s: number, l: number): Rgb {
+  const S = s / 100;
+  const L = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = S * Math.min(L, 1 - L);
+  const f = (n: number) => L - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)] as Rgb;
+}
+
+const toHex = ([r, g, b]: Rgb) =>
+  `#${[r, g, b].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')}`;
+
+/** Every colour literal in `src`, canonicalised to #rrggbb (alpha dropped:
+ *  rgba(0,102,204,.1) and #0066cc are the SAME retired colour). */
+function canonicalColours(src: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of src.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+    const rgb = hexToRgb(m[0]);
+    if (rgb) out.add(toHex(rgb));
+  }
+  // Both legacy comma syntax and modern space syntax, with or without alpha.
+  for (const m of src.matchAll(
+    /\b(rgba?|hsla?)\(\s*([0-9.]+)(?:deg)?%?[\s,]+([0-9.]+)%?[\s,]+([0-9.]+)%?/gi
+  )) {
+    const fn = m[1].toLowerCase();
+    const [a, b, c] = [Number(m[2]), Number(m[3]), Number(m[4])];
+    if (![a, b, c].every(Number.isFinite)) continue;
+    out.add(toHex(fn.startsWith('hsl') ? hslToRgb(a, b, c) : ([a, b, c] as Rgb)));
+  }
+  return out;
+}
+
+describe('the scaffold blue is retired on BOTH sides of the pair', () => {
+  // Canonical values, not notations. rgba(0,102,204,.1), rgb(0 102 204),
+  // hsl(210,100%,40%), #06c and #0066CCFF are all THE SAME retired colour now.
+  const BLUE = new Set(['#0066cc', '#0052a3', '#3b82f6']);
+
+  it('has no scaffold-blue LITERAL left in any source file, in ANY notation', () => {
     const offenders: string[] = [];
     for (const file of SOURCES) {
-      const src = code(fs.readFileSync(file, 'utf8'));
-      if (BLUE.some((re) => re.test(src))) offenders.push(path.relative(REPO, file));
+      const found = canonicalColours(code(fs.readFileSync(file, 'utf8')));
+      const hits = [...found].filter((c) => BLUE.has(c));
+      if (hits.length) offenders.push(`${path.relative(REPO, file)} → ${hits.join(', ')}`);
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('the canonicaliser actually sees through notation — the blind spot, proven closed', () => {
+    // Each of these is #0066cc wearing a different costume. A guard that has not
+    // been shown to catch these is the guard we already shipped once.
+    for (const spelling of [
+      '#0066cc',
+      '#0066CC',
+      '#06c',
+      '#0066ccff',
+      'rgb(0, 102, 204)',
+      'rgba(0,102,204,.1)',
+      'rgb(0 102 204)',
+      'hsl(210, 100%, 40%)',
+      'hsla(210 100% 40% / 10%)',
+    ]) {
+      expect(
+        [...canonicalColours(`color: ${spelling};`)].some((c) => BLUE.has(c)),
+        `${spelling} slipped past the canonicaliser`
+      ).toBe(true);
+    }
+    // …and does not invent hits: the brand green is not the retired blue.
+    expect([...canonicalColours('color: rgb(30, 60, 46);')].some((c) => BLUE.has(c))).toBe(false);
   });
 
   it('replaced them with tokens, not with new literals', () => {
@@ -157,12 +240,58 @@ describe('the AA corrections live at L1, once', () => {
   });
 });
 
-describe('P-1 — the LMS console has no inline hex left', () => {
+describe('P-1 — the LMS console has no inline colour literal left, in any notation', () => {
   it.each([
     'apps/backoffice/src/app/(dashboard)/admin/lms/LmsCourseList.tsx',
+    // T-e2e-020: the earlier P-1 work covered LmsCourseList only. This one
+    // carried `color: "#6b7280"` twice in inline style objects — unguarded, and
+    // inline JSX is the one place a token change can never reach.
+    'apps/backoffice/src/app/(dashboard)/admin/lms/courses/[slug]/edit/CourseMetaForm.tsx',
   ])('%s', (rel) => {
     const src = code(fs.readFileSync(path.join(REPO, rel), 'utf8'));
-    expect(src.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([]);
+    expect([...canonicalColours(src)]).toEqual([]);
+  });
+
+  it('the CourseMetaForm swap improved contrast — it did not just move the value', () => {
+    // #6b7280 on white = 4.83:1 (passing, but untokenised and unreachable).
+    // --color-text-secondary = #4a453b = 8.55:1. Strictly better, and now one
+    // source of truth.
+    expect(contrast(token(VARIABLES, '--color-text-secondary')!, '#ffffff')).toBeGreaterThan(
+      contrast('#6b7280', '#ffffff')
+    );
+  });
+
+  /**
+   * KNOWN, RECORDED, NOT SILENCED. ScormUploadForm.tsx (the internal SCORM
+   * upload tool at /admin/lms/courses/new) carries ~20 inline literals across
+   * its whole layout — greys, an error card, a success card, a terminal-style
+   * log panel. Tokenising it is a restyle of a screen with no design assets, not
+   * a guard fix, so it is OUT of T-e2e-020's scope and left for a task that owns
+   * the screen. It is listed HERE, in the guard, rather than left as an unowned
+   * blind spot: the assertion pins the current offender set, so the file cannot
+   * quietly grow more, and any OTHER backoffice component that starts carrying
+   * inline colour fails this test immediately.
+   */
+  it('no OTHER backoffice component carries an inline colour literal', () => {
+    const KNOWN_UNTOKENISED = ['apps/backoffice/src/app/(dashboard)/admin/lms/courses/new/ScormUploadForm.tsx'];
+    const offenders = walk(path.join(REPO, 'apps/backoffice/src'), ['.tsx'])
+      .filter((f) => canonicalColours(code(fs.readFileSync(f, 'utf8'))).size > 0)
+      .map((f) => path.relative(REPO, f).split(path.sep).join('/'));
+    expect(offenders).toEqual(KNOWN_UNTOKENISED);
+  });
+
+  it('every backoffice checkbox declares accent-color — the UA blue has no door left', () => {
+    // TeamForm was the one that did not (T-e2e-020): its checked fill rendered
+    // UA blue. The colour is never authored, so no colour scan can ever see it —
+    // only the ABSENCE of the declaration is observable.
+    const forms = walk(path.join(REPO, 'apps/backoffice/src/features'), ['.module.css']).filter(
+      (f) => /\.checkbox\s+input/.test(fs.readFileSync(f, 'utf8'))
+    );
+    expect(forms.length).toBeGreaterThanOrEqual(5);
+    const missing = forms
+      .filter((f) => !/accent-color:\s*var\(--color-primary\)/.test(fs.readFileSync(f, 'utf8')))
+      .map((f) => path.relative(REPO, f));
+    expect(missing).toEqual([]);
   });
 
   it('white on the primary action clears AA — it was 1.8:1 on #2d7', () => {

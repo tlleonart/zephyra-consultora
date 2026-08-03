@@ -133,7 +133,7 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
         <Card>
           <CardHeader title="Estado" />
           <CardContent>
-            <div style={{ fontSize: 14, color: "#6b7280" }}>
+            <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
               <div>
                 <strong>Estado actual:</strong> {course.status}
               </div>
@@ -195,7 +195,7 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
                 Disponible para la venta
               </span>
             </label>
-            <p style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
+            <p style={{ marginTop: 8, fontSize: 12, color: "var(--color-text-secondary)" }}>
               Al habilitar la venta, el curso muestra el botón “Comprar” en el
               catálogo. El precio se cobra en USD (MercadoPago convierte a ARS
               en el checkout).

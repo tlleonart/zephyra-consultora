@@ -95,6 +95,11 @@
      the minimum whether the pointer lands on it or on its text. */
   width: 24px;
   height: 24px;
+  /* Without accent-color the UA paints the checked fill its own blue — the
+     scaffold blue coming back through a door no hex scan looks at, because the
+     colour is never authored anywhere. Same line the other four forms carry
+     (users / projects / services / service-blocks); this one was missed. */
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
