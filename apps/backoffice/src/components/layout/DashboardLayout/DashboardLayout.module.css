@@ -31,6 +31,54 @@
   z-index: 10;
 }
 
+/* P-8. The only control this task adds. Hidden above the breakpoint where the
+   sidebar is permanently visible — see the media query below, which is what
+   reveals it. A border (not a shadow) carries the affordance and an outline
+   carries focus: `forced-colors: active` remaps border-color per state and
+   drops box-shadow, measured in T-a11y-002. */
+.navToggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  /* --color-border-strong (#d1d5db) was the first choice and MEASURED 1.47:1
+     against the white header — WCAG 1.4.11 wants 3:1 for the boundary that
+     identifies a control. --color-primary measures 12.07:1 and is also the exact
+     border the 45 row actions wear after T-a11y-002, so the backoffice keeps one
+     affordance treatment instead of two. */
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.navToggle:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.navToggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+}
+
+/* The open state is carried by aria-expanded (announced) AND by a non-colour
+   change of the glyph itself (bars -> cross), so it does not rest on the tint. */
+.navToggle[aria-expanded='true'] {
+  background-color: var(--color-brand-tint-soft);
+  color: var(--color-primary);
+}
+
+/* Not a control: a pointer-only dismiss surface (aria-hidden, tabindex -1 in the
+   component). Base state is display:none so it cannot exist at desktop widths. */
+.backdrop {
+  display: none;
+}
+
 .content {
   flex: 1;
   padding: var(--spacing-lg);
@@ -41,15 +89,63 @@
 @media (max-width: 1024px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform var(--transition-normal);
+    /* visibility, not just transform: translated off-canvas the nav links stayed
+       focusable, so a keyboard user tabbed straight off the screen. Measured after
+       the change: every link in the closed panel computes `hidden`, and a 19-stop
+       tab walk contains none of them.
+       The 0s/200ms asymmetry is load-bearing. Transitioned symmetrically, the
+       panel still computed `hidden` for the whole 200ms after opening — probed in
+       the browser: hidden at t0, and it is the .open rule's `visibility 0s` that
+       makes it visible by the very next frame instead. A panel that is painted but
+       not yet hittable is a panel whose first tap falls through to the scrim that
+       closes it. Closing keeps the delay so the slide-out stays visible. 200ms is
+       --transition-normal's duration, written bare because a transition-delay
+       cannot carry the token's easing keyword. */
+    visibility: hidden;
+    transition: transform var(--transition-normal), visibility 0s linear 200ms;
     z-index: 50;
   }
 
   .sidebar.open {
     transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--transition-normal), visibility 0s;
   }
 
   .main {
     margin-left: 0;
+  }
+
+  /* This — and only this — is the breakpoint where the sidebar is unreachable, so
+     it is the only breakpoint where the toggle exists. Fixed, so it can sit in the
+     header's empty left region without being a child of it (see the component for
+     why that matters) and so it can outrank the scrim. */
+  .navToggle {
+    display: inline-flex;
+    position: fixed;
+    top: 10px;
+    left: var(--spacing-md);
+    z-index: 60;
+  }
+
+  /* The panel is 260px wide and starts at left:0, so once open it sits ON TOP of
+     the toggle's resting position — measured: the close control was invisible to
+     a pointer user, and Playwright reported the panel intercepting every click on
+     it, leaving the scrim as the only dismiss a pointer user could see. Moving it
+     clear of the panel edge keeps the close affordance visible without putting an
+     X over the nav items. The min() is so it cannot leave a narrower viewport. */
+  .navToggle[aria-expanded='true'] {
+    left: min(calc(260px + var(--spacing-sm)), calc(100vw - 44px - var(--spacing-sm)));
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    padding: 0;
+    background-color: var(--color-overlay-scrim);
+    cursor: pointer;
   }
 }

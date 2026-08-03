@@ -77,8 +77,11 @@
 }
 
 .checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  /* WCAG 2.5.8 (AA) minimum target: 18x18 measured 18x18 and failed.
+     Sized on the input itself, not on the label, so the checkbox meets
+     the minimum whether the pointer lands on it or on its text. */
+  width: 24px;
+  height: 24px;
   accent-color: var(--color-primary);
   cursor: pointer;
 }

@@ -52,6 +52,23 @@
   --color-warning-tint: #fef5e7;
   --color-error-tint: #fce9e9;
   --color-border-strong: #d1d5db;
+  /* Additive, P-9. The superadmin role badge on /admin/users was the last
+     un-tokenised colour pair in the backoffice: `rgb(147,51,234)` text on
+     `rgba(147,51,234,.1)` — 4.45:1 as measured, under the 4.5:1 small-text
+     threshold, and invisible to a hex grep because it was authored in rgb().
+     Same treatment as the tints above: darkened until it passes and the alpha
+     fill frozen opaque over #ffffff so the ratio is true wherever it lands.
+       role-superadmin #6b21a8 on role-superadmin-tint #f0e9f6 = 7.38:1
+     Purple is retained deliberately: it is the only signal separating the two
+     roles in that column, and it stays distinct from --color-primary green. */
+  --color-role-superadmin: #6b21a8;
+  --color-role-superadmin-tint: #f0e9f6;
+  /* Additive, P-8. The scrim behind the mobile nav panel. A token because the
+     alternative is a literal rgba() at the call site, which is precisely the
+     shape of the twelve blue literals M5 spent weeks retiring. It carries no
+     text, so it has no contrast requirement of its own; it is neutral rather
+     than brand-tinted so it never reads as a surface. */
+  --color-overlay-scrim: rgba(17, 24, 39, 0.45);
   /* Kept for apps/www's footer band ONLY (its other consumer, the academia
      footer, was repointed to --color-brand-main). Folding this token to the
      canonical #1E3C2E would shift the www band too (dE76 1.35) — that is an

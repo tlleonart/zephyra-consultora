@@ -182,10 +182,14 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
                 cursor: "pointer",
               }}
             >
+              {/* WCAG 2.5.8 (AA): this one carried no sizing at all, so it
+                  rendered at the UA default — the smallest of the six
+                  checkboxes in the backoffice, not one of the 18px five. */}
               <input
                 type="checkbox"
                 checked={isPurchasable}
                 onChange={(e) => setIsPurchasable(e.target.checked)}
+                style={{ width: 24, height: 24 }}
               />
               <span style={{ fontWeight: 500 }}>
                 Disponible para la venta
