@@ -63,7 +63,11 @@ export const sendLearnerEmail = async (
   if (process.env.EMAIL_USER) {
     const transporter = getTransport();
     await transporter.sendMail({
-      from: `"Zephyra Consultora" <${process.env.EMAIL_USER}>`,
+      // Display name is the PRODUCT, not the consultancy: this mail is about a
+      // course. The ADDRESS is unchanged (guide §8.4 fixes the sender address);
+      // only the friendly name moves. Naming is test-enforced: "Academia
+      // Zephyra", never "Zephyra Academy", never "LMS".
+      from: `"Academia Zephyra" <${process.env.EMAIL_USER}>`,
       to: payload.to,
       subject: payload.subject,
       html,

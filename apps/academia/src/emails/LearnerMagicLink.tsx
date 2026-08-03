@@ -10,6 +10,18 @@ import {
   Text,
 } from '@react-email/components';
 import type { ReactElement } from 'react';
+import { EMAIL_PALETTE, emailOriginFrom } from '@/lib/brand';
+import {
+  EmailFooterNote,
+  EmailHeader,
+  emailBodyStyle,
+  emailButtonStyle,
+  emailCardStyle,
+  emailContainerStyle,
+  emailFooterStyle,
+  emailHeadingStyle,
+  emailTextStyle,
+} from './_chrome';
 
 export type LearnerMagicLinkPurpose =
   | 'learner_activation'
@@ -23,10 +35,13 @@ export interface LearnerMagicLinkProps {
   recipientName?: string;
 }
 
+// Naming, enforced by test: "Academia Zephyra". The old copy said only
+// "Zephyra", which is the institutional consultancy — a learner receiving a
+// course-access link should be told which product it belongs to.
 const headingByPurpose: Record<LearnerMagicLinkPurpose, string> = {
-  learner_activation: 'Bienvenido a Zephyra',
-  learner_signin: 'Tu link de ingreso a Zephyra',
-  learner_recovery: 'Recuperá tu acceso a Zephyra',
+  learner_activation: 'Bienvenido a Academia Zephyra',
+  learner_signin: 'Tu link de ingreso a Academia Zephyra',
+  learner_recovery: 'Recuperá tu acceso a Academia Zephyra',
 };
 
 const bodyByPurpose: Record<LearnerMagicLinkPurpose, string> = {
@@ -41,21 +56,6 @@ const ctaByPurpose: Record<LearnerMagicLinkPurpose, string> = {
   learner_recovery: 'Recuperar acceso',
 };
 
-const containerStyle = { maxWidth: '560px', margin: '0 auto', padding: '24px' };
-const brandStyle = { color: '#000000', fontSize: '20px', margin: '0 0 16px' };
-const headingStyle = { color: '#000000', fontSize: '24px', margin: '0 0 16px' };
-const textStyle = { color: '#000000', fontSize: '16px', lineHeight: '24px' };
-const buttonStyle = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  padding: '12px 24px',
-  borderRadius: '4px',
-  textDecoration: 'none',
-  fontSize: '16px',
-  display: 'inline-block',
-};
-const footerStyle = { color: '#555555', fontSize: '12px', lineHeight: '18px' };
-
 export const LearnerMagicLink = ({
   magicLinkUrl,
   purpose,
@@ -63,28 +63,35 @@ export const LearnerMagicLink = ({
   recipientName,
 }: LearnerMagicLinkProps): ReactElement => {
   const greeting = recipientName ? `Hola ${recipientName},` : 'Hola,';
+  // The host comes from the link this template was handed — never a literal.
+  const origin = emailOriginFrom(magicLinkUrl);
 
   return (
     <Html lang="es">
       <Head />
-      <Body style={{ backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }}>
-        <Container style={containerStyle}>
-          <Heading as="h2" style={brandStyle}>Zephyra</Heading>
-          <Heading as="h1" style={headingStyle}>{headingByPurpose[purpose]}</Heading>
-          <Text style={textStyle}>{greeting}</Text>
-          <Text style={textStyle}>{bodyByPurpose[purpose]}</Text>
-          <Section style={{ margin: '24px 0' }}>
-            <Button href={magicLinkUrl} style={buttonStyle}>
-              {ctaByPurpose[purpose]}
-            </Button>
+      <Body style={emailBodyStyle}>
+        <Container style={emailContainerStyle}>
+          <EmailHeader origin={origin} />
+          <Section style={emailCardStyle}>
+            <Heading as="h1" style={emailHeadingStyle}>
+              {headingByPurpose[purpose]}
+            </Heading>
+            <Text style={emailTextStyle}>{greeting}</Text>
+            <Text style={emailTextStyle}>{bodyByPurpose[purpose]}</Text>
+            <Section style={{ margin: '24px 0' }}>
+              <Button href={magicLinkUrl} style={emailButtonStyle}>
+                {ctaByPurpose[purpose]}
+              </Button>
+            </Section>
+            <Hr style={{ borderColor: EMAIL_PALETTE.border, margin: '24px 0' }} />
+            <Text style={emailFooterStyle}>
+              {`Este link expira en ${expiresInMinutes} minutos.`}
+            </Text>
+            <Text style={emailFooterStyle}>
+              Si no solicitaste este mensaje podés ignorarlo.
+            </Text>
+            <EmailFooterNote />
           </Section>
-          <Hr style={{ borderColor: '#dddddd', margin: '24px 0' }} />
-          <Text style={footerStyle}>
-            {`Este link expira en ${expiresInMinutes} minutos.`}
-          </Text>
-          <Text style={footerStyle}>
-            Si no solicitaste este mensaje podés ignorarlo.
-          </Text>
         </Container>
       </Body>
     </Html>

@@ -144,7 +144,10 @@ describe("sendBuyerConfirmationEmail — send path (EMAIL_USER set)", () => {
       text: string;
     };
     expect(mail.to).toBe("buyer@example.com");
-    expect(mail.from).toContain("Zephyra Consultora");
+    // The friendly name is the PRODUCT (T-fe-014, guide §8.4 + naming rules);
+    // the ADDRESS is unchanged and is asserted separately below.
+    expect(mail.from).toContain("Academia Zephyra");
+    expect(mail.from).toContain("no-reply@zephyraconsultora.com");
     expect(mail.subject).toBe(
       "Compra confirmada: Diversidad, Equidad e Inclusión"
     );

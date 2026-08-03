@@ -19,7 +19,7 @@
  *   Convex bundles only the `convex/` tree; the `@/` (src) path alias is NOT
  *   available to Convex functions (verified: no convex file imports from src).
  *   So the transport + template are re-implemented minimally here. The send
- *   shape (Ferozo SMTP, from "Zephyra Consultora", dev console-fallback when
+ *   shape (Ferozo SMTP, from "Academia Zephyra", dev console-fallback when
  *   EMAIL_USER is absent) MIRRORS src/lib/mailer/learner.ts intentionally so
  *   the two mailers stay behaviourally identical.
  *
@@ -67,9 +67,34 @@ import { academiaBaseUrl } from "../../model/publicUrls";
 // The alternative, an apex link, is a 404 for the learner with no signal at all.
 const publicBaseUrl = academiaBaseUrl;
 
+/**
+ * EMAIL BRAND CHROME — a DELIBERATE, TEST-PINNED MIRROR, not a copy by accident.
+ *
+ * apps/academia/src/lib/brand.ts is the single edit point for the brand, and
+ * this file cannot import it: Convex bundles only the `convex/` tree and the
+ * `@/` (src) alias does not exist here — the same constraint documented at the
+ * top of this file for the mailer. So the palette and the lockup path are
+ * re-declared, and a test in apps/academia asserts these values are IDENTICAL to
+ * brand.ts's. If someone swaps the lockup (D-1) and misses this file, the suite
+ * goes red instead of the email quietly shipping the old mark.
+ *
+ * The band is a table-cell background colour, not a background image: Outlook
+ * drops CSS background-image and most clients block remote images on first open,
+ * so an image-only band renders WHITE for a large share of recipients. Colour +
+ * alt text degrades correctly in both states.
+ */
+const EMAIL_GREEN = "#1E3C2E";
+const EMAIL_PAPER = "#EFEAE0";
+const EMAIL_CARD = "#FCFAF6";
+const EMAIL_SAND = "#E5DFD5";
+const EMAIL_TEXT = "#1A1A1A";
+const EMAIL_TEXT_SECONDARY = "#4A453B";
+const EMAIL_BORDER = "#D8CFBF";
+const EMAIL_LOCKUP_PATH = "/images/brand/lockup-academia-sand-on-transparent.png";
+
 // Inline HTML template — plain string, no React render (keeps the Node bundle
-// light; the visual shape mirrors src/emails/LearnerMagicLink.tsx: black brand
-// header, single CTA button, muted footer).
+// light; the visual shape mirrors src/emails/LearnerMagicLink.tsx: green band
+// lockup header, card body on paper, single green CTA, warm muted footer).
 const confirmationEmailHtml = (props: {
   greetingName: string;
   courseTitle: string;
@@ -81,20 +106,40 @@ const confirmationEmailHtml = (props: {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  // The lockup host is derived from the playerUrl the caller already composed
+  // (which comes from ZEPHYRA_ACADEMIA_URL), so no literal host is written here.
+  // An unparseable URL degrades to a relative src: the image fails to load and
+  // the alt text carries the brand on the green band — never a broken host.
+  let origin = "";
+  try {
+    origin = new URL(props.playerUrl).origin;
+  } catch {
+    origin = "";
+  }
+  const lockupSrc = `${origin}${EMAIL_LOCKUP_PATH}`;
   return `<!DOCTYPE html>
 <html lang="es">
-  <body style="background-color:#ffffff;font-family:Arial, sans-serif;">
-    <div style="max-width:560px;margin:0 auto;padding:24px;">
-      <h2 style="color:#000000;font-size:20px;margin:0 0 16px;">Zephyra</h2>
-      <h1 style="color:#000000;font-size:24px;margin:0 0 16px;">¡Compra confirmada!</h1>
-      <p style="color:#000000;font-size:16px;line-height:24px;">Hola ${esc(props.greetingName)},</p>
-      <p style="color:#000000;font-size:16px;line-height:24px;">Tu compra del curso <strong>${esc(props.courseTitle)}</strong> ha sido confirmada.</p>
-      <p style="color:#000000;font-size:16px;line-height:24px;">Ya podés acceder a tu curso:</p>
-      <div style="margin:24px 0;">
-        <a href="${esc(props.playerUrl)}" style="background-color:#000000;color:#ffffff;padding:12px 24px;border-radius:4px;text-decoration:none;font-size:16px;display:inline-block;">Ir al curso</a>
+  <body style="background-color:${EMAIL_PAPER};font-family:Helvetica, Arial, sans-serif;margin:0;padding:24px 0;">
+    <div style="max-width:560px;margin:0 auto;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td bgcolor="${EMAIL_GREEN}" style="background-color:${EMAIL_GREEN};padding:28px 32px;border-radius:12px 12px 0 0;">
+            <img src="${esc(lockupSrc)}" alt="Academia Zephyra" height="34" style="display:block;border:0;height:34px;width:auto;color:${EMAIL_SAND};font-family:Georgia, 'Times New Roman', serif;font-size:19px;font-weight:600;" />
+          </td>
+        </tr>
+      </table>
+      <div style="background-color:${EMAIL_CARD};border:1px solid ${EMAIL_BORDER};border-top:none;border-radius:0 0 12px 12px;padding:32px;">
+        <h1 style="color:${EMAIL_GREEN};font-family:Georgia, 'Times New Roman', serif;font-size:24px;line-height:1.25;font-weight:600;margin:0 0 16px;">¡Compra confirmada!</h1>
+        <p style="color:${EMAIL_TEXT};font-size:16px;line-height:24px;margin:0 0 12px;">Hola ${esc(props.greetingName)},</p>
+        <p style="color:${EMAIL_TEXT};font-size:16px;line-height:24px;margin:0 0 12px;">Tu compra del curso <strong>${esc(props.courseTitle)}</strong> ha sido confirmada.</p>
+        <p style="color:${EMAIL_TEXT};font-size:16px;line-height:24px;margin:0 0 12px;">Ya podés acceder a tu curso:</p>
+        <div style="margin:24px 0;">
+          <a href="${esc(props.playerUrl)}" style="background-color:${EMAIL_GREEN};color:#FFFFFF;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600;display:inline-block;">Ir al curso</a>
+        </div>
+        <hr style="border:none;border-top:1px solid ${EMAIL_BORDER};margin:24px 0;" />
+        <p style="color:${EMAIL_TEXT_SECONDARY};font-size:12px;line-height:18px;margin:0 0 6px;">Si no realizaste esta compra, contactá a soporte.</p>
+        <p style="color:${EMAIL_TEXT_SECONDARY};font-size:12px;line-height:18px;margin:0 0 6px;">Una iniciativa de Zephyra</p>
       </div>
-      <hr style="border-color:#dddddd;margin:24px 0;" />
-      <p style="color:#555555;font-size:12px;line-height:18px;">Si no realizaste esta compra, contactá a soporte.</p>
     </div>
   </body>
 </html>`;
@@ -221,7 +266,11 @@ export const sendBuyerConfirmationEmail = internalAction({
           },
         });
         await transporter.sendMail({
-          from: `"Zephyra Consultora" <${process.env.EMAIL_USER}>`,
+          // Display name is the PRODUCT, not the consultancy: this mail is about a
+      // course. The ADDRESS is unchanged (guide §8.4 fixes the sender address);
+      // only the friendly name moves. Naming is test-enforced: "Academia
+      // Zephyra", never "Zephyra Academy", never "LMS".
+      from: `"Academia Zephyra" <${process.env.EMAIL_USER}>`,
           to: learner.email,
           subject,
           html,

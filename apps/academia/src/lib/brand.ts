@@ -93,3 +93,77 @@ export const BRAND_MARK: BrandAsset = {
  * Flip this one value to change every surface at once.
  */
 export const DESCRIPTOR_TREATMENT: 'live-text' | 'baked-lockup' = 'live-text';
+
+/**
+ * ── EMAIL CHROME (guide §8.4: "the lockup and green band header") ─────────────
+ *
+ * Email is the one context that cannot read a custom property, cannot use a
+ * CSS Module, and cannot resolve a relative image path — so it needs literals
+ * and absolute URLs. Both are produced HERE rather than in the templates, for
+ * the same reason nothing else names an asset path: D-1 has to stay a one-value
+ * edit. Change BRAND_LOCKUP above and every email header follows.
+ *
+ * `origin` is derived by the caller from the action URL it was already given
+ * (`new URL(magicLinkUrl).origin`). That is deliberate: a literal
+ * `zephyraconsultora.com` in a template is the exact regression apps/www's suite
+ * fails the build over, and the caller's own link is the only host that is
+ * guaranteed correct per environment (dev, preview, prod).
+ */
+export const EMAIL_PALETTE = {
+  /** brand-main. The band, the CTA fill. */
+  green: '#1E3C2E',
+  /** brand-dark. The band's gradient end / CTA hover (emails: the darker rule). */
+  greenDark: '#152B21',
+  /** paper. The page behind the card. */
+  paper: '#EFEAE0',
+  /** surface-card. The content card, which sits above paper. */
+  card: '#FCFAF6',
+  /** sand. Dividers and the on-green descriptor. */
+  sand: '#E5DFD5',
+  /** text / text-secondary, warm neutrals. 16.69:1 and 9.13:1 on card. */
+  text: '#1A1A1A',
+  textSecondary: '#4A453B',
+  /** border, warm. */
+  border: '#D8CFBF',
+} as const;
+
+/**
+ * The flattened lockup for a green band, as an absolute URL.
+ *
+ * `baked` is forced here regardless of DESCRIPTOR_TREATMENT: live text is the
+ * right call on the web (D-2), but an email cannot ship the brand's webfont, so
+ * the descriptor has to be part of the raster. This is exactly the context the
+ * baked variants were carved for.
+ */
+export function brandEmailLockup(origin: string): {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+} {
+  const height = 34;
+  return {
+    src: `${trimOrigin(origin)}${BRAND_LOCKUP.onDark}`,
+    alt: BRAND_NAME,
+    width: Math.round((BRAND_LOCKUP.width / BRAND_LOCKUP.height) * height),
+    height,
+  };
+}
+
+/**
+ * The origin of an absolute URL the template was handed, or '' if it cannot be
+ * parsed. Returning '' degrades to a relative src — the image silently fails to
+ * load and the alt text carries the brand, which is strictly better than
+ * throwing inside a transactional email or hardcoding a host.
+ */
+export function emailOriginFrom(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+}
+
+function trimOrigin(origin: string): string {
+  return origin.replace(/\/+$/, '');
+}
