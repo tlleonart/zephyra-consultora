@@ -23,7 +23,7 @@
   border-radius: var(--radius-md);
   font-size: 1rem;
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
 }
 
 .input:focus-visible {
@@ -32,36 +32,17 @@
   border-color: var(--color-brand-main);
 }
 
-.cta {
+/* `.cta` is retired. It was one of the two remaining `.cta` collisions the
+   delta named (§7.2): here it dressed a real <button>, in Console.module.css a
+   <Link>. Both now call btnClass(), so the name no longer means two things.
+   Only the LAYOUT concern stays local — the visual contract is shared. */
+.ctaSpacing {
   margin-top: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-xl);
-  background-color: var(--color-brand-main);
-  color: white;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background-color var(--transition-fast);
-}
-
-.cta:hover:not(:disabled),
-.cta:focus-visible:not(:disabled) {
-  background-color: var(--color-brand-main-hover);
-}
-
-.cta:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.cta:focus-visible {
-  outline: 3px solid rgba(30, 60, 46, 0.35);
-  outline-offset: 2px;
 }
 
 .error {
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: #fef2f2;
+  background-color: var(--color-error-tint);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-md);
   color: var(--color-error);
@@ -99,7 +80,7 @@
   width: 3rem;
   height: 3rem;
   border-radius: var(--radius-full);
-  background-color: #ecfdf5;
+  background-color: var(--color-success-tint);
   color: var(--color-success);
   font-size: 1.5rem;
   font-weight: 700;

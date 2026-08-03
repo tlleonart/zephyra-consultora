@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import Link from 'next/link';
 import { claimSeat } from '@/features/seats/actions/claim-seat';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
+import { btnClass } from '@zephyra/ui';
 import styles from './ClaimContent.module.css';
 
 interface ClaimContentProps {
@@ -82,7 +83,7 @@ export function ClaimContent({
         </p>
         <button
           type="button"
-          className={styles.cta}
+          className={btnClass({ className: styles.ctaSpacing })}
           onClick={() => {
             // Hard navigation (not router.push): the org_learner session cookie
             // was just set by the claimSeat server action; a full page load
@@ -122,7 +123,7 @@ export function ClaimContent({
       ) : null}
       <button
         type="submit"
-        className={styles.cta}
+        className={btnClass({ className: styles.ctaSpacing })}
         disabled={phase.kind === 'claiming'}
         aria-busy={phase.kind === 'claiming'}
       >

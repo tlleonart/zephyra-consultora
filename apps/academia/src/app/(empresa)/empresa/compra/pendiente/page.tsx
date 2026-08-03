@@ -4,6 +4,7 @@ import { PackPendingPoller } from '@/features/packs/components/PackPendingPoller
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
 import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
+import { btnClass } from '@zephyra/ui';
 import styles from '../Compra.module.css';
 
 // DB is truth: the order status drives the copy. If the webhook already landed
@@ -53,7 +54,7 @@ export default async function PackCompraPendientePage({
           <p className={styles.total}>{formatUsd(order.priceUsd)}</p>
         ) : null}
         <div className={styles.actions}>
-          <Link href="/empresa" className={styles.button}>
+          <Link href="/empresa" className={btnClass({ size: 'lg' })}>
             Ir a mi panel
           </Link>
         </div>

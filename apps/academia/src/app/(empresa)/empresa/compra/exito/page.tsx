@@ -3,6 +3,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
 import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
+import { btnClass } from '@zephyra/ui';
 import styles from '../Compra.module.css';
 
 // DB is truth (api-contract §3): we read the REAL order status by id, never the
@@ -54,7 +55,7 @@ export default async function PackCompraExitoPage({
           </p>
         ) : null}
         <div className={styles.actions}>
-          <Link href="/empresa" className={styles.button}>
+          <Link href="/empresa" className={btnClass({ size: 'lg' })}>
             Ir a mi panel
           </Link>
         </div>

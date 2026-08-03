@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Brandmark } from '@/components/public/Brandmark';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { OrgSignoutButton } from '@/features/org-signup/components/OrgSignoutButton';
 import styles from './layout.module.css';
@@ -25,8 +26,16 @@ export default async function EmpresaLayout({
   return (
     <div className={styles.layout}>
       <header className={styles.topbar}>
-        <Link href={isOwner ? '/empresa' : '/empresa/registro'} className={styles.brand}>
-          Zephyra
+        {/* The lockup, not a hand-typed wordmark. The old markup spelled
+            "Zephyra" as live text in Playfair — precisely the typographic
+            wordmark the brand guide retires (§4) — and it was a second place
+            the brand was expressed. <Brandmark/> reads @/lib/brand, so D-1 and
+            D-2 stay one-value edits here too. */}
+        <Link
+          href={isOwner ? '/empresa' : '/empresa/registro'}
+          className={styles.brand}
+        >
+          <Brandmark tone="onDark" height={30} priority />
           <span className={styles.brandSuffix}>Empresas</span>
         </Link>
         {isOwner ? (

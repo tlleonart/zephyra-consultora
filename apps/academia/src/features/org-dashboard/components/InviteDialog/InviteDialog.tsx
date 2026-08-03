@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { requestSeatInvite } from '@/features/seats/actions/request-seat-invite';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardPack } from '../../types';
+import { btnClass } from '@zephyra/ui';
 import styles from './InviteDialog.module.css';
 
 interface InviteDialogProps {
@@ -99,7 +100,7 @@ export function InviteDialog({ organizationId, pack, onClose }: InviteDialogProp
         ) : status.kind === 'sent' ? (
           <div className={styles.success} role="status" aria-live="polite">
             <p>Listo. Le enviamos la invitación a {email.trim()}.</p>
-            <button type="button" className={styles.closeButton} onClick={onClose}>
+            <button type="button" className={btnClass()} onClick={onClose}>
               Cerrar
             </button>
           </div>
@@ -109,7 +110,7 @@ export function InviteDialog({ organizationId, pack, onClose }: InviteDialogProp
               Ya invitaste a {email.trim()} y el link sigue vigente. No hace falta
               enviar uno nuevo.
             </p>
-            <button type="button" className={styles.closeButton} onClick={onClose}>
+            <button type="button" className={btnClass()} onClick={onClose}>
               Cerrar
             </button>
           </div>
@@ -137,14 +138,14 @@ export function InviteDialog({ organizationId, pack, onClose }: InviteDialogProp
             <div className={styles.actions}>
               <button
                 type="button"
-                className={styles.cancelButton}
+                className={btnClass({ variant: 'secondary' })}
                 onClick={onClose}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className={styles.submitButton}
+                className={btnClass()}
                 disabled={status.kind === 'sending'}
                 aria-busy={status.kind === 'sending'}
               >

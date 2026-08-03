@@ -2,7 +2,10 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: var(--color-bg-secondary);
+  /* Paper, not sand. The console's cards are --color-surface-card and sand is
+     reserved for bands (the KPI utilisation strip, table headers); with the shell
+     ALSO on sand the two surfaces collapsed into one flat field. */
+  background-color: var(--color-bg);
 }
 
 .topbar {
@@ -15,20 +18,33 @@
   color: white;
 }
 
+/* The typographic wordmark is gone: .brand is now just the link box around
+   <Brandmark/>, which supplies the mark and the "Academia" descriptor. */
 .brand {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   text-decoration: none;
+  color: white;
 }
 
+.brand:focus-visible {
+  outline: 3px solid var(--color-border-focus-inverse);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* "Empresas" — the console's context label, set as a micro-label per guide §3.
+   Sand on brand-main = 9.10:1, so it stays AA instead of riding on opacity. */
 .brandSuffix {
   font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  opacity: 0.85;
-  margin-left: var(--spacing-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-brand-secondary);
+  padding-left: var(--spacing-sm);
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .nav {
@@ -49,10 +65,26 @@
   text-decoration: underline;
 }
 
+/* The topbar IS a full-green band, so its focusables must resolve their ring to
+   the sand token — a brand-green ring on #1E3C2E is invisible (delta §1.3 S4).
+   Setting the custom property on the band means every btnClass() descendant
+   (OrgSignoutButton) inherits it without opting in. */
+.topbar {
+  --btn-focus-color: var(--color-border-focus-inverse);
+}
+
+.navLink:focus-visible {
+  outline: 3px solid var(--color-border-focus-inverse);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* Product density, not marketing airiness: 48px, not the 64/80 the public
+     marketing surfaces use. This is a working tool. */
   padding: var(--spacing-2xl) var(--spacing-lg);
 }
 

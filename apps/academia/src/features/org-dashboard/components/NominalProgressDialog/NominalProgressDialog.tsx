@@ -7,6 +7,7 @@ import {
 } from '@/features/seats/actions/get-nominal-progress';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardMember } from '../../types';
+import { btnClass } from '@zephyra/ui';
 import styles from './NominalProgressDialog.module.css';
 
 interface NominalProgressDialogProps {
@@ -93,7 +94,15 @@ export function NominalProgressDialog({
             <dl className={styles.detail}>
               <div className={styles.detailRow}>
                 <dt>Estado</dt>
-                <dd>{translateStatus(result.enrollment.status)}</dd>
+                <dd>
+                  <span
+                    className={`${styles.statusPill} ${
+                      statusPillClass(result.enrollment.status, styles)
+                    }`}
+                  >
+                    {translateStatus(result.enrollment.status)}
+                  </span>
+                </dd>
               </div>
               <div className={styles.detailRow}>
                 <dt>Avance</dt>
@@ -115,12 +124,28 @@ export function NominalProgressDialog({
           )}
         </div>
 
-        <button type="button" className={styles.closeButton} onClick={onClose}>
+        <button type="button" className={btnClass()} onClick={onClose}>
           Cerrar
         </button>
       </div>
     </div>
   );
+}
+
+/** Maps the enrollment status to its pill tint. Kept next to translateStatus so
+ *  the word and the colour can never drift apart. */
+function statusPillClass(
+  status: string,
+  s: Record<string, string>
+): string | undefined {
+  switch (status) {
+    case 'completed':
+      return s.statusOk;
+    case 'active':
+      return s.statusGo;
+    default:
+      return s.statusWait;
+  }
 }
 
 function translateStatus(status: string): string {

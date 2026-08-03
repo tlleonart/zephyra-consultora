@@ -6,7 +6,7 @@
 }
 
 .card {
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -32,7 +32,7 @@
 
 .invalid {
   padding: var(--spacing-md);
-  background-color: #fef2f2;
+  background-color: var(--color-error-tint);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-md);
   color: var(--color-error);

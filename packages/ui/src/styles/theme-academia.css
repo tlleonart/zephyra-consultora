@@ -61,4 +61,25 @@
   --color-warning: #92400e; /* 6.80:1 on card, 5.91:1 on paper */
   --color-warning-text: #92400e;
   --color-warning-fill: #b45309; /* the direction's amber — FILLS/ICONS ONLY */
+
+  /* --color-error IS AN AA FIX TOO, and nobody had named this one. T-fe-013
+     corrected success and warning but left error at the L1 #dc2626, which on
+     the error boxes' own tint (#fef2f2, the literal that was in five academia
+     modules) computes to 4.41:1 — a small-text FAIL — and only 4.63:1 on the
+     new card. Academia has exactly ONE error FILL, (public)/error.module.css
+     `.icon`, and it is white-on-error, so darkening improves that too:
+     white on #dc2626 = 4.83:1 -> white on #991b1b = 8.31:1.
+     #991b1b: 7.97:1 on card · 6.93:1 on paper · 6.85:1 on the error tint. */
+  --color-error: #991b1b;
+
+  /* ── Status tints ─────────────────────────────────────────────────────────
+     Dirección C writes its pills as `rgba(<hue>, .14)` over the card. These are
+     the SAME colours pre-composited over #FCFAF6 and frozen as opaque tokens,
+     because an alpha fill composites against whatever it happens to land on —
+     card, paper or sand — and the measured ratio then depends on the parent. An
+     opaque token makes the number in the comment true everywhere. */
+  --color-success-tint: #dceede; /* rgba(22,163,74,.14) over card  · text 5.88:1 */
+  --color-warning-tint: #f2e3d5; /* rgba(180,83,9,.14) over card   · text 5.65:1 */
+  --color-brand-tint-soft: #e6e7e2; /* rgba(30,60,46,.10) over card · text 9.70:1 */
+  --color-error-tint: #f9e5e1; /* rgba(220,38,38,.10) over card  · text 6.85:1 */
 }

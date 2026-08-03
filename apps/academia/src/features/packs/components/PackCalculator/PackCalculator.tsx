@@ -8,6 +8,7 @@ import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
 import { createPackCheckout } from '../../actions/create-pack-checkout';
+import { btnClass } from '@zephyra/ui';
 import styles from './PackCalculator.module.css';
 
 interface Band {
@@ -208,7 +209,7 @@ export function PackCalculator({
                       Para 50 lugares o más armamos una propuesta a medida.
                       Escribinos y coordinamos el precio para tu equipo.
                     </p>
-                    <Link href="/contacto" className={styles.contactCta}>
+                    <Link href="/contacto" className={btnClass({ size: 'sm' })}>
                       Contactanos
                     </Link>
                   </div>
@@ -226,7 +227,7 @@ export function PackCalculator({
                     </p>
                     <button
                       type="button"
-                      className={styles.buyButton}
+                      className={btnClass({ size: 'lg', block: true })}
                       onClick={handleBuy}
                       disabled={checkoutLoading || !canCheckout}
                       aria-busy={checkoutLoading}

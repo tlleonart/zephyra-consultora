@@ -111,7 +111,11 @@
 
 .grantButton:focus-visible,
 .revokeButton:focus-visible {
-  outline: 3px solid rgba(30, 60, 46, 0.35);
+  /* Was rgba(30, 60, 46, .35) — 2.24:1 on the card, below the 3:1 WCAG 1.4.11
+     requires of a focus indicator. Solid brand green is 11.57:1. Out of T-fe-014's
+     three surfaces, but it is the last instance of the same defect and it is one
+     declaration; leaving it would mean the guard test has an exception. */
+  outline: 3px solid var(--color-brand-main);
   outline-offset: 2px;
 }
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { btnClass } from '@zephyra/ui';
 import styles from '../Compra.module.css';
 
 // Informational only: no DB state to trust beyond "the buyer bounced on the
@@ -25,7 +26,7 @@ export default function PackCompraErrorPage() {
           nuevamente o elegir otro medio de pago.
         </p>
         <div className={styles.actions}>
-          <Link href="/empresa/cursos" className={styles.button}>
+          <Link href="/empresa/cursos" className={btnClass({ size: 'lg' })}>
             Volver al catálogo
           </Link>
         </div>

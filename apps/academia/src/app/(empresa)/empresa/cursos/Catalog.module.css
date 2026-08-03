@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -65,7 +65,7 @@
 }
 
 .card:focus-visible {
-  outline: 3px solid rgba(30, 60, 46, 0.35);
+  outline: 3px solid var(--color-brand-main);
   outline-offset: 2px;
 }
 
@@ -99,7 +99,7 @@
 .empty {
   text-align: center;
   padding: var(--spacing-2xl) var(--spacing-lg);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { btnClass } from '@zephyra/ui';
 import { releaseSeat } from '@/features/seats/actions/release-seat';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import type { OrgDashboardData, OrgDashboardMember } from '../../types';
@@ -69,6 +70,21 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
     startTransition(() => router.refresh());
   };
 
+  // Seat totals for the KPI band. Pure derivation from the packs already on the
+  // page; `pct` guards total === 0 so an org with a zero-seat pack cannot divide
+  // by zero into NaN% in an aria-valuenow.
+  const totals = (() => {
+    const total = data.packs.reduce((n, p) => n + p.totalSeats, 0);
+    const claimed = data.packs.reduce((n, p) => n + p.claimedSeats, 0);
+    const available = data.packs.reduce((n, p) => n + p.availableSeats, 0);
+    return {
+      total,
+      claimed,
+      available,
+      pct: total === 0 ? 0 : Math.round((claimed / total) * 100),
+    };
+  })();
+
   const onInviteClose = () => {
     setInvitePackId(null);
     // Refresh so a freshly-consumed seat (if claimed quickly) reflects.
@@ -77,6 +93,58 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
 
   return (
     <div className={styles.dashboard}>
+      {/* ---- Seat KPIs + utilisation ----
+          Product density (Dirección C `.kpis` + `.seats`): the three numbers an
+          org-admin actually opens this console for, above the fold, instead of
+          having to add up the pack cards. Derived ENTIRELY from data.packs — no
+          new query, no new backend, nothing the page did not already have. */}
+      {data.packs.length > 0 ? (
+        <section aria-labelledby="seats-title" className={styles.section}>
+          <h2 id="seats-title" className={styles.srOnly}>
+            Resumen de cupos
+          </h2>
+          <dl className={styles.kpis}>
+            <div className={styles.kpi}>
+              <dt>Cupos totales</dt>
+              <dd>{totals.total}</dd>
+            </div>
+            <div className={styles.kpi}>
+              <dt>Asignados</dt>
+              <dd>{totals.claimed}</dd>
+            </div>
+            <div className={styles.kpi}>
+              <dt>Disponibles</dt>
+              <dd className={totals.available === 0 ? styles.statZero : undefined}>
+                {totals.available}
+              </dd>
+            </div>
+            <div className={styles.kpi}>
+              <dt>Cursos contratados</dt>
+              <dd>{data.packs.length}</dd>
+            </div>
+          </dl>
+          <div className={styles.seatsBand}>
+            <p className={styles.seatsLabel}>
+              {totals.claimed} de {totals.total} cupos asignados
+            </p>
+            <div
+              className={styles.seatsBar}
+              role="progressbar"
+              aria-valuenow={totals.pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Uso de cupos contratados"
+            >
+              <span
+                className={styles.seatsFill}
+                style={{ width: `${totals.pct}%` }}
+              />
+            </div>
+            <span className={styles.seatsPct}>{totals.pct}%</span>
+          </div>
+        </section>
+      ) : null}
+
       {/* ---- Contracted courses (pack cards) ---- */}
       <section aria-labelledby="packs-title" className={styles.section}>
         <h2 id="packs-title" className={styles.sectionTitle}>
@@ -108,7 +176,7 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
               <div className={styles.packActions}>
                 <button
                   type="button"
-                  className={styles.primaryAction}
+                  className={btnClass({ size: 'sm' })}
                   onClick={() => setInvitePackId(pack.seatPackId)}
                   disabled={pack.availableSeats === 0}
                 >
@@ -120,7 +188,7 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
                       ? `/empresa/cursos/${pack.courseSlug}`
                       : '/empresa/cursos'
                   }
-                  className={styles.secondaryAction}
+                  className={btnClass({ variant: 'outline', size: 'sm' })}
                 >
                   Comprar más cupos
                 </Link>
@@ -183,15 +251,27 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
                   </div>
                   <div>
                     <dt>Completaron</dt>
-                    <dd>{c.completed}</dd>
+                    <dd>
+                      <span className={`${styles.pill} ${styles.pillOk}`}>
+                        {c.completed} completaron
+                      </span>
+                    </dd>
                   </div>
                   <div>
                     <dt>En curso</dt>
-                    <dd>{c.inProgress}</dd>
+                    <dd>
+                      <span className={`${styles.pill} ${styles.pillGo}`}>
+                        {c.inProgress} en curso
+                      </span>
+                    </dd>
                   </div>
                   <div>
                     <dt>Sin empezar</dt>
-                    <dd>{c.notStarted}</dd>
+                    <dd>
+                      <span className={`${styles.pill} ${styles.pillWait}`}>
+                        {c.notStarted} sin iniciar
+                      </span>
+                    </dd>
                   </div>
                 </dl>
               </li>
@@ -229,20 +309,27 @@ export function OrgDashboard({ data }: OrgDashboardProps) {
                   const rs = releaseState[m.seatId];
                   return (
                     <tr key={m.seatId}>
-                      <td>{m.email}</td>
+                      <td>
+                        <span className={styles.who}>
+                          <span aria-hidden="true" className={styles.avatar}>
+                            {m.email.slice(0, 2)}
+                          </span>
+                          <span className={styles.whoEmail}>{m.email}</span>
+                        </span>
+                      </td>
                       <td>{m.courseTitle}</td>
                       <td>
                         <div className={styles.rowActions}>
                           <button
                             type="button"
-                            className={styles.rowAction}
+                            className={btnClass({ variant: 'outline', size: 'sm' })}
                             onClick={() => setNominalMember(m)}
                           >
                             Ver progreso
                           </button>
                           <button
                             type="button"
-                            className={styles.rowActionDanger}
+                            className={btnClass({ variant: 'outline', size: 'sm', className: styles.rowActionDanger })}
                             onClick={() => handleRelease(m)}
                             disabled={rs?.kind === 'releasing'}
                             aria-busy={rs?.kind === 'releasing'}

@@ -6,6 +6,7 @@ import { OrgDashboard } from '@/features/org-dashboard/components/OrgDashboard';
 import type { OrgDashboardData } from '@/features/org-dashboard/types';
 import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
+import { btnClass } from '@zephyra/ui';
 import styles from './Console.module.css';
 
 // Owner-gated dashboard. force-dynamic: every owner-scoped read (roster /
@@ -121,7 +122,7 @@ export default async function EmpresaDashboardPage() {
             necesites para tu equipo. Cuanto mayor el volumen, mejor el precio por
             lugar. Después vas a poder asignar los lugares a tu equipo desde acá.
           </p>
-          <Link href="/empresa/cursos" className={styles.cta}>
+          <Link href="/empresa/cursos" className={btnClass({ size: 'lg' })}>
             Ver el catálogo para equipos
           </Link>
         </section>

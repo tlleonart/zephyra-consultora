@@ -30,10 +30,129 @@
   color: var(--color-text-secondary);
   line-height: 1.6;
   padding: var(--spacing-lg);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   margin: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Seat KPIs (`.kpis` / `.seats`) ----
+   Product density, not marketing airiness: four tight cards and one utilisation
+   bar, so the console answers "how many cupos do I have left" without scrolling
+   the pack grid. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+  margin: 0;
+}
+
+.kpi {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.kpi dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.kpi dd {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-brand-main);
+  margin: 0;
+}
+
+.seatsBand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.seatsLabel {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.seatsBar {
+  flex: 1;
+  min-width: 200px;
+  height: 12px;
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.seatsFill {
+  display: block;
+  height: 100%;
+  background-color: var(--color-brand-main);
+}
+
+.seatsPct {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-brand-main);
+}
+
+/* ---- Status pills (`.pill.ok` / `.go` / `.wait`) ----
+   Dirección C writes these as rgba over the card; the tints are frozen as opaque
+   tokens in theme-academia.css so the measured ratio holds on card, paper AND
+   sand. The raw #15803D / #B45309 of the mockup are 4.14:1 and 4.00:1 on their
+   own tints and FAIL small text — these use the -text values (5.88:1 / 5.65:1).
+   Every pill also carries its state as literal words, so colour is never the
+   only carrier of meaning (WCAG 1.4.1). */
+.pill {
+  display: inline-block;
+  border-radius: var(--radius-full);
+  padding: 3px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pillOk {
+  background-color: var(--color-success-tint);
+  color: var(--color-success-text);
+}
+
+.pillGo {
+  background-color: var(--color-brand-tint-soft);
+  color: var(--color-brand-main);
+}
+
+.pillWait {
+  background-color: var(--color-warning-tint);
+  color: var(--color-warning-text);
 }
 
 /* ---- Pack cards ---- */
@@ -50,7 +169,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -106,42 +225,11 @@
   margin-top: auto;
 }
 
-.primaryAction {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-brand-main);
-  color: white;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: background-color var(--transition-fast);
-}
-
-.primaryAction:hover:not(:disabled),
-.primaryAction:focus-visible:not(:disabled) {
-  background-color: var(--color-brand-main-hover);
-}
-
-.primaryAction:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.secondaryAction {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-bg);
-  color: var(--color-brand-main);
-  border: 1px solid var(--color-brand-main);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.secondaryAction:hover,
-.secondaryAction:focus-visible {
-  background-color: var(--color-bg-secondary);
-}
+/* .primaryAction and .secondaryAction are GONE, not restyled: they were a
+   third copy of the button system (a <button> and a <Link> with hand-rolled
+   fills, hovers and focus rings). Both now call btnClass() — `primary` and
+   `outline` — so the element stays what it was and the visual contract is
+   single-source. See packages/ui/src/styles/btn.ts. */
 
 .tertiaryAction {
   font-size: 0.875rem;
@@ -155,10 +243,8 @@
   color: var(--color-text);
 }
 
-.primaryAction:focus-visible,
-.secondaryAction:focus-visible,
 .tertiaryAction:focus-visible {
-  outline: 3px solid rgba(30, 60, 46, 0.35);
+  outline: 3px solid var(--color-brand-main);
   outline-offset: 2px;
 }
 
@@ -182,7 +268,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -249,10 +335,42 @@
   margin: 0;
 }
 
+/* ---- Roster identity cell (`.who` / `.av`) ----
+   Density only. The initial is derived from the email ALREADY rendered in the
+   same cell, so nothing new about a member is disclosed — the roster stays
+   membership-only by design (nominal progress lives behind the consent-gated
+   dialog and must NOT be surfaced here). aria-hidden, because a screen reader
+   reading "M" before the address is noise. */
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-main);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 0.82rem;
+  flex: none;
+  text-transform: uppercase;
+}
+
+.whoEmail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* ---- Roster table ---- */
 .tableWrap {
   overflow-x: auto;
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -301,45 +419,29 @@
   gap: var(--spacing-sm);
 }
 
-.rowAction {
-  padding: var(--spacing-xs) var(--spacing-md);
-  background-color: var(--color-bg);
-  color: var(--color-brand-main);
-  border: 1px solid var(--color-brand-main);
-  border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.rowAction:hover,
-.rowAction:focus-visible {
-  background-color: var(--color-bg-secondary);
-}
-
-.rowActionDanger {
-  padding: var(--spacing-xs) var(--spacing-md);
-  background-color: var(--color-bg);
+/* .rowAction is gone — btnClass({ variant: 'outline', size: 'sm' }).
+   .rowActionDanger SURVIVES as a MODIFIER only: it is the outline variant
+   recoloured to error, because a destructive row action must not read as the
+   same affordance as "Ver progreso". Composed via btnClass({ className }), so
+   it inherits the base geometry, disabled state and focus ring instead of
+   redeclaring them. `--btn-focus-color` keeps the ring on the danger hue so the
+   ring matches the control it belongs to (6.11:1 on card). */
+/* The doubled class is deliberate and is the only way this is safe. The modifier
+   overrides `.outline`, which lives in ANOTHER CSS Module (packages/ui). Both
+   are single-class selectors, so with equal specificity the winner would be
+   decided by the order Next happens to concatenate the two chunks in — i.e. the
+   colour of a destructive button would depend on bundler chunk order. Doubling
+   the class raises specificity to (0,2,0) and settles it. */
+.rowActionDanger.rowActionDanger {
   color: var(--color-error);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  border-color: var(--color-error);
+  --btn-focus-color: var(--color-error);
 }
 
-.rowActionDanger:hover:not(:disabled),
-.rowActionDanger:focus-visible:not(:disabled) {
-  background-color: #fef2f2;
-}
-
-.rowActionDanger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.rowAction:focus-visible,
-.rowActionDanger:focus-visible {
-  outline: 3px solid rgba(30, 60, 46, 0.35);
-  outline-offset: 2px;
+.rowActionDanger.rowActionDanger:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-error);
+  color: var(--color-surface-card);
+  border-color: var(--color-error);
 }
 
 .rowError {
