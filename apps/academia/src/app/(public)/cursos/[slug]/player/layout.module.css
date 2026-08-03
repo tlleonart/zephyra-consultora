@@ -13,7 +13,17 @@
 .shell {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  /* BUG FIX, and the one place this task changes the layout rather than its
+     colours. The shell was `z-index: 50` — a bare literal — while the (public)
+     Navbar is `position: fixed; z-index: var(--z-dropdown)` = 100. So the
+     institutional Navbar has painted OVER the player header since T-fe-008: the
+     course <h1> sat underneath it and was unreadable, and no test could see it
+     (it is a paint-order defect, not a DOM or a colour one). The layout's own
+     comment says this container "lifts the player above that chrome" — it never
+     did. --z-modal (200) is above the Navbar and below --z-toast (300), so a
+     toast can still reach the learner. Using the scale instead of a literal is
+     what stops the two from drifting apart again. */
+  z-index: var(--z-modal);
   overflow: hidden;
   background-color: var(--color-bg-secondary);
 }

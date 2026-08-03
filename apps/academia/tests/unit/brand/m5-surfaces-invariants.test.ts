@@ -103,6 +103,12 @@ describe('the SCORM bridge survives the chrome restyle', () => {
     // A zero-height stage renders a blank course that still "works".
     expect(PLAYER_LAYOUT_CSS).toMatch(/position:\s*fixed/);
     expect(PLAYER_LAYOUT_CSS).toMatch(/inset:\s*0/);
+    // And it must actually WIN. The (public) Navbar is fixed at
+    // z-index: var(--z-dropdown) = 100; the shell shipped at a literal 50, so
+    // the institutional Navbar painted over the course title from T-fe-008 until
+    // this task. Asserting the TOKEN, not a number, is what stops them drifting.
+    expect(PLAYER_LAYOUT_CSS).toMatch(/z-index:\s*var\(--z-modal\)/);
+    expect(code(PLAYER_LAYOUT_CSS)).not.toMatch(/z-index:\s*\d+/);
     expect(PLAYER_CSS).toMatch(/\.player\s*\{[^}]*height:\s*100vh/);
     expect(PLAYER_CSS).toMatch(/\.iframe\s*\{[^}]*height:\s*100%/);
     expect(PLAYER_CSS).toMatch(/\.main\s*\{[^}]*flex:\s*1/);
