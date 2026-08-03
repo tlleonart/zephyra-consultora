@@ -51,16 +51,29 @@
   color: var(--color-text);
 }
 
+/* P-10 (WCAG 2.5.8) — this was `display: block`, so the target spanned the whole
+   cell: measured 846.3 x 18 at 1440x900. An 18px-tall band 846px wide is both
+   under the 24px floor and a click-precision problem, because the visible text
+   is a fraction of the clickable box. It is now sized to its own text with a
+   24px floor, so target and affordance are the same rectangle.
+
+   The underline is the non-colour affordance (1.4.1): this link sits in a cell
+   whose sibling text is black, and green `--color-primary` (11.54:1 measured on
+   the row fill) was its ONLY cue. Hover no longer needs to add an underline that
+   is now permanent, so it darkens instead. T-a11y-002. */
 .website {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
   font-size: 0.75rem;
   color: var(--color-primary);
-  text-decoration: none;
+  text-decoration: underline;
   margin-top: 2px;
 }
 
 .website:hover {
-  text-decoration: underline;
+  color: var(--color-primary-hover);
 }
 
 .actions {

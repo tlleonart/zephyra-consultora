@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
+import { btnClass } from "@zephyra/ui";
 import { academiaPlayerUrl } from "@/features/lms/lib/academia-links";
 
 interface LmsCourseListProps {
@@ -257,9 +258,17 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                         // by this host. A plain <a> rather than next/link — the
                         // client router has nothing to prefetch or soft-navigate
                         // across an origin. Same tab, as before.
-                        <a href={academiaPlayerUrl(c.slug)}>Abrir player</a>
+                        <a
+                          href={academiaPlayerUrl(c.slug)}
+                          className={btnClass({ variant: "outline", size: "sm" })}
+                        >
+                          Abrir player
+                        </a>
                       )}
-                      <Link href={`/admin/lms/courses/${c.slug}/edit`}>
+                      <Link
+                        href={`/admin/lms/courses/${c.slug}/edit`}
+                        className={btnClass({ variant: "outline", size: "sm" })}
+                      >
                         Editar
                       </Link>
                       {c.status === "draft" && (
@@ -271,7 +280,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                               status: "published",
                             })
                           }
-                          style={{ cursor: "pointer" }}
+                          className={btnClass({ variant: "outline", size: "sm" })}
                         >
                           Publicar
                         </button>
@@ -285,7 +294,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                               status: "draft",
                             })
                           }
-                          style={{ cursor: "pointer" }}
+                          className={btnClass({ variant: "outline", size: "sm" })}
                         >
                           Despublicar
                         </button>
@@ -301,7 +310,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                               return next;
                             });
                           }}
-                          style={{ cursor: "pointer" }}
+                          className={btnClass({ variant: "outline", size: "sm" })}
                         >
                           Dar acceso
                         </button>
@@ -335,9 +344,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                           <button
                             type="submit"
                             disabled={submitting}
-                            style={{
-                              cursor: submitting ? "default" : "pointer",
-                            }}
+                            className={btnClass({ variant: "outline", size: "sm" })}
                           >
                             {submitting ? "Enviando..." : "Otorgar"}
                           </button>
@@ -347,7 +354,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                               setOpenCourseId(null);
                               setEmail("");
                             }}
-                            style={{ cursor: "pointer" }}
+                            className={btnClass({ variant: "outline", size: "sm" })}
                           >
                             Cancelar
                           </button>

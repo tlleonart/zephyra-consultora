@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
+import { statusToggleClass } from '@/styles/statusToggle';
 import styles from './BlogList.module.css';
 
 interface BlogPost {
@@ -100,7 +101,8 @@ export const BlogList = ({ adminUserId }: BlogListProps) => {
       header: 'Estado',
       render: (post) => (
         <button
-          className={`${styles.badge} ${post.status === 'published' ? styles.published : styles.draft}`}
+          className={`${statusToggleClass()} ${post.status === 'published' ? styles.published : styles.draft}`}
+          aria-pressed={post.status === 'published'}
           onClick={() => handleToggleStatus(post)}
           title={post.status === 'published' ? 'Clic para despublicar' : 'Clic para publicar'}
         >
@@ -123,11 +125,14 @@ export const BlogList = ({ adminUserId }: BlogListProps) => {
       width: '120px',
       render: (post) => (
         <div className={styles.actions}>
-          <Link href={`/admin/blog/${post._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/blog/${post._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(post)}
           >
@@ -145,8 +150,8 @@ export const BlogList = ({ adminUserId }: BlogListProps) => {
           <h1 className={styles.pageTitle}>Blog</h1>
           <p className={styles.subtitle}>Gestiona los artículos del blog</p>
         </div>
-        <Link href="/admin/blog/new">
-          <Button>Nuevo artículo</Button>
+        <Link href="/admin/blog/new" className={btnClass()}>
+          Nuevo artículo
         </Link>
       </div>
 

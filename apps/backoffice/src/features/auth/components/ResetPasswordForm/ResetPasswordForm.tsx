@@ -4,7 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@zephyra/ui';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { resetPassword } from '../../actions/password-reset';
 import styles from './ResetPasswordForm.module.css';
 
@@ -67,8 +67,8 @@ export const ResetPasswordForm = () => {
         <p className={styles.message}>
           Tu contraseña ha sido restablecida exitosamente.
         </p>
-        <Link href="/login">
-          <Button className={styles.loginButton}>Iniciar sesión</Button>
+        <Link href="/login" className={btnClass({ className: styles.loginButton })}>
+          Iniciar sesión
         </Link>
       </div>
     );

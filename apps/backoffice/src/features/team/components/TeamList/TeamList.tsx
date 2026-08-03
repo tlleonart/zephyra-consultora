@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
@@ -144,11 +144,14 @@ export const TeamList = ({ adminUserId }: TeamListProps) => {
       width: '120px',
       render: (member) => (
         <div className={styles.actions}>
-          <Link href={`/admin/team/${member._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/team/${member._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(member)}
           >
@@ -166,8 +169,8 @@ export const TeamList = ({ adminUserId }: TeamListProps) => {
           <h1 className={styles.title}>Equipo</h1>
           <p className={styles.subtitle}>Gestiona los miembros del equipo</p>
         </div>
-        <Link href="/admin/team/new">
-          <Button>Agregar miembro</Button>
+        <Link href="/admin/team/new" className={btnClass()}>
+          Agregar miembro
         </Link>
       </div>
 

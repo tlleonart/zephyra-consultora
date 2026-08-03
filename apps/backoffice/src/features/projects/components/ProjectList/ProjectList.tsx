@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@zephyra/convex/_generated/api";
 import { Id } from "@zephyra/convex/_generated/dataModel";
-import { Button } from "@zephyra/ui";
+import { Button, btnClass } from "@zephyra/ui";
 import { Table, Column } from "@zephyra/ui";
 import { ConfirmDialog } from "@zephyra/ui";
 import { useToast } from "@zephyra/ui/providers/ToastProvider";
 import { useState } from "react";
+import { statusToggleClass } from "@/styles/statusToggle";
 import styles from "./ProjectList.module.css";
 
 interface ProjectAchievement {
@@ -129,7 +130,8 @@ export const ProjectList = ({ adminUserId }: ProjectListProps) => {
       header: "Destacado",
       render: (project) => (
         <button
-          className={`${styles.badge} ${project.isFeatured ? styles.featured : styles.regular}`}
+          className={`${statusToggleClass()} ${project.isFeatured ? styles.featured : styles.regular}`}
+          aria-pressed={project.isFeatured}
           onClick={() => handleToggleFeatured(project)}
           title={
             project.isFeatured
@@ -154,13 +156,14 @@ export const ProjectList = ({ adminUserId }: ProjectListProps) => {
       width: "120px",
       render: (project) => (
         <div className={styles.actions}>
-          <Link href={`/admin/projects/${project._id}/edit`}>
-            <Button variant="ghost" size="sm">
-              Editar
-            </Button>
+          <Link
+            href={`/admin/projects/${project._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(project)}
           >
@@ -178,8 +181,8 @@ export const ProjectList = ({ adminUserId }: ProjectListProps) => {
           <h1 className={styles.pageTitle}>Proyectos</h1>
           <p className={styles.subtitle}>Gestiona los proyectos y sus logros</p>
         </div>
-        <Link href="/admin/projects/new">
-          <Button>Nuevo proyecto</Button>
+        <Link href="/admin/projects/new" className={btnClass()}>
+          Nuevo proyecto
         </Link>
       </div>
 

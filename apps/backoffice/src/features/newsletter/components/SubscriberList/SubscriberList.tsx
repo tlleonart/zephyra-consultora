@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@zephyra/ui';
 import { ExportButton } from '../ExportButton';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
+import { statusToggleClass } from '@/styles/statusToggle';
 import styles from './SubscriberList.module.css';
 
 interface Subscriber {
@@ -90,7 +91,8 @@ export const SubscriberList = () => {
       header: 'Estado',
       render: (subscriber) => (
         <button
-          className={`${styles.badge} ${subscriber.isActive ? styles.active : styles.unsubscribed}`}
+          className={`${statusToggleClass()} ${subscriber.isActive ? styles.active : styles.unsubscribed}`}
+          aria-pressed={subscriber.isActive}
           onClick={() => handleToggleActive(subscriber)}
           title={subscriber.isActive ? 'Clic para dar de baja' : 'Clic para reactivar'}
         >
@@ -104,7 +106,7 @@ export const SubscriberList = () => {
       width: '80px',
       render: (subscriber) => (
         <Button
-          variant="ghost"
+          variant="dangerSoft"
           size="sm"
           onClick={() => setDeleteTarget(subscriber)}
         >

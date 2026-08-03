@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
+import { statusToggleClass } from '@/styles/statusToggle';
 import styles from './ServiceList.module.css';
 
 interface Service {
@@ -104,7 +105,8 @@ export const ServiceList = ({ adminUserId }: ServiceListProps) => {
       header: 'Estado',
       render: (service) => (
         <button
-          className={`${styles.badge} ${service.isActive ? styles.active : styles.inactive}`}
+          className={`${statusToggleClass()} ${service.isActive ? styles.active : styles.inactive}`}
+          aria-pressed={service.isActive}
           onClick={() => handleToggleActive(service)}
           title={service.isActive ? 'Clic para desactivar' : 'Clic para activar'}
         >
@@ -118,11 +120,14 @@ export const ServiceList = ({ adminUserId }: ServiceListProps) => {
       width: '120px',
       render: (service) => (
         <div className={styles.actions}>
-          <Link href={`/admin/services/${service._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/services/${service._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(service)}
           >
@@ -140,8 +145,8 @@ export const ServiceList = ({ adminUserId }: ServiceListProps) => {
           <h1 className={styles.pageTitle}>Servicios</h1>
           <p className={styles.subtitle}>Gestiona los servicios que ofrece la consultora</p>
         </div>
-        <Link href="/admin/services/new">
-          <Button>Nuevo servicio</Button>
+        <Link href="/admin/services/new" className={btnClass()}>
+          Nuevo servicio
         </Link>
       </div>
 

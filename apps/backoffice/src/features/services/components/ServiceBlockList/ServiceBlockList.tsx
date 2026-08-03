@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
+import { statusToggleClass } from '@/styles/statusToggle';
 import styles from './ServiceBlockList.module.css';
 
 interface ServiceBlock {
@@ -92,7 +93,8 @@ export const ServiceBlockList = ({ adminUserId }: ServiceBlockListProps) => {
       header: 'Estado',
       render: (block) => (
         <button
-          className={`${styles.badge} ${block.isActive ? styles.active : styles.inactive}`}
+          className={`${statusToggleClass()} ${block.isActive ? styles.active : styles.inactive}`}
+          aria-pressed={block.isActive}
           onClick={() => handleToggleActive(block)}
           title={block.isActive ? 'Clic para desactivar' : 'Clic para activar'}
         >
@@ -106,11 +108,14 @@ export const ServiceBlockList = ({ adminUserId }: ServiceBlockListProps) => {
       width: '120px',
       render: (block) => (
         <div className={styles.actions}>
-          <Link href={`/admin/service-blocks/${block._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/service-blocks/${block._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(block)}
           >
@@ -128,8 +133,8 @@ export const ServiceBlockList = ({ adminUserId }: ServiceBlockListProps) => {
           <h1 className={styles.pageTitle}>Bloques de servicios</h1>
           <p className={styles.headerSubtitle}>Gestiona los bloques que agrupan los servicios</p>
         </div>
-        <Link href="/admin/service-blocks/new">
-          <Button>Nuevo bloque</Button>
+        <Link href="/admin/service-blocks/new" className={btnClass()}>
+          Nuevo bloque
         </Link>
       </div>
 

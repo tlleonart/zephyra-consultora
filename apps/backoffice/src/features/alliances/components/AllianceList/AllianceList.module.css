@@ -51,16 +51,24 @@
   color: var(--color-text);
 }
 
+/* P-10 (WCAG 2.5.8) — identical defect and identical fix to ClientList: this was
+   `display: block`, measured 846.3 x 18. See ClientList.module.css for the full
+   reasoning. The two are kept as separate declarations rather than a shared one
+   because they are two features' own cell styling, not a shared primitive.
+   T-a11y-002. */
 .website {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
   font-size: 0.75rem;
   color: var(--color-primary);
-  text-decoration: none;
+  text-decoration: underline;
   margin-top: 2px;
 }
 
 .website:hover {
-  text-decoration: underline;
+  color: var(--color-primary-hover);
 }
 
 .actions {

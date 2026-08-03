@@ -1,0 +1,70 @@
+/* THE STATUS TOGGLE — one geometry, six surfaces (T-a11y-002, P-7).
+ *
+ * WHY THIS FILE EXISTS. Six list features had a byte-identical `.badge` block in
+ * their own CSS Module (blog, projects, services, service-blocks, users,
+ * newsletter). All six were 20px tall against WCAG 2.5.8's 24px floor, all six
+ * had `border: none`, and all six offered `opacity: .8` as their entire hover
+ * affordance. Fixing that in six places would have been six chances to diverge,
+ * and the seventh copy would have been written the old way. So the geometry is
+ * here, once, and the six features keep only their TONE classes (which supply
+ * background-color + color per state).
+ *
+ * WHAT THE BORDER IS FOR. `border: 1px solid currentColor` does three jobs and
+ * needs no new token:
+ *   1. It makes the control's boundary visible, so a status toggle no longer
+ *      reads as a coloured word. Because it is currentColor it always equals the
+ *      tone's own text colour, which is already AA on the tone's own tint —
+ *      measured 6.40:1 (success on #e8f6ed), 6.56:1 (warning on #fef5e7),
+ *      10.14:1 (brand on #e9ecea). WCAG 1.4.11 needs 3.0 for a boundary, so the
+ *      border passes wherever the label already did, by construction.
+ *   2. It SURVIVES forced-colors / Windows High Contrast. Measured on this
+ *      branch: under `forced-colors: active` the badge's background collapsed to
+ *      `rgba(255,255,255,0.1)` and, with `border: none`, the chip disappeared
+ *      entirely — the tone became invisible and only the word survived. A border
+ *      is one of the few things forced-colors keeps (it remaps the colour and
+ *      leaves the geometry), which is why the app's filter chips stayed legible
+ *      in the same measurement while these did not.
+ *   3. It distinguishes INTERACTIVE status from STATIC status. TeamList's badge
+ *      and UserList's role badges are non-interactive <span>s and deliberately
+ *      do NOT get this class, so in the finished UI a bordered chip means "you
+ *      can click this" and a borderless one means "this is just a label".
+ *
+ * The 24px floor is met by min-height rather than by padding alone, so a short
+ * label ("Activo") and a long one ("Publicado") are the same height.
+ */
+
+.statusToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 2.5.8: 24x24 CSS px minimum. min-width matters for the shortest labels. */
+  min-height: 24px;
+  min-width: 24px;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  /* `opacity` was the whole hover story before, which dims the label instead of
+     signalling affordance — and dimming a 6.4:1 label is a contrast REGRESSION
+     on hover. Box-shadow adds a ring without touching the measured ratios. */
+  transition: box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.statusToggle:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* The UA ring is what every other unstyled control in the backoffice relies on
+   (verified visible in Chromium), but it is drawn tight against a pill and this
+   control is small, so it gets a little room. */
+.statusToggle:focus-visible {
+  outline-offset: 2px;
+}
+
+.statusToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

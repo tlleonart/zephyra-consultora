@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
 import { useState } from 'react';
+import { statusToggleClass } from '@/styles/statusToggle';
 import styles from './UserList.module.css';
 
 interface AdminUser {
@@ -95,7 +96,8 @@ export const UserList = ({ currentUserId }: UserListProps) => {
       header: 'Estado',
       render: (user) => (
         <button
-          className={`${styles.badge} ${user.isActive ? styles.active : styles.inactive}`}
+          className={`${statusToggleClass()} ${user.isActive ? styles.active : styles.inactive}`}
+          aria-pressed={user.isActive}
           onClick={() => handleToggleActive(user)}
           disabled={user._id === currentUserId}
           title={user._id === currentUserId ? 'No puedes cambiar tu propio estado' : undefined}
@@ -119,12 +121,15 @@ export const UserList = ({ currentUserId }: UserListProps) => {
       width: '120px',
       render: (user) => (
         <div className={styles.actions}>
-          <Link href={`/admin/users/${user._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/users/${user._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           {user._id !== currentUserId && (
             <Button
-              variant="ghost"
+              variant="dangerSoft"
               size="sm"
               onClick={() => setDeleteTarget(user)}
             >
@@ -143,8 +148,8 @@ export const UserList = ({ currentUserId }: UserListProps) => {
           <h1 className={styles.pageTitle}>Administradores</h1>
           <p className={styles.subtitle}>Gestiona los usuarios administradores del sistema</p>
         </div>
-        <Link href="/admin/users/new">
-          <Button>Nuevo administrador</Button>
+        <Link href="/admin/users/new" className={btnClass()}>
+          Nuevo administrador
         </Link>
       </div>
 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
-import { Button } from '@zephyra/ui';
+import { Button, btnClass } from '@zephyra/ui';
 import { Table, Column } from '@zephyra/ui';
 import { ConfirmDialog } from '@zephyra/ui';
 import { useToast } from '@zephyra/ui/providers/ToastProvider';
@@ -87,11 +87,14 @@ export const ClientList = ({ adminUserId }: ClientListProps) => {
       width: '120px',
       render: (client) => (
         <div className={styles.actions}>
-          <Link href={`/admin/clients/${client._id}/edit`}>
-            <Button variant="ghost" size="sm">Editar</Button>
+          <Link
+            href={`/admin/clients/${client._id}/edit`}
+            className={btnClass({ variant: 'outline', size: 'sm' })}
+          >
+            Editar
           </Link>
           <Button
-            variant="ghost"
+            variant="dangerSoft"
             size="sm"
             onClick={() => setDeleteTarget(client)}
           >
@@ -109,8 +112,8 @@ export const ClientList = ({ adminUserId }: ClientListProps) => {
           <h1 className={styles.pageTitle}>Clientes</h1>
           <p className={styles.subtitle}>Gestiona la sección &quot;Ya confían en nosotros&quot;</p>
         </div>
-        <Link href="/admin/clients/new">
-          <Button>Agregar cliente</Button>
+        <Link href="/admin/clients/new" className={btnClass()}>
+          Agregar cliente
         </Link>
       </div>
 

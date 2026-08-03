@@ -153,7 +153,7 @@ export const TrashList = () => {
                       </div>
                       <div className={styles.itemActions}>
                         <Button
-                          variant="secondary"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleRestore(item)}
                           loading={restoring === item._id}
@@ -162,7 +162,7 @@ export const TrashList = () => {
                           Restaurar
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="dangerSoft"
                           size="sm"
                           onClick={() => setDeleteTarget(item)}
                           disabled={restoring !== null}

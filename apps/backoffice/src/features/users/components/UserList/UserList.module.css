@@ -1,3 +1,7 @@
+/* The `.badge` geometry that used to live here (20px tall, `border: none`,
+   `opacity: .8` on hover) moved to src/styles/statusToggle.module.css — one
+   declaration for all six surfaces instead of six copies. T-a11y-002 / P-7.
+   The TONE classes below stay local: they are what differs per feature. */
 .container {
   max-width: 1200px;
 }
@@ -52,28 +56,8 @@
   color: var(--color-primary);
 }
 
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.badge:hover:not(:disabled) {
-  opacity: 0.8;
-}
-
-.badge:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 .active {
-  background-color: rgba(22, 163, 74, 0.1);
+  background-color: var(--color-success-tint);
   color: var(--color-success);
 }
 

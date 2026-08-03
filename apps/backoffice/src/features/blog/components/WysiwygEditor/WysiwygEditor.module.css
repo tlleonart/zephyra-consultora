@@ -58,7 +58,37 @@
 .editor {
   min-height: 400px;
   padding: var(--spacing-md);
-  outline: none;
+}
+
+/* P-4 (WCAG 2.4.7) — this control had NO focus indicator at all.
+ *
+ * `outline: none` used to sit in `.editor` above with nothing put in its place.
+ * Measured by tabbing in for real (28 tab presses from the top of
+ * /admin/blog/new, activeElement confirmed as the contenteditable, and
+ * `:focus-visible` confirmed matching): outlineStyle `none`, boxShadow `none`,
+ * and the container's border identical focused and unfocused
+ * (rgb(229,231,235) both) — a keyboard author got zero feedback in the control
+ * they spend the most time in.
+ *
+ * WHY AN OUTLINE AND NOT A BORDER-COLOUR SWAP like the shared Input uses: an
+ * `outline` is one of the few indicators that survives forced-colors / Windows
+ * High Contrast. Measured on this branch under `forced-colors: active`,
+ * `box-shadow` is dropped entirely, so the Input's halo disappears and only its
+ * border remains; an outline keeps its geometry and has its colour remapped to
+ * the system highlight. --color-brand-main on white = 12.06:1 (1.4.11 needs 3.0).
+ *
+ * `outline-offset: -2px` draws the ring INSIDE the editor box so it never
+ * overlaps the toolbar divider above it or the container border around it. */
+.editor:focus-visible {
+  outline: 2px solid var(--color-brand-main);
+  outline-offset: -2px;
+}
+
+/* Belt-and-braces, and consistency: every other field in the app signals focus
+   by moving its 1px border to brand green, so the editor's frame does too. The
+   editor is the only control here where the frame is on an ancestor. */
+.container:focus-within {
+  border-color: var(--color-brand-main);
 }
 
 /* Editor content styles */
