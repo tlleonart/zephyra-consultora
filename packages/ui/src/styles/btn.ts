@@ -16,7 +16,10 @@ export type BtnVariant =
   | 'danger'
   | 'ghost'
   | 'inverse'
-  | 'outline';
+  | 'outline'
+  /** Quiet destructive: red label + red border on the red tint, no solid fill.
+   *  Pairs with `outline` so safe-vs-destructive differs by FILL, not only hue. */
+  | 'dangerSoft';
 export type BtnSize = 'sm' | 'md' | 'lg';
 
 export interface BtnClassOptions {

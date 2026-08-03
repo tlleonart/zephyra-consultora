@@ -125,6 +125,34 @@
   color: #ffffff;
 }
 
+/* `dangerSoft` — the QUIET destructive action (T-a11y-002, P-6).
+ *
+ * The backoffice needs "Eliminar" to be visibly distinct from "Editar" in a
+ * table row 45 times over. `danger` (solid red fill, white text) is the wrong
+ * instrument at that density — 42 solid red chips would dominate every list and
+ * train staff to ignore them. This is the same red at label weight instead.
+ *
+ * It pairs deliberately with `outline` (the safe action): the two differ by FILL
+ * versus NO FILL as well as by hue, so the destructive/safe split survives
+ * greyscale and colour-blindness. Fill-vs-outline is already the app's own
+ * primary state distinction on filter chips, so this is not a new visual idea.
+ *
+ * Measured: --color-error #991b1b on --color-error-tint #fce9e9 = 7.11:1 (text,
+ * needs 4.5); the 1px border vs the #f9fafb row fill = 7.95:1 and vs white
+ * 8.31:1 (UI component boundary, needs 3.0); hover white on #991b1b = 8.31:1.
+ * `secondary` was rejected for this role because its --color-border boundary
+ * measures 1.18:1 on the row fill — an invisible edge is not an affordance. */
+.dangerSoft {
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.dangerSoft:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-error);
+  color: #ffffff;
+}
+
 .block {
   width: 100%;
 }
@@ -157,6 +185,11 @@
 
 .loading.inverse .spinner {
   color: var(--color-brand-main);
+}
+
+/* dangerSoft has no solid fill, so a white spinner would be invisible on it. */
+.loading.dangerSoft .spinner {
+  color: var(--color-error);
 }
 
 @keyframes spin {
