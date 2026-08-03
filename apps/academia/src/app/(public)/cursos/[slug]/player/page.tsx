@@ -64,17 +64,22 @@ export default async function PlayerPage({
         <h1 style={{ fontSize: 24, marginBottom: 12 }}>
           No tenés acceso a este curso
         </h1>
-        <p style={{ color: "#555", marginBottom: 24 }}>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: 24 }}>
           {course.title} existe, pero tu cuenta todavía no fue habilitada.
           Contactá al equipo de Zephyra para que te den acceso.
         </p>
+        {/* Was `background: "#2d7"` with `color: "#fff"` — white on that green is
+            1.80:1, a WCAG 1.4.3 failure on a learner-facing control, and the last
+            inline hex left in apps/academia (T-a11y-001 PC-3). On academia
+            --color-bg resolves to paper #EFEAE0, so this reads paper-on-brand-green
+            = 10.06:1. */}
         <Link
           href="/cursos"
           style={{
             display: "inline-block",
             padding: "10px 18px",
-            background: "#2d7",
-            color: "#fff",
+            background: "var(--color-brand-main)",
+            color: "var(--color-bg)",
             borderRadius: 6,
             textDecoration: "none",
           }}
