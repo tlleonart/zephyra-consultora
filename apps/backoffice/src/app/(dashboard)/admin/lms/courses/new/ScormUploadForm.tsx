@@ -321,7 +321,7 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
               style={{
                 height: "100%",
                 width: `${uploadPercent}%`,
-                background: "#2d7",
+                background: "var(--color-brand-main)",
                 transition: "width 0.2s",
               }}
             />
@@ -377,7 +377,7 @@ export function ScormUploadForm({ userId }: ScormUploadFormProps) {
               }
               style={{
                 padding: "8px 14px",
-                background: "#2d7",
+                background: "var(--color-brand-main)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,

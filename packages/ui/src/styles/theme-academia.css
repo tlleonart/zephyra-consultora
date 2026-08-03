@@ -24,14 +24,15 @@
   --color-bg-tertiary: #d6cdbc; /* sand-deep: tracks, dividers — was #f3f4f6 */
   --color-surface-card: #fcfaf6; /* NEW — cards/panels sit slightly above paper */
 
-  /* ── Text: warm neutrals instead of cool greys ───────────────────────────── */
-  /* Both of these are AA FIXES, not preferences. On paper #EFEAE0 the base
-     values compute to: #6b7280 -> 4.03:1 (FAIL for small text) and #9ca3af ->
-     2.12:1 (FAIL outright). The warm replacements are 7.94:1 and 6.09:1.
-     Do not let them drift back. */
-  --color-text: #1a1a1a; /* unchanged — 14.52:1 on paper */
-  --color-text-secondary: #4a453b;
-  --color-text-muted: #5c5647;
+  /* ── Text: warm neutrals instead of cool greys ─────────────────────────────
+     NOT OVERRIDDEN HERE ANY MORE, and that is the fix. The warm neutrals were
+     AA fixes, not skin preferences, so T-a11y-001 promoted them to L1
+     (variables.css): --color-text-secondary #4a453b, --color-text-muted #5c5647.
+     Academia's rendered values are byte-identical to before (7.94:1 and 6.09:1
+     on paper #EFEAE0); what changed is that backoffice and www stop inheriting
+     the failing cool greys. --color-text was already #1a1a1a at L1 too, so its
+     duplicate declaration went with them — 14.52:1 on paper, unchanged.
+     Do not re-declare any of the three here: one source of truth per token. */
 
   /* ── Borders ─────────────────────────────────────────────────────────────── */
   --color-border: #d8cfbf; /* warm — was #e5e7eb */
@@ -55,11 +56,18 @@
      So the base names are overridden here to the AA-safe values, which fixes
      every academia call site with zero markup edits. The direction's brighter
      amber survives as --color-warning-fill for fills and icon chips, where the
-     3:1 graphical-object threshold applies instead of 4.5:1. */
-  --color-success: #166534; /* 6.84:1 on card, 5.95:1 on paper */
-  --color-success-text: #166534; /* explicit alias for on-tint small text */
-  --color-warning: #92400e; /* 6.80:1 on card, 5.91:1 on paper */
-  --color-warning-text: #92400e;
+     3:1 graphical-object threshold applies instead of 4.5:1.
+
+     T-a11y-001: --color-success / --color-warning / --color-error are NO LONGER
+     OVERRIDDEN HERE. The same argument that made them AA fixes for academia made
+     them AA fixes for backoffice and www (on white: 3.30:1 / 2.15:1; on their own
+     .1 tints, which is how every backoffice status badge is built: 2.82:1), so
+     the corrected values were promoted to L1 unchanged. Academia renders exactly
+     what it rendered before — #166534 6.84:1 on card / 5.95:1 on paper, #92400e
+     6.80:1 / 5.91:1, #991b1b 7.97:1 / 6.93:1 / 6.85:1 on the error tint. Only the
+     academia-ONLY additions stay below. */
+  --color-success-text: var(--color-success); /* explicit alias for on-tint small text */
+  --color-warning-text: var(--color-warning);
   --color-warning-fill: #b45309; /* the direction's amber — FILLS/ICONS ONLY */
 
   /* --color-error IS AN AA FIX TOO, and nobody had named this one. T-fe-013
@@ -69,8 +77,8 @@
      new card. Academia has exactly ONE error FILL, (public)/error.module.css
      `.icon`, and it is white-on-error, so darkening improves that too:
      white on #dc2626 = 4.83:1 -> white on #991b1b = 8.31:1.
-     #991b1b: 7.97:1 on card · 6.93:1 on paper · 6.85:1 on the error tint. */
-  --color-error: #991b1b;
+     #991b1b: 7.97:1 on card · 6.93:1 on paper · 6.85:1 on the error tint.
+     T-a11y-001 promoted it to L1 with the rest — see above. Not declared here. */
 
   /* ── Status tints ─────────────────────────────────────────────────────────
      Dirección C writes its pills as `rgba(<hue>, .14)` over the card. These are

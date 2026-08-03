@@ -106,7 +106,7 @@
 }
 
 .featured {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--color-brand-tint-soft);
   color: var(--color-primary);
 }
 

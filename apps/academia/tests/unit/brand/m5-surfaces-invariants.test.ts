@@ -68,6 +68,29 @@ function token(css: string, name: string): string {
 }
 
 const THEME = read(path.join(UI_STYLES, 'theme-academia.css'));
+const VARIABLES = read(path.join(UI_STYLES, 'variables.css'));
+/* T-a11y-001 — READ THE EFFECTIVE CASCADE, not a duplicate declaration.
+   The five AA-corrected tokens (--color-text-secondary/-muted, --color-success,
+   --color-warning, --color-error) used to be declared TWICE: failing values at L1
+   and corrected values at L2. That meant academia was accessible while backoffice
+   and www shipped the failures. The corrections were promoted to L1 and the L2
+   duplicates deleted, so an academia-side assertion must resolve
+   L2-override-else-L1 (and follow var() aliasing) instead of assuming the theme
+   re-declares everything it renders. */
+function effective(name: string): string {
+  const look = (css: string) =>
+    code(css)
+      .match(new RegExp(String.raw`${name}:\s*([^;]+);`))?.[1]
+      ?.trim();
+  const raw = look(THEME) ?? look(VARIABLES);
+  if (!raw) throw new Error(`token ${name} declared at neither L2 nor L1`);
+  const ref = raw.match(/^var\(\s*(--[\w-]+)\s*\)$/);
+  if (ref) return effective(ref[1]);
+  if (!/^#[0-9a-fA-F]{6}$/.test(raw))
+    throw new Error(`token ${name} is not a literal hex: ${raw}`);
+  return raw;
+}
+
 const PLAYER_DIR = 'src/app/(public)/cursos/[slug]/player';
 const PLAYER_TSX = read(path.join(APP, PLAYER_DIR, 'ScormPlayer.tsx'));
 const PLAYER_CSS = read(path.join(APP, PLAYER_DIR, 'ScormPlayer.module.css'));
@@ -265,7 +288,7 @@ describe('status pills — AA on their own tints', () => {
       ['--color-warning-text', '--color-warning-tint', 5.6],
     ];
     for (const [fg, bg, min] of pairs) {
-      expect(contrast(token(THEME, fg), token(THEME, bg))).toBeGreaterThan(min);
+      expect(contrast(effective(fg), effective(bg))).toBeGreaterThan(min);
     }
     // brand-main is defined in L1, so read it from the pill's own perspective.
     expect(contrast('#1E3C2E', token(THEME, '--color-brand-tint-soft'))).toBeGreaterThan(9);
@@ -281,7 +304,7 @@ describe('status pills — AA on their own tints', () => {
     // Nobody had named this one: L1 #dc2626 on the error tint is 4.41:1 and on
     // the card only 4.63:1. Academia has exactly one error FILL and it is
     // white-on-error, so darkening improves that too (4.83:1 -> 8.31:1).
-    const err = token(THEME, '--color-error');
+    const err = effective('--color-error');
     expect(contrast(err, token(THEME, '--color-error-tint'))).toBeGreaterThan(4.5);
     expect(contrast(err, CARD())).toBeGreaterThan(4.5);
     expect(contrast('#FFFFFF', err)).toBeGreaterThan(4.5);
@@ -388,7 +411,9 @@ describe('transactional emails — the lockup, the band, and no literal host', (
     expect(pal('paper')).toBe(token(THEME, '--color-bg').toLowerCase());
     expect(pal('card')).toBe(token(THEME, '--color-surface-card').toLowerCase());
     expect(pal('sand')).toBe(token(THEME, '--color-bg-secondary').toLowerCase());
-    expect(pal('textSecondary')).toBe(token(THEME, '--color-text-secondary').toLowerCase());
+    // T-a11y-001: text-secondary is now an L1 base with no L2 duplicate, so the
+    // email literal is pinned to the EFFECTIVE academia value, same colour as before.
+    expect(pal('textSecondary')).toBe(effective('--color-text-secondary').toLowerCase());
     expect(pal('border')).toBe(token(THEME, '--color-border').toLowerCase());
   });
 

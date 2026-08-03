@@ -27,9 +27,9 @@ const FILTER_LABELS: Record<StatusFilter, string> = {
 };
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  published: { bg: "#dcfce7", fg: "#166534", label: "Publicado" },
-  draft: { bg: "#fef3c7", fg: "#854d0e", label: "Borrador" },
-  archived: { bg: "#e5e7eb", fg: "#374151", label: "Archivado" },
+  published: { bg: "var(--color-success-tint)", fg: "var(--color-success)", label: "Publicado" },
+  draft: { bg: "var(--color-warning-tint)", fg: "var(--color-warning)", label: "Borrador" },
+  archived: { bg: "var(--color-bg-tertiary)", fg: "var(--color-text-secondary)", label: "Archivado" },
 };
 
 function relativeTime(ts: number): string {
@@ -138,8 +138,8 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
           href="/admin/lms/courses/new"
           style={{
             padding: "10px 16px",
-            background: "#2d7",
-            color: "#fff",
+            background: "var(--color-brand-main)",
+            color: "var(--color-bg)",
             borderRadius: 6,
             textDecoration: "none",
           }}
@@ -164,9 +164,11 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
               style={{
                 padding: "6px 12px",
                 borderRadius: 16,
-                border: active ? "1px solid #2d7" : "1px solid #d1d5db",
-                background: active ? "#2d7" : "#fff",
-                color: active ? "#fff" : "#374151",
+                border: active
+                  ? "1px solid var(--color-brand-main)"
+                  : "1px solid var(--color-border-strong)",
+                background: active ? "var(--color-brand-main)" : "var(--color-bg)",
+                color: active ? "var(--color-bg)" : "var(--color-text-secondary)",
                 cursor: "pointer",
                 fontSize: 13,
               }}
@@ -179,12 +181,12 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
 
       {courses === undefined && <p>Cargando...</p>}
       {courses && courses.length === 0 && (
-        <p style={{ color: "#666" }}>
+        <p style={{ color: "var(--color-text-secondary)" }}>
           Todavía no hay cursos. Ingestá un paquete SCORM para empezar.
         </p>
       )}
       {courses && courses.length > 0 && filtered && filtered.length === 0 && (
-        <p style={{ color: "#666" }}>
+        <p style={{ color: "var(--color-text-secondary)" }}>
           No hay cursos en estado &ldquo;{FILTER_LABELS[filter]}&rdquo;.
         </p>
       )}
@@ -192,7 +194,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
       {filtered && filtered.length > 0 && (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #eee" }}>
+            <tr style={{ textAlign: "left", borderBottom: "2px solid var(--color-border)" }}>
               <th style={{ padding: 8 }}>Título</th>
               <th style={{ padding: 8 }}>Estado</th>
               <th style={{ padding: 8 }}>campusCourseId</th>
@@ -207,15 +209,15 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
               const isOpen = openCourseId === courseId;
               const fb = feedback[courseId];
               const badge = STATUS_COLORS[c.status] ?? {
-                bg: "#eee",
-                fg: "#333",
+                bg: "var(--color-bg-tertiary)",
+                fg: "var(--color-text)",
                 label: c.status,
               };
               return (
-                <tr key={c._id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <tr key={c._id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                   <td style={{ padding: 8 }}>
                     <div style={{ fontWeight: 500 }}>{c.title}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
                       <code>{c.slug}</code>
                     </div>
                   </td>
@@ -234,10 +236,10 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                       {badge.label}
                     </span>
                   </td>
-                  <td style={{ padding: 8, fontSize: 12, color: "#374151" }}>
+                  <td style={{ padding: 8, fontSize: 12, color: "var(--color-text-secondary)" }}>
                     <code>{c.campusCourseId}</code>
                   </td>
-                  <td style={{ padding: 8, fontSize: 12, color: "#6b7280" }}>
+                  <td style={{ padding: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
                     {relativeTime(c.createdAt)}
                   </td>
                   <td style={{ padding: 8, fontSize: 13 }}>{scoCountOf(c)}</td>
@@ -325,7 +327,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                             required
                             style={{
                               padding: "4px 8px",
-                              border: "1px solid #ccc",
+                              border: "1px solid var(--color-text-muted)",
                               borderRadius: 4,
                               minWidth: 220,
                             }}
@@ -357,7 +359,7 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
                         style={{
                           marginTop: 6,
                           fontSize: 13,
-                          color: fb.kind === "success" ? "#0a7" : "#c33",
+                          color: fb.kind === "success" ? "var(--color-success)" : "var(--color-error)",
                         }}
                       >
                         {fb.message}

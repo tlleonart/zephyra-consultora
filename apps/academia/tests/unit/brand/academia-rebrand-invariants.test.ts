@@ -81,6 +81,28 @@ function token(css: string, name: string): string {
 const THEME = read(path.join(UI_STYLES, 'theme-academia.css'));
 const VARIABLES = read(path.join(UI_STYLES, 'variables.css'));
 const ROOT_LAYOUT = read(path.join(APP, 'src/app/layout.tsx'));
+/* T-a11y-001 — READ THE EFFECTIVE CASCADE, not a duplicate declaration.
+   The five AA-corrected tokens (--color-text-secondary/-muted, --color-success,
+   --color-warning, --color-error) used to be declared TWICE: failing values at L1
+   and corrected values at L2. That meant academia was accessible while backoffice
+   and www shipped the failures. The corrections were promoted to L1 and the L2
+   duplicates deleted, so an academia-side assertion must resolve
+   L2-override-else-L1 (and follow var() aliasing) instead of assuming the theme
+   re-declares everything it renders. */
+function effective(name: string): string {
+  const look = (css: string) =>
+    code(css)
+      .match(new RegExp(String.raw`${name}:\s*([^;]+);`))?.[1]
+      ?.trim();
+  const raw = look(THEME) ?? look(VARIABLES);
+  if (!raw) throw new Error(`token ${name} declared at neither L2 nor L1`);
+  const ref = raw.match(/^var\(\s*(--[\w-]+)\s*\)$/);
+  if (ref) return effective(ref[1]);
+  if (!/^#[0-9a-fA-F]{6}$/.test(raw))
+    throw new Error(`token ${name} is not a literal hex: ${raw}`);
+  return raw;
+}
+
 
 describe('L1 — base corrections that all three apps inherit', () => {
   it('defines --color-brand-dark, which was referenced but never declared', () => {
@@ -157,7 +179,7 @@ describe('WCAG AA — the ratios the approved direction did not meet', () => {
     ['--color-success', 4.5],
     ['--color-warning', 4.5],
   ])('%s passes AA for small text on paper and on card', (name, threshold) => {
-    const value = token(THEME, name);
+    const value = effective(name);
     expect(contrast(value, paper)).toBeGreaterThanOrEqual(threshold);
     expect(contrast(value, card)).toBeGreaterThanOrEqual(threshold);
   });

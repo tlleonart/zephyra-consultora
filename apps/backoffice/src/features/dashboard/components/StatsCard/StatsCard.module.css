@@ -30,7 +30,7 @@
 }
 
 .primary .iconWrapper {
-  background-color: rgba(0, 102, 204, 0.1);
+  background-color: var(--color-brand-tint-soft);
   color: var(--color-primary);
 }
 
