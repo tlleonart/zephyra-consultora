@@ -43,7 +43,7 @@ describe('sendLearnerEmail — dev fallback + transport mock', () => {
 
     const result = await sendLearnerEmail({
       to: 'learner@example.com',
-      subject: 'Tu link de ingreso a Zephyra',
+      subject: 'Tu link de ingreso a Academia Zephyra',
       react: LearnerMagicLink({
         magicLinkUrl: 'https://example.com/verify?token=abc&purpose=learner_signin',
         purpose: 'learner_signin',
@@ -78,7 +78,7 @@ describe('sendLearnerEmail — dev fallback + transport mock', () => {
     expect(call.to).toBe('learner@example.com');
     expect(call.subject).toBe('Activá tu cuenta de Zephyra');
     expect(typeof call.html).toBe('string');
-    expect(call.html).toContain('Bienvenido a Zephyra');
+    expect(call.html).toContain('Bienvenido a Academia Zephyra');
     expect(typeof call.text).toBe('string');
     expect(call.text.length).toBeGreaterThan(0);
     expect(call.from).toContain('noreply@zephyra.test');
@@ -96,7 +96,7 @@ describe('LearnerMagicLink — purpose-aware rendering', () => {
         expiresInMinutes: 30,
       })
     );
-    expect(html).toContain('Bienvenido a Zephyra');
+    expect(html).toContain('Bienvenido a Academia Zephyra');
     expect(html).toContain('Activá tu cuenta');
     expect(html).toContain('Activar cuenta');
     expect(html).toContain('token=tokA');
@@ -112,7 +112,7 @@ describe('LearnerMagicLink — purpose-aware rendering', () => {
         expiresInMinutes: 15,
       })
     );
-    expect(html).toContain('Tu link de ingreso a Zephyra');
+    expect(html).toContain('Tu link de ingreso a Academia Zephyra');
     expect(html).toContain('Iniciar sesión');
     expect(html).toContain('token=tokB');
     expect(html).toContain('purpose=learner_signin');
@@ -127,7 +127,7 @@ describe('LearnerMagicLink — purpose-aware rendering', () => {
         expiresInMinutes: 15,
       })
     );
-    expect(html).toContain('Recuperá tu acceso a Zephyra');
+    expect(html).toContain('Recuperá tu acceso a Academia Zephyra');
     expect(html).toContain('Recuperar acceso');
     expect(html).toContain('token=tokC');
     expect(html).toContain('purpose=learner_recovery');
