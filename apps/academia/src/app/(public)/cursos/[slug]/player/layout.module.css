@@ -1,0 +1,19 @@
+/* The full-viewport player shell.
+ *
+ * WHY `position: fixed; inset: 0` and not a plain block: this route is nested in
+ * the (public) route group so the URL stays public, but it must NOT sit inside
+ * the institutional Navbar/Footer chrome, which would overlap the SCORM iframe.
+ * Lifting the shell out of flow removes that chrome without moving the route or
+ * editing the public layout. Kept from T-fe-008 deliberately — see AC2.
+ *
+ * The only change here is that the four literal inline styles became a CSS
+ * Module on the SAME element. The iframe's ancestor chain is byte-identical, so
+ * `window.parent` discovery is untouched.
+ */
+.shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  background-color: var(--color-bg-secondary);
+}

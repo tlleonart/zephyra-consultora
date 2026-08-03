@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { Scorm12API } from "scorm-again";
+import { btnClass } from "@zephyra/ui";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "./ScormPlayer.module.css";
@@ -276,10 +277,19 @@ export function ScormPlayer({
   return (
     <div className={styles.player}>
       <header className={styles.header}>
-        <h1 className={styles.title}>{courseTitle}</h1>
-        <Link href="/cursos/privacidad" className={styles.privacyLink}>
-          Privacidad de mi progreso
+        {/* Exit. The player is a full-viewport surface with no Navbar, so
+            without this the only way out is the browser's back button. Goes to
+            the course page, not the catalogue, so "salir" is reversible. */}
+        <Link href={`/cursos/${slug}`} className={styles.exitLink}>
+          <span aria-hidden="true">←</span> Volver al curso
         </Link>
+        <span aria-hidden="true" className={styles.exitDivider} />
+        <div className={styles.headerMain}>
+          <h1 className={styles.title}>{courseTitle}</h1>
+          <Link href="/cursos/privacidad" className={styles.privacyLink}>
+            Privacidad de mi progreso
+          </Link>
+        </div>
         <div className={styles.progressRow}>
           <div
             className={styles.progressTrack}
@@ -294,6 +304,7 @@ export function ScormPlayer({
               style={{ width: `${progress}%` }}
             />
           </div>
+          <span className={styles.progressPct}>{progress}%</span>
           <small className={styles.progressLabel}>
             Progreso: {progress}%
             {multiSco ? ` · Módulos: ${completedCount}/${totalScos}` : ""} ·
@@ -335,16 +346,17 @@ export function ScormPlayer({
                       onClick={() => selectSco(idx)}
                       onKeyDown={(e) => onNavKeyDown(e, idx)}
                     >
+                      {/* The step dot is decorative: completion is announced in
+                          text below, so colour is never the only signal. */}
+                      <span
+                        aria-hidden="true"
+                        className={`${styles.navDot} ${
+                          isCompleted ? styles.navDotDone : ""
+                        }`}
+                      >
+                        {isCompleted ? "✓" : idx + 1}
+                      </span>
                       <span className={styles.navButtonTitle}>{u.title}</span>
-                      {isCompleted && (
-                        <span
-                          aria-hidden="true"
-                          className={styles.navCheck}
-                          title="Completado"
-                        >
-                          ✓
-                        </span>
-                      )}
                       {isCompleted && (
                         <span className={styles.srOnly}>Completado</span>
                       )}
@@ -369,8 +381,36 @@ export function ScormPlayer({
               className={styles.iframe}
             />
           ) : (
-            <div className={styles.empty}>Inicializando SCORM API…</div>
+            <div className={styles.empty}>
+              <p className={styles.emptyFrame}>Inicializando SCORM API…</p>
+            </div>
           )}
+          {/* Sibling of the iframe, never a parent of it: the SCORM bridge walks
+              window.parent, so reparenting the iframe would break progress
+              persistence silently. Reuses selectSco — no new state. */}
+          {multiSco ? (
+            <nav className={styles.footerNav} aria-label="Módulo anterior y siguiente">
+              <button
+                type="button"
+                className={btnClass({ variant: "outline", size: "sm" })}
+                onClick={() => selectSco(currentIdx - 1)}
+                disabled={currentIdx === 0}
+              >
+                <span aria-hidden="true">←</span> Anterior
+              </button>
+              <span className={styles.footerNavLabel}>
+                Módulo {currentIdx + 1} de {totalScos}
+              </span>
+              <button
+                type="button"
+                className={btnClass({ variant: "primary", size: "sm" })}
+                onClick={() => selectSco(currentIdx + 1)}
+                disabled={currentIdx === totalScos - 1}
+              >
+                Siguiente <span aria-hidden="true">→</span>
+              </button>
+            </nav>
+          ) : null}
         </main>
       </div>
     </div>
