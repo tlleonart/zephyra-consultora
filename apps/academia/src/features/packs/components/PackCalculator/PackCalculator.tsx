@@ -7,6 +7,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
+import { institutionalHref } from '@/lib/institutional-links';
 import { createPackCheckout } from '../../actions/create-pack-checkout';
 import { btnClass } from '@zephyra/ui';
 import styles from './PackCalculator.module.css';
@@ -209,7 +210,14 @@ export function PackCalculator({
                       Para 50 lugares o más armamos una propuesta a medida.
                       Escribinos y coordinamos el precio para tu equipo.
                     </p>
-                    <Link href="/contacto" className={btnClass({ size: 'sm' })}>
+                    {/* Was href="/contacto", dead on this host. This is the
+                        50+-seat B2B enquiry CTA — a commercial dead end, not a
+                        cosmetic one: the buyer who reads "escribinos" and clicks
+                        landed on a 404. /contacto is served by www. */}
+                    <Link
+                      href={institutionalHref('/contacto')}
+                      className={btnClass({ size: 'sm' })}
+                    >
                       Contactanos
                     </Link>
                   </div>

@@ -114,6 +114,22 @@ jobs:
       # artifact.
       NEXT_PUBLIC_APP_URL: "https://ci-build-placeholder.zephyraconsultora.com"
       NEXT_PUBLIC_ACADEMIA_URL: "https://ci-build-placeholder-academia.zephyraconsultora.com"
+      # NEXT_PUBLIC_WWW_URL — added when apps/academia's Navbar/Footer stopped
+      # emitting RELATIVE hrefs to routes apps/www owns (/, /#servicios,
+      # /#equipo, /proyectos, /blog, /contacto), all of which 404 on academia's
+      # host. src/lib/institutional-links.ts resolves it through requireOrigin at
+      # MODULE scope, so it throws during page-data collection exactly like the
+      # two above, and omitting it here would red this job on every commit — the
+      # same way 4347035 went red after T-be-010.
+      #
+      # PLACEHOLDER, and public by definition. The build only needs the origin to
+      # be syntactically valid; nothing is fetched from it. Note the caveat that
+      # already applies to the two variables above: one job-level env cannot give
+      # each app a different value, so this build does not exercise "each app
+      # names the right neighbour". apps/academia/tests/unit/app/cross-host-links.test.ts
+      # asserts the link boundary in the `test` job instead, and only a real
+      # deploy catches a variable missing from a Vercel project.
+      NEXT_PUBLIC_WWW_URL: "https://ci-build-placeholder-www.zephyraconsultora.com"
       # NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL are intentionally absent: the
       # build tolerates them being undefined and the artifact is discarded here.
       # A job that ever PUBLISHES an artifact would have to supply them.

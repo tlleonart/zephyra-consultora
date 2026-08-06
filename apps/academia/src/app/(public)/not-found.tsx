@@ -1,19 +1,11 @@
-import Link from 'next/link';
-import styles from './not-found.module.css';
+import { NotFound } from '@/components/public/NotFound';
 
-export default function NotFound() {
-  return (
-    <div className={styles.container}>
-      <div className={styles.content}>
-        <span className={styles.code}>404</span>
-        <h1 className={styles.title}>Pagina no encontrada</h1>
-        <p className={styles.message}>
-          Lo sentimos, la pagina que buscas no existe o ha sido movida.
-        </p>
-        <Link href="/" className={styles.button}>
-          Volver al inicio
-        </Link>
-      </div>
-    </div>
-  );
+/**
+ * 404 boundary for the (public) segment. Inherits (public)/layout.tsx, so this
+ * one renders WITH the Navbar and Footer. The panel itself is shared with the
+ * app-wide fallback at app/not-found.tsx — see that component for why both
+ * boundaries exist.
+ */
+export default function PublicNotFound() {
+  return <NotFound />;
 }

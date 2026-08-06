@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Brandmark } from "@/components/public/Brandmark";
 import { BRAND_ORIGIN_LINE } from "@/lib/brand";
+import {
+  INSTITUTIONAL_FOOTER_LINKS,
+  INSTITUTIONAL_HOME,
+} from "@/lib/institutional-links";
 import styles from "./Footer.module.css";
 
-const quickLinks = [
-  { href: "/", label: "Inicio" },
-  { href: "/#servicios", label: "Servicios" },
-  { href: "/proyectos", label: "Proyectos" },
-  { href: "/blog", label: "Perspectivas" },
-  { href: "/contacto", label: "Contacto" },
-];
+// Same defect as the Navbar's: these were relative and 404'd on this host. The
+// list intentionally omits "Equipo" — that is what the pre-split footer did, and
+// harmonising it with the navbar would be an IA change, not a fix.
+const quickLinks = INSTITUTIONAL_FOOTER_LINKS;
 
 const socialLinks = [
   {
@@ -65,7 +66,11 @@ export const Footer = () => {
           <div className={styles.column}>
             {/* Was a TYPED "Zephyra" wordmark — the brand guide retires typed wordmarks
                 in favour of the mark itself. */}
-            <Link href="/" className={styles.logo} aria-label={BRAND_ORIGIN_LINE}>
+            <Link
+              href={INSTITUTIONAL_HOME}
+              className={styles.logo}
+              aria-label={BRAND_ORIGIN_LINE}
+            >
               <Brandmark tone="onDark" height={36} />
             </Link>
             <p className={styles.description}>

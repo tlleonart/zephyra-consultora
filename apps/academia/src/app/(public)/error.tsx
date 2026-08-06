@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { INSTITUTIONAL_HOME } from '@/lib/institutional-links';
 import styles from './error.module.css';
 
 interface ErrorPageProps {
@@ -23,7 +24,8 @@ export default function ErrorPage({ reset }: ErrorPageProps) {
           <button onClick={reset} className={styles.button}>
             Intentar de nuevo
           </button>
-          <Link href="/" className={styles.link}>
+          {/* Was href="/", dead on this host — see not-found.tsx. */}
+          <Link href={INSTITUTIONAL_HOME} className={styles.link}>
             Volver al inicio
           </Link>
         </div>
