@@ -130,6 +130,19 @@ jobs:
       # asserts the link boundary in the `test` job instead, and only a real
       # deploy catches a variable missing from a Vercel project.
       NEXT_PUBLIC_WWW_URL: "https://ci-build-placeholder-www.zephyraconsultora.com"
+      # NEXT_PUBLIC_BACKOFFICE_URL — added with the apex 301 map. apps/www's
+      # next.config.ts builds the redirect list at BUILD time from
+      # src/lib/cutover-redirects.ts, which throws when a destination origin is
+      # missing rather than emitting an empty list (an empty list looks identical
+      # to a working one until a real visitor hits /login).
+      #
+      # These three values must stay DISTINCT FROM EACH OTHER. The map carries a
+      # loop guard that refuses to build when a destination equals
+      # NEXT_PUBLIC_APP_URL — because the apex redirecting /cursos to itself loops
+      # until the browser aborts. Collapsing these placeholders to one value would
+      # trip that guard and red this job for a reason that has nothing to do with
+      # the commit.
+      NEXT_PUBLIC_BACKOFFICE_URL: "https://ci-build-placeholder-backoffice.zephyraconsultora.com"
       # NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL are intentionally absent: the
       # build tolerates them being undefined and the artifact is discarded here.
       # A job that ever PUBLISHES an artifact would have to supply them.

@@ -64,12 +64,62 @@ describe("www generates no app URL (the M4 sweep, pinned)", () => {
     expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
   });
 
-  it("reads no app-origin env var, because it needs none", () => {
-    // If a www flow ever legitimately needs to link into academia or backoffice,
-    // this test is the place that forces the decision to be explicit: add
-    // NEXT_PUBLIC_ACADEMIA_URL / NEXT_PUBLIC_BACKOFFICE_URL, read it through
-    // requireOrigin(), and update boundaries §5 and this list in the same change.
-    const offenders = files.filter((f) =>
+  /**
+   * The ONE file allowed to read an app-origin variable, and why.
+   *
+   * This test previously asserted a flat zero and its comment named the exact
+   * procedure for the day that stopped being true: "add
+   * NEXT_PUBLIC_ACADEMIA_URL / NEXT_PUBLIC_BACKOFFICE_URL, read it through
+   * requireOrigin(), and update boundaries §5 and this list in the same change."
+   * That day is the apex 301 map, and this is that update — not a silencing.
+   *
+   * The §5 row-1 claim is NARROWED, not withdrawn, and the distinction is the
+   * whole point: www still generates no app URL in any PAGE, COMPONENT or EMAIL.
+   * What it now does is consume two origins as BUILD CONFIGURATION —
+   * next.config.ts calls buildCutoverRedirects to emit the redirect list, and
+   * nothing at request time reads them. So the invariant with teeth is unchanged
+   * for every file except this one.
+   *
+   * Kept as a one-file allowlist rather than a relaxed regex on purpose: a
+   * broadened pattern would silently permit the next component that hardcodes a
+   * cross-host link, which is the failure this suite exists to catch.
+   */
+  const ORIGIN_VAR_ALLOWLIST = ["lib/cutover-redirects.ts"];
+
+  it("reads no app-origin env var outside the apex redirect map", () => {
+    const offenders = files
+      .filter((f) => /NEXT_PUBLIC_(APP|SITE|ACADEMIA|BACKOFFICE)_URL/.test(read(f)))
+      .map((f) => path.relative(SRC, f).replace(/\\/g, "/"))
+      .filter((f) => !ORIGIN_VAR_ALLOWLIST.includes(f));
+    expect(offenders).toEqual([]);
+  });
+
+  it("the allowlisted file exists and is the one wired into next.config", () => {
+    // Without this, the allowance could outlive the thing it was granted for —
+    // the file gets deleted or renamed, the entry stays, and it quietly becomes a
+    // licence for some future file that happens to match the same path.
+    const target = path.join(SRC, "lib/cutover-redirects.ts");
+    expect(files.map((f) => path.relative(SRC, f).replace(/\\/g, "/"))).toContain(
+      ORIGIN_VAR_ALLOWLIST[0]
+    );
+    // It must read the origins through requireOrigin, per the procedure quoted
+    // above — not off process.env raw with a fallback.
+    expect(read(target)).toContain("requireOrigin");
+    const config = read(path.resolve(SRC, "../next.config.ts"));
+    expect(config).toContain("buildCutoverRedirects");
+    expect(config).toContain("./src/lib/cutover-redirects");
+  });
+
+  it("still generates no app URL at REQUEST time (the §5 row-1 claim itself)", () => {
+    // The narrowing above is scoped to build config. Assert the runtime claim
+    // directly so it cannot erode behind the allowlist: no file that ships to a
+    // page or an email may read these variables.
+    const runtime = files.filter((f) => {
+      const r = path.relative(SRC, f).replace(/\\/g, "/");
+      return r.startsWith("app/") || r.startsWith("components/");
+    });
+    expect(runtime.length).toBeGreaterThan(5);
+    const offenders = runtime.filter((f) =>
       /NEXT_PUBLIC_(APP|SITE|ACADEMIA|BACKOFFICE)_URL/.test(read(f))
     );
     expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
