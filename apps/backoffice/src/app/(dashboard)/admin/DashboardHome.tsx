@@ -19,7 +19,7 @@ export const DashboardHome = ({ userId }: DashboardHomeProps) => {
       <div className={styles.container}>
         <h1 className={styles.title}>Dashboard</h1>
         <div className={styles.grid}>
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 11 }).map((_, i) => (
             <Skeleton key={i} height={120} variant="rectangular" />
           ))}
         </div>
@@ -90,6 +90,20 @@ export const DashboardHome = ({ userId }: DashboardHomeProps) => {
         />
 
         <StatsCard
+          title="Bloques de Servicios"
+          value={stats.serviceBlocks}
+          href="/admin/service-blocks"
+          color="secondary"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
+          }
+        />
+
+        <StatsCard
           title="Clientes"
           value={stats.clients}
           href="/admin/clients"
@@ -127,6 +141,34 @@ export const DashboardHome = ({ userId }: DashboardHomeProps) => {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />
+            </svg>
+          }
+        />
+
+        <StatsCard
+          title="Cursos LMS"
+          value={stats.lms.total}
+          subtitle={`${stats.lms.published} publicados, ${stats.lms.drafts} borradores`}
+          href="/admin/lms"
+          color="primary"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="8" r="7" />
+              <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+            </svg>
+          }
+        />
+
+        <StatsCard
+          title="Usuarios"
+          value={stats.adminUsers}
+          href="/admin/users"
+          color="success"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <polyline points="17 11 19 13 23 9" />
             </svg>
           }
         />
