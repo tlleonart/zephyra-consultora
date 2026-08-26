@@ -1,0 +1,24 @@
+.empty {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  /* Cards sit slightly ABOVE paper — that is what the card token is for. */
+  background-color: var(--color-surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.icon {
+  display: block;
+  font-size: 3rem;
+  color: var(--color-brand-main);
+  margin-bottom: var(--spacing-md);
+}
+
+.text {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}

@@ -1,0 +1,277 @@
+/* Home (T-06, M-HOME). Pantalla 1 of Arena, section by section (spec §3):
+   hero, "Explorá por temática", the course grid, the B2B band.
+
+   DELIBERATE DEVIATION FROM THE MOCKUP'S HERO PAINT, written up because the
+   spec requires every deviation to be justified in writing (§6 AC 11): the
+   mockup paints the hero as a LIGHT sand→paper gradient with dark-green text.
+   This page paints it as the SAME dark green band every other public hero in
+   this app already uses (CoursesPage.module.css, CourseDetail.module.css).
+   That is not a stylistic preference — the reused <Navbar/> (spec §5: reused
+   "tal cual") is `position: fixed` with white nav-link text over a mostly
+   transparent dark scrim (Navbar.module.css `rgba(0,0,0,.2)` unscrolled), a
+   treatment that depends on a dark surface immediately behind it to stay
+   legible. Every other hero in the app is dark for exactly that reason. A
+   literal light hero here would put white nav text over a ~20% black scrim
+   on top of a light sand background — a real AA failure for the ONE surface
+   the spec explicitly still asks this task to keep looking right (AC 12),
+   on a component this task is not allowed to touch (spec §5: Navbar "tal
+   cual"). The title, lead copy, order and CTAs are unchanged from the
+   mockup; only the fill and the resulting text colour move to match the
+   pattern every sibling hero in this codebase already uses. */
+
+.hero {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-main) 0%,
+    var(--color-brand-dark) 100%
+  );
+  padding: var(--spacing-4xl) 0 var(--spacing-3xl);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.eyebrow {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 600;
+  color: white;
+  margin: var(--spacing-md) 0;
+  line-height: 1.15;
+  max-width: 20ch;
+}
+
+.lead {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 56ch;
+  margin: 0 0 var(--spacing-xl);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+/* The "quiet" secondary CTA on the green band — same treatment as the
+   CourseDetail hero's .backLink (rgba(255,255,255,.85) -> white on hover),
+   not a second `<Button>` variant. `outline` (brand-green text/border) and
+   `ghost` (brand-green text) are both invisible on this fill; `inverse` is
+   reserved for the primary action so the two CTAs stay visually distinct. */
+.secondaryAction {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  text-decoration: none;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.secondaryAction:hover {
+  color: white;
+  border-bottom-color: white;
+}
+
+.secondaryAction:focus-visible {
+  outline: 3px solid var(--color-border-focus-inverse);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Explorá por temática ─────────────────────────────────────────────── */
+
+.topics {
+  padding: var(--spacing-3xl) 0;
+  background-color: var(--color-bg);
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  color: var(--color-brand-main);
+  margin: 0;
+}
+
+.sectionSubtitle {
+  color: var(--color-text-secondary);
+  margin: var(--spacing-xs) 0 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  list-style: none;
+  margin: var(--spacing-lg) 0 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-card);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.chip:hover {
+  border-color: var(--color-brand-main);
+  color: var(--color-brand-main);
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--color-brand-main);
+  outline-offset: 2px;
+}
+
+/* ── Cursos ───────────────────────────────────────────────────────────── */
+
+.courses {
+  padding: var(--spacing-3xl) 0;
+  background-color: var(--color-bg-secondary);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-xl);
+}
+
+.viewAll {
+  font-weight: 600;
+  color: var(--color-brand-main);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.viewAll:hover,
+.viewAll:focus-visible {
+  text-decoration: underline;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xl);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gridItem {
+  display: flex;
+}
+
+.gridItem > * {
+  width: 100%;
+}
+
+/* ── Banda B2B ────────────────────────────────────────────────────────── */
+
+.bandSection {
+  padding: var(--spacing-3xl) 0 var(--spacing-4xl);
+  background-color: var(--color-bg-secondary);
+}
+
+.band {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-main),
+    var(--color-brand-dark)
+  );
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-3xl) var(--spacing-lg);
+  color: white;
+}
+
+.bandEyebrow {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bandTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 600;
+  color: white;
+  margin: var(--spacing-sm) 0 var(--spacing-md);
+  max-width: 24ch;
+}
+
+.bandText {
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 56ch;
+  margin: 0 0 var(--spacing-xl);
+  line-height: 1.6;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .lead {
+    font-size: 1rem;
+  }
+
+  .topics,
+  .courses {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .bandSection {
+    padding: var(--spacing-xl) 0 var(--spacing-2xl);
+  }
+
+  .band {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+}
