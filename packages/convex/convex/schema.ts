@@ -263,10 +263,17 @@ export default defineSchema({
     // Compound on [status, topic] rather than a lone `by_topic` — every
     // consumer of this index filters on status first (only published courses
     // are ever shown under a chip), so a standalone topic index would just
-    // be a strict subset of this one's leading field. Distinct from
-    // `by_status` above: that one serves "all published, any topic"
-    // (listPublished); this one narrows further and would duplicate nothing
-    // by being added — status-only callers keep using `by_status`.
+    // be a strict subset of this one's leading field.
+    // Correction of record: this index IS prefix-redundant with `by_status`
+    // above — Convex serves any query over an index's fields prefix, so
+    // `by_status_topic` alone could already answer listPublished's "all
+    // published, any topic" (lms/courses.ts:31). Both are kept deliberately:
+    // repointing listPublished mid-sprint carries more risk than one extra
+    // index write costs, and this repo already made that same call for
+    // `blogPosts` (`by_status` + `by_status_published`, lines 62-63, same
+    // file) — this pair follows that precedent, not an exception to it.
+    // Cleanup candidate, post-go-live, not this sprint: retire
+    // `lmsCourses.by_status` and move `listPublished` onto `by_status_topic`.
     .index("by_status_topic", ["status", "topic"])
     .index("by_deleted", ["deletedAt"]),
 
