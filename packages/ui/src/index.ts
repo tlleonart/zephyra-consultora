@@ -37,6 +37,8 @@ export { IconPicker } from './components/ui/IconPicker';
 
 export { ImageUpload } from './components/ui/ImageUpload';
 export type { ImageUploadProps } from './components/ui/ImageUpload';
+export { resolveImagePreview } from './components/ui/ImageUpload';
+export type { ImagePreviewState } from './components/ui/ImageUpload';
 
 export { Input } from './components/ui/Input';
 export type { InputProps } from './components/ui/Input';

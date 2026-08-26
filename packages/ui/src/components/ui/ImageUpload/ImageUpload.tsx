@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef, ChangeEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@zephyra/convex/_generated/api';
 import { Id } from '@zephyra/convex/_generated/dataModel';
 import { cn } from '@zephyra/utils';
 import { Button } from '../Button';
+import { resolveImagePreview } from './resolveImagePreview';
 import styles from './ImageUpload.module.css';
 
 export interface ImageUploadProps {
@@ -31,6 +32,11 @@ export const ImageUpload = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // Resolved server-side, same as everywhere else in the site (boundaries:
+  // there is no /api/storage route in any app). `preview` still wins while
+  // it lives — see resolveImagePreview for the full precedence.
+  const remoteUrl = useQuery(api.files.getUrl, value ? { storageId: value } : 'skip');
+  const previewState = resolveImagePreview(preview, value ?? null, remoteUrl);
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -100,11 +106,11 @@ export const ImageUpload = ({
       {label && <label className={styles.label}>{label}</label>}
 
       <div className={cn(styles.dropzone, displayError && styles.hasError)}>
-        {(preview || value) ? (
+        {previewState.status === 'ready' ? (
           <div className={styles.previewContainer}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={preview || `/api/storage/${value}`}
+              src={previewState.src}
               alt="Preview"
               className={styles.preview}
             />
@@ -126,6 +132,10 @@ export const ImageUpload = ({
                 Eliminar
               </Button>
             </div>
+          </div>
+        ) : previewState.status === 'loading' ? (
+          <div className={styles.previewContainer}>
+            <div className={styles.loadingState}>Cargando imagen...</div>
           </div>
         ) : (
           <div className={styles.placeholder} onClick={handleClick}>
