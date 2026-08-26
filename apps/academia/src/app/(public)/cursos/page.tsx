@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@zephyra/convex/_generated/api";
 import { CourseCard, type CourseCardData } from "@/components/public/CourseCard";
+import { stripHtmlToText } from "@/lib/strip-html";
 import { requireOrigin } from "@zephyra/utils";
 import styles from "./CoursesPage.module.css";
 
@@ -68,6 +69,27 @@ function deriveDescription(scoStructure: unknown): string {
   return "Formación online a tu ritmo. Contenidos prácticos y aplicables.";
 }
 
+// T-07 (M-HOME amendment): the panel's rich-text editor writes
+// `lmsCourses.description` (schema.ts), the query already returns it, and
+// this page discarded it in favour of a SCO-derived stand-in for every
+// course — Zephyra wrote copy that never rendered anywhere. The fix: use
+// the written description when there is one, falling back to the SCO-based
+// derivation exactly as before for the courses that predate the field or
+// were left blank. `description` is HTML from the editor (never trusted
+// markup), so it is stripped to plain text before it reaches the card,
+// which prints it via plain JSX interpolation — CourseCard never parses
+// HTML, so raw markup would show its own tags on screen.
+function resolveDescription(course: {
+  description?: string;
+  scoStructure?: unknown;
+}): string {
+  if (course.description) {
+    const plain = stripHtmlToText(course.description);
+    if (plain.length > 0) return plain;
+  }
+  return deriveDescription(course.scoStructure);
+}
+
 function deriveScoCount(scoStructure: unknown): number {
   const s = (scoStructure ?? {}) as ScoStructure;
   const items = s.organizations?.items ?? [];
@@ -99,7 +121,7 @@ export default async function CursosPage() {
       return {
         slug: course.slug,
         title: course.title,
-        description: deriveDescription(course.scoStructure),
+        description: resolveDescription(course),
         scoCount: deriveScoCount(course.scoStructure),
         coverUrl,
       };
