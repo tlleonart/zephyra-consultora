@@ -214,6 +214,21 @@ export default defineSchema({
     // rows have neither, and the public catalog renders gracefully without.
     description: v.optional(v.string()),
     coverStorageId: v.optional(v.id("_storage")),
+    // T-04 (Split-4 M-HOME, spec §4): closed taxonomy — five slugs, enum in
+    // code, not an editable table (SPEC-HOME-ACADEMIA-2026-08-26.md §4.1).
+    // Optional and additive: existing rows have no topic and are not
+    // backfilled — Zephyra assigns it by hand from the panel, after ingest.
+    // A course with no topic still lists in /cursos; it just surfaces under
+    // no chip (spec §4.2). Never touched by ingestScormPackage (spec §4.3).
+    topic: v.optional(
+      v.union(
+        v.literal("diversidad-inclusion"),
+        v.literal("liderazgo"),
+        v.literal("sostenibilidad"),
+        v.literal("cultura-organizacional"),
+        v.literal("comunicacion")
+      )
+    ),
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
@@ -244,6 +259,22 @@ export default defineSchema({
     .index("by_campus_course_id", ["campusCourseId"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
+    // T-04: serves "published courses of topic X" (home chips + /cursos?tema=).
+    // Compound on [status, topic] rather than a lone `by_topic` — every
+    // consumer of this index filters on status first (only published courses
+    // are ever shown under a chip), so a standalone topic index would just
+    // be a strict subset of this one's leading field.
+    // Correction of record: this index IS prefix-redundant with `by_status`
+    // above — Convex serves any query over an index's fields prefix, so
+    // `by_status_topic` alone could already answer listPublished's "all
+    // published, any topic" (lms/courses.ts:31). Both are kept deliberately:
+    // repointing listPublished mid-sprint carries more risk than one extra
+    // index write costs, and this repo already made that same call for
+    // `blogPosts` (`by_status` + `by_status_published`, lines 62-63, same
+    // file) — this pair follows that precedent, not an exception to it.
+    // Cleanup candidate, post-go-live, not this sprint: retire
+    // `lmsCourses.by_status` and move `listPublished` onto `by_status_topic`.
+    .index("by_status_topic", ["status", "topic"])
     .index("by_deleted", ["deletedAt"]),
 
   // Enrollment aggregate. D01 promoted learnerId from a v.string() placeholder
