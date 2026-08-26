@@ -1,6 +1,24 @@
 .hero {
   position: relative;
-  min-height: 100vh;
+  /* Reproduced with Playwright at 844x390 (iPhone 13 landscape, test A-01-6):
+   * min-height: 100vh alone pinned this section to the viewport's own height,
+   * which is only ~390px in a landscape phone. background-size: cover then had
+   * to scale hero-background.jpg (5184x3888, 4:3) so its WIDTH filled 844px —
+   * at that scale the image is 633px tall, so cover cropped 243px off it
+   * (~38%), centered, which sliced through people's heads at the top and
+   * their hands at the bottom. In portrait the same viewport is 844px tall,
+   * comfortably wider than the ~318px cover would ever need to crop, which is
+   * why the tester saw this only after rotating.
+   *
+   * `max()` sets an absolute floor under the viewport-relative height: 100vh
+   * still wins on any normal portrait or desktop viewport (all comfortably
+   * over 550px), and only a landscape phone — where 100vh collapses to
+   * 350-430px — falls back to the floor instead. At 550px the same image
+   * crops ~13% rather than ~38%, which keeps both the CTA and enough of the
+   * photo's subject in frame. This is a floor, not a redesign: no other
+   * property here changed.
+   */
+  min-height: max(100vh, 550px);
   display: flex;
   align-items: center;
   justify-content: center;
