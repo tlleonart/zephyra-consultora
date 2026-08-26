@@ -9,8 +9,16 @@ import { Input } from "@zephyra/ui";
 import { Button } from "@zephyra/ui";
 import { Card, CardHeader, CardContent, CardFooter } from "@zephyra/ui";
 import { ImageUpload } from "@zephyra/ui";
+import { Select } from "@zephyra/ui";
 import { WysiwygEditor } from "@/features/blog/components/WysiwygEditor";
 import { useToast } from "@zephyra/ui/providers/ToastProvider";
+import {
+  resolveTopicArg,
+  seedTopicField,
+  TOPIC_OPTIONS,
+  TopicFieldValue,
+  TopicSlug,
+} from "@/features/lms/lib/course-topic";
 
 /**
  * Course meta edit form (E03 — AC-E03.8).
@@ -33,6 +41,7 @@ interface CourseMetaFormProps {
     coverStorageId?: Id<"_storage">;
     priceUsd?: number;
     isPurchasable?: boolean;
+    topic?: TopicSlug;
   };
 }
 
@@ -54,6 +63,13 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
   );
   const [isPurchasable, setIsPurchasable] = useState(
     course.isPurchasable === true
+  );
+  // seedTopicField maps course.topic ?? "sin asignar" (T-04 contract §5).
+  // Cursos que hoy no tienen temática arrancan ahí, y guardar sin tocar el
+  // selector reenvía ese sentinel -> undefined via resolveTopicArg, el mismo
+  // no-op que description/coverStorageId ya hacen.
+  const [topic, setTopic] = useState<TopicFieldValue>(
+    seedTopicField(course.topic)
   );
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -82,6 +98,7 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
         title: title.trim(),
         description: description.trim() || undefined,
         coverStorageId: coverStorageId ?? undefined,
+        topic: resolveTopicArg(topic),
       });
       await updateCoursePricing({
         userId,
@@ -158,6 +175,22 @@ export function CourseMetaForm({ userId, course }: CourseMetaFormProps) {
               Guardar cambios
             </Button>
           </CardFooter>
+        </Card>
+        <Card>
+          <CardHeader title="Temática" />
+          <CardContent>
+            <Select
+              label="Temática"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value as TopicFieldValue)}
+              options={TOPIC_OPTIONS}
+            />
+            <p style={{ marginTop: 8, fontSize: 12, color: "var(--color-text-secondary)" }}>
+              Decide bajo qué chip aparece el curso en &ldquo;Explorá por
+              temática&rdquo; en la home de Academia. &ldquo;Sin
+              asignar&rdquo; lo deja fuera de todas las chips.
+            </p>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader title="Precio y venta" />
