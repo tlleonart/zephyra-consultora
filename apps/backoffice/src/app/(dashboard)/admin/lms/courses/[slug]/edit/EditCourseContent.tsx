@@ -37,6 +37,7 @@ export function EditCourseContent({ userId, slug }: EditCourseContentProps) {
           coverStorageId: course.coverStorageId,
           priceUsd: course.priceUsd,
           isPurchasable: course.isPurchasable,
+          topic: course.topic,
         }}
       />
       {/* C-07: read-only, derived from scoStructure — see CourseUnitsList's
