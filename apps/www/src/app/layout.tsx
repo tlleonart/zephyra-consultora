@@ -1,7 +1,9 @@
 import '@zephyra/ui/styles/globals.css';
+import type { Metadata } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
 import { ConvexProvider } from '@zephyra/ui/providers/ConvexProvider';
 import { ToastProvider } from '@zephyra/ui/providers/ToastProvider';
+import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -15,9 +17,20 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
-export const metadata = {
-  title: 'Zephyra Consultora',
-  description: 'Consultora de sostenibilidad e impacto social',
+// No `title.template` here on purpose: every page in this app sets its own
+// full title string (the home page, the blog list, each post), and a template
+// would silently append " · Zephyra Consultora" to all of them.
+export const metadata: Metadata = {
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    type: 'website',
+    url: SITE_URL,
+    images: [{ url: DEFAULT_OG_IMAGE, alt: SITE_NAME }],
+  },
 };
 
 export default function RootLayout({

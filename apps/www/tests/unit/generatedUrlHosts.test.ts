@@ -16,6 +16,12 @@
  * only cover the code paths that exist today, and the failure mode being guarded
  * against is a NEW line in a file this suite has never heard of. The precedent
  * for reading source in a test is apps/academia's asset-proxy-same-origin suite.
+ *
+ * UPDATED at C-03 (M-FIX): "generates NO app URL at all" is narrowed to "no
+ * CROSS-HOST app URL" — see the ORIGIN_VAR_ALLOWLIST block below for why
+ * lib/site.ts is now a second, deliberate exception (Open Graph metadata needs
+ * this app's own absolute origin) and why it cannot smuggle a foreign host back
+ * in the way the guarded-against regression would.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -65,28 +71,44 @@ describe("www generates no app URL (the M4 sweep, pinned)", () => {
   });
 
   /**
-   * The ONE file allowed to read an app-origin variable, and why.
+   * The files allowed to read an app-origin variable, and why each is here.
    *
    * This test previously asserted a flat zero and its comment named the exact
    * procedure for the day that stopped being true: "add
    * NEXT_PUBLIC_ACADEMIA_URL / NEXT_PUBLIC_BACKOFFICE_URL, read it through
    * requireOrigin(), and update boundaries §5 and this list in the same change."
-   * That day is the apex 301 map, and this is that update — not a silencing.
+   * That day came twice, for two different reasons:
    *
-   * The §5 row-1 claim is NARROWED, not withdrawn, and the distinction is the
-   * whole point: www still generates no app URL in any PAGE, COMPONENT or EMAIL.
-   * What it now does is consume two origins as BUILD CONFIGURATION —
-   * next.config.ts calls buildCutoverRedirects to emit the redirect list, and
-   * nothing at request time reads them. So the invariant with teeth is unchanged
-   * for every file except this one.
+   *   lib/cutover-redirects.ts  the apex 301 map (M4). Consumes ACADEMIA_URL +
+   *                             BACKOFFICE_URL + APP_URL as BUILD CONFIGURATION —
+   *                             next.config.ts calls it to emit the redirect
+   *                             list, and nothing at request time reads them.
+   *   lib/site.ts               C-03 (M-FIX). `grep openGraph apps/www/src` had
+   *                             returned zero files: no page declared any Open
+   *                             Graph fields, so sharing a link to this site
+   *                             showed a title and no image on every platform
+   *                             that renders link previews. Fixing it needs an
+   *                             ABSOLUTE origin for the OG `url` and `images`
+   *                             fields — a relative URL there resolves against
+   *                             nothing in most scrapers. This is exactly the
+   *                             "SEO canonical" use requireOrigin's own docstring
+   *                             names, and it only ever resolves THIS APP'S OWN
+   *                             origin — never a cross-host link.
    *
-   * Kept as a one-file allowlist rather than a relaxed regex on purpose: a
+   * The §5 row-1 claim stays NARROWED, not withdrawn: no PAGE, COMPONENT or EMAIL
+   * reads a raw NEXT_PUBLIC_*_URL var directly (both files below resolve it once,
+   * through requireOrigin, and everything else imports the resolved constant) —
+   * see the request-time assertion further down for the half of the claim that
+   * still has teeth: no file anywhere in this app ever points a URL at another
+   * app's origin.
+   *
+   * Kept as an explicit allowlist rather than a relaxed regex on purpose: a
    * broadened pattern would silently permit the next component that hardcodes a
    * cross-host link, which is the failure this suite exists to catch.
    */
-  const ORIGIN_VAR_ALLOWLIST = ["lib/cutover-redirects.ts"];
+  const ORIGIN_VAR_ALLOWLIST = ["lib/cutover-redirects.ts", "lib/site.ts"];
 
-  it("reads no app-origin env var outside the apex redirect map", () => {
+  it("reads no app-origin env var outside the allowlisted resolution points", () => {
     const offenders = files
       .filter((f) => /NEXT_PUBLIC_(APP|SITE|ACADEMIA|BACKOFFICE)_URL/.test(read(f)))
       .map((f) => path.relative(SRC, f).replace(/\\/g, "/"))
@@ -94,20 +116,29 @@ describe("www generates no app URL (the M4 sweep, pinned)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("the allowlisted file exists and is the one wired into next.config", () => {
-    // Without this, the allowance could outlive the thing it was granted for —
+  it("the allowlisted files exist, resolve through requireOrigin, and stay narrow", () => {
+    // Without this, an allowance could outlive the thing it was granted for —
     // the file gets deleted or renamed, the entry stays, and it quietly becomes a
     // licence for some future file that happens to match the same path.
-    const target = path.join(SRC, "lib/cutover-redirects.ts");
-    expect(files.map((f) => path.relative(SRC, f).replace(/\\/g, "/"))).toContain(
-      ORIGIN_VAR_ALLOWLIST[0]
-    );
-    // It must read the origins through requireOrigin, per the procedure quoted
-    // above — not off process.env raw with a fallback.
-    expect(read(target)).toContain("requireOrigin");
+    const relPaths = files.map((f) => path.relative(SRC, f).replace(/\\/g, "/"));
+    for (const entry of ORIGIN_VAR_ALLOWLIST) {
+      expect(relPaths, entry).toContain(entry);
+      // Every entry must resolve the origin through requireOrigin — not off
+      // process.env raw with a fallback (the exact regression an apex fallback
+      // caused pre-M4: a silent 404 for a real invited user).
+      expect(read(path.join(SRC, entry)), entry).toContain("requireOrigin");
+    }
+
     const config = read(path.resolve(SRC, "../next.config.ts"));
     expect(config).toContain("buildCutoverRedirects");
     expect(config).toContain("./src/lib/cutover-redirects");
+
+    // lib/site.ts is the OG/SEO-metadata resolution point specifically — it
+    // must resolve its OWN origin (NEXT_PUBLIC_APP_URL) and never a foreign
+    // app's, which would smuggle a cross-host link back in through the OG door.
+    const site = read(path.join(SRC, "lib/site.ts"));
+    expect(site).toContain("NEXT_PUBLIC_APP_URL");
+    expect(site).not.toMatch(/NEXT_PUBLIC_(ACADEMIA|BACKOFFICE)_URL/);
   });
 
   it("still generates no app URL at REQUEST time (the §5 row-1 claim itself)", () => {
