@@ -214,6 +214,21 @@ export default defineSchema({
     // rows have neither, and the public catalog renders gracefully without.
     description: v.optional(v.string()),
     coverStorageId: v.optional(v.id("_storage")),
+    // T-04 (Split-4 M-HOME, spec §4): closed taxonomy — five slugs, enum in
+    // code, not an editable table (SPEC-HOME-ACADEMIA-2026-08-26.md §4.1).
+    // Optional and additive: existing rows have no topic and are not
+    // backfilled — Zephyra assigns it by hand from the panel, after ingest.
+    // A course with no topic still lists in /cursos; it just surfaces under
+    // no chip (spec §4.2). Never touched by ingestScormPackage (spec §4.3).
+    topic: v.optional(
+      v.union(
+        v.literal("diversidad-inclusion"),
+        v.literal("liderazgo"),
+        v.literal("sostenibilidad"),
+        v.literal("cultura-organizacional"),
+        v.literal("comunicacion")
+      )
+    ),
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
@@ -244,6 +259,15 @@ export default defineSchema({
     .index("by_campus_course_id", ["campusCourseId"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
+    // T-04: serves "published courses of topic X" (home chips + /cursos?tema=).
+    // Compound on [status, topic] rather than a lone `by_topic` — every
+    // consumer of this index filters on status first (only published courses
+    // are ever shown under a chip), so a standalone topic index would just
+    // be a strict subset of this one's leading field. Distinct from
+    // `by_status` above: that one serves "all published, any topic"
+    // (listPublished); this one narrows further and would duplicate nothing
+    // by being added — status-only callers keep using `by_status`.
+    .index("by_status_topic", ["status", "topic"])
     .index("by_deleted", ["deletedAt"]),
 
   // Enrollment aggregate. D01 promoted learnerId from a v.string() placeholder
