@@ -15,6 +15,7 @@ import {
   internalQuery,
   mutation,
   query,
+  QueryCtx,
 } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
@@ -22,15 +23,86 @@ import { Id } from "../_generated/dataModel";
 import { AuthError, requireAuth, requireRole } from "../model/auth";
 import { parseScormManifest } from "./manifest";
 
+// The five topic slugs — closed taxonomy, frozen by the T-04 schema contract
+// (CONTRACT-TOPIC-FIELD-2026-08-26.md §3). Mirrors the v.union literals on
+// lmsCourses.topic in schema.ts exactly; not sourced from schema.ts at
+// runtime (same house convention as setStatus's status union below, which
+// re-spells rather than imports the schema's literal set).
+const TOPIC_SLUGS = [
+  "diversidad-inclusion",
+  "liderazgo",
+  "sostenibilidad",
+  "cultura-organizacional",
+  "comunicacion",
+] as const;
+type TopicSlug = (typeof TOPIC_SLUGS)[number];
+
+function isTopicSlug(value: string): value is TopicSlug {
+  return (TOPIC_SLUGS as readonly string[]).includes(value);
+}
+
+// Shared by listPublished and listPublishedTopics — see T-04 contract §6:
+// "which topics have >=1 published course" is a reduction over this same
+// already-indexed result set, not a new indexed access pattern.
+async function fetchPublishedCourses(ctx: QueryCtx) {
+  return await ctx.db
+    .query("lmsCourses")
+    .withIndex("by_status", (q) => q.eq("status", "published"))
+    .filter((q) => q.eq(q.field("deletedAt"), undefined))
+    .collect();
+}
+
 // PUBLIC — catalog surface; reads only status:"published"; used by /cursos
 export const listPublished = query({
   args: {},
   handler: async (ctx) => {
+    return await fetchPublishedCourses(ctx);
+  },
+});
+
+// PUBLIC — backs /cursos?tema=<slug> and the home's topic chips (T-04).
+// `topic` is plain v.string(), not the closed v.literal union: it comes off
+// a URL query string, i.e. untrusted/user-controlled input, and Convex would
+// throw an ArgumentValidationError on the client-facing catalog page for any
+// stale/typo'd/malicious `?tema=` value if we validated it at the arg layer.
+// Instead we validate in-handler and treat an unrecognized slug as "no
+// courses in this topic" (empty array) rather than an error — it must never
+// fall through to an unfiltered query, which would hand back the whole
+// catalog under a bogus topic URL. This mirrors AC 4 ("chips don't lie"):
+// an unknown topic behaves exactly like a real topic with zero published
+// courses, both render nothing.
+export const listPublishedByTopic = query({
+  args: { topic: v.string() },
+  handler: async (ctx, args) => {
+    if (!isTopicSlug(args.topic)) {
+      return [];
+    }
+    const topic: TopicSlug = args.topic;
     return await ctx.db
       .query("lmsCourses")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .withIndex("by_status_topic", (q) =>
+        q.eq("status", "published").eq("topic", topic)
+      )
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
+  },
+});
+
+// PUBLIC — tells the home which topic chips to render (spec §3.2, AC 4: a
+// topic with zero published courses must not render a chip at all). Not a
+// new index — a reduction over fetchPublishedCourses's already-indexed
+// result set (T-04 contract §6 is explicit: do not add by_topic for this).
+export const listPublishedTopics = query({
+  args: {},
+  handler: async (ctx) => {
+    const courses = await fetchPublishedCourses(ctx);
+    const topics = new Set<TopicSlug>();
+    for (const course of courses) {
+      if (course.topic) {
+        topics.add(course.topic);
+      }
+    }
+    return Array.from(topics);
   },
 });
 
@@ -364,6 +436,17 @@ export const insertCourse = internalMutation({
  * existing learner links. SCORM payload fields (manifest, scoFiles,
  * scoStructure, entryPoint, campusCourseId) are intentionally NOT editable
  * here; those only change via re-ingest.
+ *
+ * T-04/T-05: `topic` joins this form (spec §4.4 — one more CourseMetaForm
+ * field, panel-only, never touched by ingest — see the AC 8 guard on
+ * ingestScormPackage above). It follows the exact same optional-field
+ * semantics `description`/`coverStorageId` already use here: the caller
+ * always resends the form's full state, so there's no "field omitted from
+ * this call" distinct from "field explicitly cleared" — both patch the
+ * column to `undefined`. For `topic` that IS "sin asignar" (T-04 contract
+ * §5: absence of the field, never a literal "otros"/"sin-asignar" value), so
+ * CourseMetaForm's "sin asignar" option sends no `topic` and this unassigns
+ * whatever was set before.
  */
 export const updateCourseMeta = mutation({
   args: {
@@ -372,6 +455,15 @@ export const updateCourseMeta = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     coverStorageId: v.optional(v.id("_storage")),
+    topic: v.optional(
+      v.union(
+        v.literal("diversidad-inclusion"),
+        v.literal("liderazgo"),
+        v.literal("sostenibilidad"),
+        v.literal("cultura-organizacional"),
+        v.literal("comunicacion")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx, args.userId);
@@ -390,6 +482,7 @@ export const updateCourseMeta = mutation({
       title: trimmed,
       description: args.description?.trim() || undefined,
       coverStorageId: args.coverStorageId,
+      topic: args.topic,
       updatedAt: Date.now(),
     });
   },

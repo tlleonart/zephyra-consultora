@@ -13,7 +13,13 @@
  * the same seam convex-test uses internally; it is stable across 1.17.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ingestScormPackage, insertCourse } from "../../../../convex/lms/courses";
+import {
+  ingestScormPackage,
+  insertCourse,
+  listPublishedByTopic,
+  listPublishedTopics,
+  updateCourseMeta,
+} from "../../../../convex/lms/courses";
 import { AuthError } from "../../../../convex/model/auth";
 
 // Unwrap the registered handler. The Convex action/mutation wrapper stamps
@@ -27,6 +33,24 @@ const ingestHandler = (ingestScormPackage as any)._handler as (
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const insertHandler = (insertCourse as any)._handler as (
+  ctx: unknown,
+  args: unknown
+) => Promise<unknown>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const listByTopicHandler = (listPublishedByTopic as any)._handler as (
+  ctx: unknown,
+  args: unknown
+) => Promise<unknown>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const listTopicsHandler = (listPublishedTopics as any)._handler as (
+  ctx: unknown,
+  args: unknown
+) => Promise<unknown>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const updateMetaHandler = (updateCourseMeta as any)._handler as (
   ctx: unknown,
   args: unknown
 ) => Promise<unknown>;
@@ -392,5 +416,204 @@ describe("insertCourse internal mutation", () => {
       "course-draft",
       "course-published",
     ]);
+  });
+});
+
+// --- T-04/T-05: topic queries + updateCourseMeta(topic) ---------------------
+//
+// Home-chips backing surface. Two things break silently if nothing pins
+// them: (1) an unrecognized `?tema=` slug falling through to an unfiltered
+// query (would leak the whole catalog behind a bogus topic URL), and (2)
+// "sin asignar" failing to actually clear a previously-set topic (AC 7 —
+// Zephyra has to be able to unassign, not just assign).
+//
+// Store supports both chain shapes this file's handlers use:
+//   .withIndex(name, builder).filter(fn).collect()   (listPublishedByTopic,
+//                                                      fetchPublishedCourses)
+//   .get(id) / .patch(id, patch)                     (updateCourseMeta)
+interface CourseRow {
+  _id: string;
+  status: "draft" | "published" | "archived";
+  topic?: string;
+  deletedAt?: number;
+  [k: string]: unknown;
+}
+
+function makeCoursesStore(
+  seed: { courses?: CourseRow[]; adminUsers?: Array<Record<string, unknown>> } = {}
+) {
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    lmsCourses: [...(seed.courses ?? [])],
+    adminUsers: [...(seed.adminUsers ?? [])],
+  };
+
+  const db = {
+    get: vi.fn(async (id: string) => {
+      for (const rows of Object.values(tables)) {
+        const found = rows.find((r) => r._id === id);
+        if (found) return found;
+      }
+      return null;
+    }),
+    patch: vi.fn(async (id: string, patch: Record<string, unknown>) => {
+      for (const rows of Object.values(tables)) {
+        const found = rows.find((r) => r._id === id);
+        if (found) Object.assign(found, patch);
+      }
+    }),
+    query: vi.fn((table: string) => {
+      let rows = tables[table] ?? [];
+      const chain = {
+        withIndex: (
+          _name: string,
+          builder: (q: { eq: (f: string, v: unknown) => unknown }) => unknown
+        ) => {
+          const eqs: Array<[string, unknown]> = [];
+          const q = {
+            eq: (f: string, v: unknown) => {
+              eqs.push([f, v]);
+              return q;
+            },
+          };
+          builder(q);
+          rows = rows.filter((r) => eqs.every(([f, v]) => r[f] === v));
+          return chain;
+        },
+        filter: (
+          fn: (q: {
+            field: (name: string) => { __f: string };
+            eq: (ref: { __f: string }, v: unknown) => { field: string; value: unknown };
+          }) => { field: string; value: unknown }
+        ) => {
+          const q = {
+            field: (name: string) => ({ __f: name }),
+            eq: (ref: { __f: string }, value: unknown) => ({
+              field: ref.__f,
+              value,
+            }),
+          };
+          const cond = fn(q);
+          rows = rows.filter((r) => r[cond.field] === cond.value);
+          return chain;
+        },
+        collect: async () => rows,
+      };
+      return chain;
+    }),
+  };
+
+  return { db, tables };
+}
+
+const adminRow = { _id: "admin-1", role: "admin", isActive: true };
+
+describe("listPublishedByTopic query", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const courses: CourseRow[] = [
+    { _id: "c1", status: "published", topic: "liderazgo" },
+    { _id: "c2", status: "published", topic: "sostenibilidad" },
+    { _id: "c3", status: "draft", topic: "liderazgo" },
+    { _id: "c4", status: "published", topic: "liderazgo", deletedAt: 999 },
+  ];
+
+  it("returns only published, non-deleted courses matching the topic", async () => {
+    const { db } = makeCoursesStore({ courses });
+    const result = (await listByTopicHandler(
+      { db },
+      { topic: "liderazgo" }
+    )) as CourseRow[];
+    expect(result.map((r) => r._id)).toEqual(["c1"]);
+  });
+
+  it("returns an empty list for an unrecognized topic slug — never the unfiltered catalog", async () => {
+    const { db } = makeCoursesStore({ courses });
+    const result = (await listByTopicHandler(
+      { db },
+      { topic: "not-a-real-topic" }
+    )) as CourseRow[];
+    expect(result).toEqual([]);
+  });
+
+  it("returns an empty list for an empty-string topic", async () => {
+    const { db } = makeCoursesStore({ courses });
+    const result = (await listByTopicHandler({ db }, { topic: "" })) as CourseRow[];
+    expect(result).toEqual([]);
+  });
+});
+
+describe("listPublishedTopics query", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the distinct topics with at least one published course, deduped", async () => {
+    const { db } = makeCoursesStore({
+      courses: [
+        { _id: "c1", status: "published", topic: "liderazgo" },
+        { _id: "c2", status: "published", topic: "liderazgo" },
+        { _id: "c3", status: "published", topic: "comunicacion" },
+        { _id: "c4", status: "published" }, // no topic — must not surface
+        { _id: "c5", status: "draft", topic: "sostenibilidad" }, // not published
+        { _id: "c6", status: "published", topic: "cultura-organizacional", deletedAt: 1 },
+      ],
+    });
+    const result = (await listTopicsHandler({ db }, {})) as string[];
+    expect(result.sort()).toEqual(["comunicacion", "liderazgo"]);
+  });
+
+  it("returns an empty list when no published course has a topic assigned", async () => {
+    const { db } = makeCoursesStore({
+      courses: [{ _id: "c1", status: "published" }],
+    });
+    const result = (await listTopicsHandler({ db }, {})) as string[];
+    expect(result).toEqual([]);
+  });
+});
+
+describe("updateCourseMeta mutation — topic", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("sets topic when a valid slug is provided", async () => {
+    const { db, tables } = makeCoursesStore({
+      courses: [{ _id: "course-1", status: "draft", title: "Old" }],
+      adminUsers: [adminRow],
+    });
+    await updateMetaHandler(
+      { db },
+      {
+        userId: "admin-1",
+        id: "course-1",
+        title: "New Title",
+        topic: "sostenibilidad",
+      }
+    );
+    expect(tables.lmsCourses[0].topic).toBe("sostenibilidad");
+  });
+
+  it("clears a previously-assigned topic when the field is omitted (sin asignar = absence, not a literal)", async () => {
+    const { db, tables } = makeCoursesStore({
+      courses: [
+        { _id: "course-1", status: "published", title: "Old", topic: "liderazgo" },
+      ],
+      adminUsers: [adminRow],
+    });
+    await updateMetaHandler(
+      { db },
+      { userId: "admin-1", id: "course-1", title: "Old" }
+    );
+    expect(tables.lmsCourses[0].topic).toBeUndefined();
+  });
+
+  it("does not touch topic-carrying rows for non-topic edits beyond what was sent (regression: same call, unrelated field)", async () => {
+    const { db, tables } = makeCoursesStore({
+      courses: [
+        { _id: "course-1", status: "published", title: "Old", topic: "comunicacion" },
+      ],
+      adminUsers: [adminRow],
+    });
+    await updateMetaHandler(
+      { db },
+      { userId: "admin-1", id: "course-1", title: "Old", topic: "comunicacion" }
+    );
+    expect(tables.lmsCourses[0].topic).toBe("comunicacion");
   });
 });
