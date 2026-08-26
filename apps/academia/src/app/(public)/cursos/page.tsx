@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@zephyra/convex/_generated/api";
-import { CourseCard, type CourseCardData } from "@/components/public/CourseCard";
+import { CourseCard } from "@/components/public/CourseCard";
+import { EmptyCoursesState } from "@/components/public/EmptyCoursesState";
+import { toCourseCards } from "@/lib/course-catalog";
 import { requireOrigin } from "@zephyra/utils";
 import styles from "./CoursesPage.module.css";
 
@@ -26,10 +28,20 @@ const SITE_URL = requireOrigin(
   process.env.NEXT_PUBLIC_APP_URL
 );
 
+// T-06 (spec §2, AC 5): `/cursos?tema=<slug>` is a live filter, not a
+// separate indexable page — its content is near-identical to the clean
+// catalog for crawling purposes. A STATIC `metadata` export (rather than
+// `generateMetadata`) applies to every request against this route
+// regardless of query string, so the canonical below covers both
+// `/cursos` and every `/cursos?tema=X` variant with the same declaration —
+// there is no branch that could point a filtered URL at itself.
 export const metadata: Metadata = {
   title: "Cursos",
   description:
     "Catálogo de cursos de Academia Zephyra. Formación en sostenibilidad, triple impacto y gestión del cambio para personas y organizaciones.",
+  alternates: {
+    canonical: `${SITE_URL}/cursos`,
+  },
   openGraph: {
     title: "Cursos",
     description:
@@ -45,66 +57,25 @@ export const metadata: Metadata = {
   },
 };
 
-type ScoStructure = {
-  organizations?: {
-    title?: string;
-    items?: {
-      identifier: string;
-      identifierref: string | null;
-      title: string;
-    }[];
-  };
-  resources?: {
-    identifier: string;
-    href: string | null;
-    scormType: string | null;
-  }[];
-};
-
-function deriveDescription(scoStructure: unknown): string {
-  const s = (scoStructure ?? {}) as ScoStructure;
-  const orgTitle = s.organizations?.title?.trim();
-  if (orgTitle && orgTitle.length > 12) return orgTitle;
-  return "Formación online a tu ritmo. Contenidos prácticos y aplicables.";
-}
-
-function deriveScoCount(scoStructure: unknown): number {
-  const s = (scoStructure ?? {}) as ScoStructure;
-  const items = s.organizations?.items ?? [];
-  const resources = s.resources ?? [];
-  return items.filter((it) => {
-    const res = resources.find((r) => r.identifier === it.identifierref);
-    if (!res) return false;
-    return res.scormType === "sco" || res.scormType === null;
-  }).length;
-}
-
-export default async function CursosPage() {
+export default async function CursosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tema?: string }>;
+}) {
+  const { tema } = await searchParams;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-  const courses = await convex.query(api.lms.courses.listPublished, {});
 
-  // Resolve cover URLs in a single batched pass (parallel awaits) — no N+1.
-  // The schema does not yet carry `coverStorageId` on lmsCourses, but the
-  // optional access here is future-proofed for when ingestion populates it.
-  const cards: CourseCardData[] = await Promise.all(
-    courses.map(async (course) => {
-      const maybeCoverId = (course as unknown as { coverStorageId?: string })
-        .coverStorageId;
-      let coverUrl: string | null = null;
-      if (maybeCoverId) {
-        coverUrl = await convex.query(api.files.getUrl, {
-          storageId: maybeCoverId as never,
-        });
-      }
-      return {
-        slug: course.slug,
-        title: course.title,
-        description: deriveDescription(course.scoStructure),
-        scoCount: deriveScoCount(course.scoStructure),
-        coverUrl,
-      };
-    })
-  );
+  // T-06 (spec §2, §4.2): `?tema=<slug>` filters the same catalog by topic.
+  // listPublishedByTopic validates the slug against the closed set itself
+  // and returns [] for anything it doesn't recognise (stale/typo'd/
+  // malicious `?tema=` values included) — that validation is NOT
+  // reimplemented here (CONTRACT-TOPIC-FIELD-2026-08-26.md §6).
+  const courses = tema
+    ? await convex.query(api.lms.courses.listPublishedByTopic, { topic: tema })
+    : await convex.query(api.lms.courses.listPublished, {});
+
+  // Resolve cover URLs + descriptions in a single batched pass — no N+1.
+  const cards = await toCourseCards(convex, courses);
 
   return (
     <>
@@ -122,15 +93,7 @@ export default async function CursosPage() {
       <section className={styles.content}>
         <div className={styles.container}>
           {cards.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon} aria-hidden="true">
-                ✦
-              </span>
-              <p className={styles.emptyText}>
-                Próximamente nuevos cursos. Estamos preparando contenidos para
-                acompañarte. Volvé pronto.
-              </p>
-            </div>
+            <EmptyCoursesState />
           ) : (
             <ul className={styles.grid} role="list">
               {cards.map((c) => (
