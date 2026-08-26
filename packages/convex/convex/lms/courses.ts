@@ -27,8 +27,13 @@ import { parseScormManifest } from "./manifest";
 // (CONTRACT-TOPIC-FIELD-2026-08-26.md §3). Mirrors the v.union literals on
 // lmsCourses.topic in schema.ts exactly; not sourced from schema.ts at
 // runtime (same house convention as setStatus's status union below, which
-// re-spells rather than imports the schema's literal set).
-const TOPIC_SLUGS = [
+// re-spells rather than imports the schema's literal set). Exported so
+// apps/backoffice/tests/unit/shared/lmsTopicTaxonomy.test.ts (M-HOME
+// amendment) can pin this list, updateCourseMeta's args union below, and
+// @zephyra/utils's label map all to schema.ts's actual runtime validator —
+// a 6th slug added to schema.ts alone must fail that test loudly instead of
+// listPublishedByTopic silently returning [] for it forever.
+export const TOPIC_SLUGS = [
   "diversidad-inclusion",
   "liderazgo",
   "sostenibilidad",
