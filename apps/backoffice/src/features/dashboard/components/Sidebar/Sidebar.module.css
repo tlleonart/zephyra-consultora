@@ -5,6 +5,17 @@
   padding: var(--spacing-lg);
 }
 
+/* C-04. Measured at 1496×526 (the reporting tester's own viewport): the twelve
+ * sections total scrollHeight 623 against a clientHeight of 526 — LMS, Usuarios
+ * and Papelera fall below the fold. The ancestor <aside> (components/layout/
+ * DashboardLayout) already carries `overflow-y: auto`, so the items were
+ * technically reachable by scrolling it — but this file, the one that actually
+ * lays the twelve items out, had no overflow rule of its own and nothing on
+ * screen said "there is more below". That is why a tester reported a whole
+ * section "missing" rather than "below the fold": reachable-by-accident is not
+ * the same as discoverable.
+ */
+
 .logo {
   display: flex;
   flex-direction: column;
@@ -34,6 +45,37 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+
+  /* Scroll ownership lives HERE — on the list, not the logo above it — so the
+   * logo stays pinned and only the twelve destinations scroll. `min-height: 0`
+   * is load-bearing: without it a column-flex item defaults to
+   * min-height:auto, refuses to shrink below its content's natural height, and
+   * silently pushes the overflow onto whatever ancestor happens to clip it
+   * (here, invisibly, the aside) instead of scrolling in place.
+   */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+
+  /* CSS-only "scroll shadow" affordance — no JS scroll listener. Two solid
+   * masks scroll WITH the list (background-attachment: local), fading exactly
+   * the item at each edge; two shadows stay fixed to the viewport
+   * (background-attachment: scroll), so they only paint through where a mask
+   * has already gone transparent. Scrolled to the very top or bottom, the
+   * corresponding mask covers its shadow completely and the cue disappears on
+   * its own — the same self-hiding behaviour a real scrollbar has, without
+   * depending on the OS/browser to render one visibly (overlay scrollbars on
+   * some platforms are invisible until hovered, which was the second half of
+   * why this was undiscoverable).
+   */
+  background:
+    linear-gradient(var(--color-bg) 40%, transparent) center top,
+    linear-gradient(transparent, var(--color-bg) 60%) center bottom,
+    radial-gradient(farthest-side at 50% 0, var(--color-overlay-scrim), transparent) center top,
+    radial-gradient(farthest-side at 50% 100%, var(--color-overlay-scrim), transparent) center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 32px, 100% 32px, 100% 10px, 100% 10px;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .navItem {

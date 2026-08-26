@@ -145,7 +145,12 @@ export function LmsCourseList({ userId }: LmsCourseListProps) {
             textDecoration: "none",
           }}
         >
-          + Ingestar SCORM
+          {/* C-07 (extra, optional). Testers read "Ingestar SCORM" as a
+              secondary/import action and reported no way to create a course.
+              There isn't a separate creation flow by design (courses come
+              from CAMPUS; ingest is what validates them) — this is the one
+              button that adds a course, so its label says that first. */}
+          + Nuevo curso (ingestar SCORM)
         </Link>
       </div>
 
