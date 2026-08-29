@@ -1,9 +1,17 @@
 .hero {
-  /* The approved direction paints the hero as a green BAND, not a flat fill. */
+  /* CORRECCION 2026-08-29. El comentario anterior decia que "la direccion
+     aprobada pinta el hero como una BANDA verde". Era FALSO, y era peor que el
+     color: invocaba la aprobacion del cliente para justificar lo contrario de
+     lo aprobado. La pantalla 1 de la direccion C, que Zephyra firmo el
+     2026-07-27, pinta:
+         linear-gradient(150deg, var(--sand) 0%, var(--paper) 68%)
+     El verde salio porque la barra superior dependia de un fondo oscuro; eso
+     se corrigio en Navbar.module.css, que ahora es papel translucido con texto
+     oscuro, tal como el .nav del propio mockup. */
   background: linear-gradient(
-    135deg,
-    var(--color-brand-main) 0%,
-    var(--color-brand-dark) 100%
+    150deg,
+    var(--color-bg-secondary) 0%,
+    var(--color-bg) 68%
   );
   padding: var(--spacing-3xl) 0;
   /* Public layout already accounts for the fixed navbar via its own main
@@ -20,13 +28,13 @@
   font-family: var(--font-serif);
   font-size: 2.5rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-text);
   margin: 0 0 var(--spacing-md);
 }
 
 .subtitle {
   font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
   margin: 0;
   max-width: 640px;
   line-height: 1.6;

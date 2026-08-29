@@ -58,7 +58,7 @@ export const Navbar = () => {
             onClick={closeMobileMenu}
           >
             {/* D-1/D-2 live in @/lib/brand, not here. */}
-            <Brandmark tone="onDark" height={40} priority />
+            <Brandmark tone="onLight" height={40} priority />
           </Link>
 
           {/* Desktop Navigation */}
