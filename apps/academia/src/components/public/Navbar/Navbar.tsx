@@ -58,7 +58,17 @@ export const Navbar = () => {
             onClick={closeMobileMenu}
           >
             {/* D-1/D-2 live in @/lib/brand, not here. */}
-            <Brandmark tone="onLight" height={40} priority />
+            <Brandmark
+              /* La barra es papel, asi que la marca va en su variante clara.
+                 PERO con el menu movil abierto la barra se transparenta sobre
+                 un overlay VERDE: ahi la marca oscura desaparece. Mismo caso
+                 que las lineas del hamburguesa, que vuelven a blanco por CSS;
+                 la marca es un <Image> con src distinto por variante, asi que
+                 tiene que conmutar en el componente y no en la hoja de estilo. */
+              tone={isMobileMenuOpen ? "onDark" : "onLight"}
+              height={40}
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}

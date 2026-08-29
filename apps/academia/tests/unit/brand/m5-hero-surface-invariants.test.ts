@@ -89,9 +89,13 @@ describe('M-5 — la barra superior es papel translúcido con texto oscuro', () 
     expect(rule(NAV_CSS, '.navLink')).toContain('--color-text');
   });
 
-  it('la marca de la barra usa la variante para fondo claro', () => {
-    expect(NAV_TSX).toContain('tone="onLight"');
-    expect(NAV_TSX).not.toContain('tone="onDark"');
+  it('la marca conmuta con el estado del menú móvil', () => {
+    // Con la barra en papel la marca va clara; con el menú abierto la barra se
+    // transparenta sobre el overlay verde y la marca oscura DESAPARECE. Lo
+    // encontré mirando la pantalla, no corriendo tests: la primera versión de
+    // este cambio dejó el logo invisible en móvil y los once invariantes
+    // seguían en verde. Por eso el guardarraíl ahora exige la conmutación.
+    expect(NAV_TSX).toMatch(/tone=\{isMobileMenuOpen \? "onDark" : "onLight"\}/);
   });
 
   it('con el menú móvil abierto las líneas del hamburguesa vuelven a blanco', () => {
