@@ -36,24 +36,61 @@ export type PublishedCourse = Pick<
 >;
 
 /**
- * El título de la organización del manifiesto SCORM, cuando tiene cuerpo
- * suficiente para hacer de descripción. `null` si no lo tiene.
+ * Dos textos comparables: sin tildes, sin mayúsculas, sin puntuación de
+ * borde y con los espacios colapsados. Sirve para una sola cosa — decidir si
+ * dos cadenas dicen lo mismo — y no debe usarse para mostrar nada.
+ */
+function normalizar(texto: string): string {
+  return texto
+    .normalize("NFD")
+    // U+0300..U+036F: los signos diacriticos que NFD deja sueltos.
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/**
+ * El título de la organización del manifiesto SCORM, cuando sirve como
+ * descripción. `null` si no sirve.
  *
  * Está separado de `deriveDescriptionFromSco` porque las dos superficies
  * públicas comparten ESTA decisión (¿el paquete trae algo aprovechable?) pero
  * no la frase de reserva que usan cuando no trae nada. Antes eso se resolvía
  * comparando el texto devuelto contra una constante, que es exactamente el
  * tipo de acoplamiento que se rompe en silencio al editar una tilde.
+ *
+ * POR QUÉ COMPARA CONTRA EL TÍTULO DEL CURSO. Medido en staging el 2026-09-01:
+ * el manifiesto del único curso publicado trae como título de organización
+ * EXACTAMENTE el título del curso, así que la tarjeta del catálogo imprimía el
+ * título dos veces seguidas y la ficha lo repetía bajo "Sobre este curso". El
+ * guardarraíl de largo (> 12) no lo veía porque el texto es largo: el problema
+ * no es que sea corto, es que es el mismo. Un empaquetador SCORM que nombra la
+ * organización igual que el curso es lo normal, no la excepción, así que esto
+ * va a pasar con cada curso que se ingeste sin descripción escrita.
+ *
+ * La solución de fondo no es ésta: es que Zephyra escriba la descripción en el
+ * panel. Esto sólo evita que el hueco de contenido se vea como un defecto.
  */
-export function scoOrgTitle(scoStructure: unknown): string | null {
+export function scoOrgTitle(
+  scoStructure: unknown,
+  courseTitle?: string
+): string | null {
   const s = (scoStructure ?? {}) as ScoStructure;
   const orgTitle = s.organizations?.title?.trim();
-  return orgTitle && orgTitle.length > 12 ? orgTitle : null;
+  if (!orgTitle || orgTitle.length <= 12) return null;
+  if (courseTitle && normalizar(orgTitle) === normalizar(courseTitle)) {
+    return null;
+  }
+  return orgTitle;
 }
 
-export function deriveDescriptionFromSco(scoStructure: unknown): string {
+export function deriveDescriptionFromSco(
+  scoStructure: unknown,
+  courseTitle?: string
+): string {
   return (
-    scoOrgTitle(scoStructure) ??
+    scoOrgTitle(scoStructure, courseTitle) ??
     "Formación online a tu ritmo. Contenidos prácticos y aplicables."
   );
 }
@@ -65,6 +102,7 @@ export function deriveDescriptionFromSco(scoStructure: unknown): string {
  * courses that predate the field or were left blank.
  */
 export function resolveCourseDescription(course: {
+  title?: string;
   description?: string;
   scoStructure?: unknown;
 }): string {
@@ -72,7 +110,7 @@ export function resolveCourseDescription(course: {
     const plain = stripHtmlToText(course.description);
     if (plain.length > 0) return plain;
   }
-  return deriveDescriptionFromSco(course.scoStructure);
+  return deriveDescriptionFromSco(course.scoStructure, course.title);
 }
 
 /**

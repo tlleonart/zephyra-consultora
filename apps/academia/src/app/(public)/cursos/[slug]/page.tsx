@@ -47,7 +47,7 @@ function fallbackDescription(course: {
   scoStructure?: unknown;
 }): string {
   return (
-    scoOrgTitle(course.scoStructure) ??
+    scoOrgTitle(course.scoStructure, course.title) ??
     `${course.title}. Formación online a tu ritmo, con contenidos prácticos y aplicables al día a día profesional.`
   );
 }

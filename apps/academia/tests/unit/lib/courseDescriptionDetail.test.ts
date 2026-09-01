@@ -20,6 +20,7 @@ import path from "node:path";
 import { stripHtmlToParagraphs } from "@/lib/strip-html";
 import {
   scoOrgTitle,
+  resolveCourseDescription,
   resolveCourseDescriptionParagraphs,
 } from "@/lib/course-catalog";
 
@@ -64,6 +65,48 @@ describe("scoOrgTitle", () => {
   it("devuelve null cuando no hay título aprovechable", () => {
     expect(scoOrgTitle(undefined)).toBeNull();
     expect(scoOrgTitle({ organizations: { title: "Curso" } })).toBeNull();
+  });
+
+  it("no repite el título del curso — el caso real de staging", () => {
+    // Medido el 2026-09-01 en zephyra-staging-academia: el manifiesto del
+    // único curso publicado nombra la organización EXACTAMENTE igual que el
+    // curso, así que la tarjeta imprimía el título dos veces seguidas y la
+    // ficha lo repetía bajo "Sobre este curso".
+    const titulo =
+      "Diversidad, equidad e inclusión en el trabajo: cómo construir entornos laborales respetuosos";
+    expect(
+      scoOrgTitle({ organizations: { title: titulo } }, titulo)
+    ).toBeNull();
+  });
+
+  it("la comparación ignora tildes, mayúsculas y puntuación", () => {
+    expect(
+      scoOrgTitle(
+        { organizations: { title: "DIVERSIDAD E INCLUSION." } },
+        "Diversidad e Inclusión"
+      )
+    ).toBeNull();
+  });
+
+  it("sigue devolviendo el título del manifiesto cuando SÍ dice otra cosa", () => {
+    expect(
+      scoOrgTitle(
+        { organizations: { title: "Marco conceptual y práctica aplicada" } },
+        "Diversidad e Inclusión"
+      )
+    ).toBe("Marco conceptual y práctica aplicada");
+  });
+});
+
+describe("resolveCourseDescription — sin descripción escrita y con título duplicado", () => {
+  it("cae en la frase genérica en vez de repetir el título", () => {
+    const titulo = "Diversidad, equidad e inclusión en el trabajo";
+    expect(
+      resolveCourseDescription({
+        title: titulo,
+        scoStructure: { organizations: { title: titulo } },
+      })
+    ).toBe("Formación online a tu ritmo. Contenidos prácticos y aplicables.");
   });
 });
 
