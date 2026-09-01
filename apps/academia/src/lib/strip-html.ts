@@ -39,3 +39,31 @@ export function stripHtmlToText(html: string): string {
 
   return decoded.replace(/\s+/g, " ").trim();
 }
+
+/**
+ * Rich-text -> plain PARAGRAPHS, for the course detail body (P-10).
+ *
+ * WHY A SECOND FUNCTION. `stripHtmlToText` collapses every run of
+ * whitespace into a single space, which is right for a card excerpt and
+ * wrong for the detail page: there the written description is the whole
+ * "Sobre este curso" body, and the page renders it as real `<p>` elements.
+ * Flattening it would turn a three-paragraph description into one wall of
+ * text. This keeps the block boundaries the editor emitted and returns one
+ * string per paragraph, already stripped and trimmed.
+ *
+ * A hard line break (`<br>`) is treated as a paragraph boundary too: TipTap
+ * emits it where the author pressed shift+enter, and rendering it as its own
+ * paragraph is closer to what they meant than gluing the two halves together.
+ * Empty chunks (an `&nbsp;`-only paragraph, trailing markup) are dropped.
+ */
+export function stripHtmlToParagraphs(html: string): string[] {
+  if (!html) return [];
+
+  // NUL is the boundary marker: it cannot appear in editor output, so it
+  // cannot collide with real content the way a sentinel string could.
+  return html
+    .replace(/<\s*(br|\/p|\/div|\/li|\/h[1-6]|\/blockquote|\/tr)\s*\/?>/gi, "\u0000")
+    .split("\u0000")
+    .map((chunk) => stripHtmlToText(chunk))
+    .filter((paragraph) => paragraph.length > 0);
+}

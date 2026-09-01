@@ -11,7 +11,7 @@ import type { ConvexHttpClient } from "convex/browser";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Doc } from "@zephyra/convex/_generated/dataModel";
 import type { CourseCardData } from "@/components/public/CourseCard";
-import { stripHtmlToText } from "@/lib/strip-html";
+import { stripHtmlToText, stripHtmlToParagraphs } from "@/lib/strip-html";
 
 export type ScoStructure = {
   organizations?: {
@@ -35,11 +35,27 @@ export type PublishedCourse = Pick<
   "slug" | "title" | "description" | "scoStructure" | "coverStorageId"
 >;
 
-export function deriveDescriptionFromSco(scoStructure: unknown): string {
+/**
+ * El título de la organización del manifiesto SCORM, cuando tiene cuerpo
+ * suficiente para hacer de descripción. `null` si no lo tiene.
+ *
+ * Está separado de `deriveDescriptionFromSco` porque las dos superficies
+ * públicas comparten ESTA decisión (¿el paquete trae algo aprovechable?) pero
+ * no la frase de reserva que usan cuando no trae nada. Antes eso se resolvía
+ * comparando el texto devuelto contra una constante, que es exactamente el
+ * tipo de acoplamiento que se rompe en silencio al editar una tilde.
+ */
+export function scoOrgTitle(scoStructure: unknown): string | null {
   const s = (scoStructure ?? {}) as ScoStructure;
   const orgTitle = s.organizations?.title?.trim();
-  if (orgTitle && orgTitle.length > 12) return orgTitle;
-  return "Formación online a tu ritmo. Contenidos prácticos y aplicables.";
+  return orgTitle && orgTitle.length > 12 ? orgTitle : null;
+}
+
+export function deriveDescriptionFromSco(scoStructure: unknown): string {
+  return (
+    scoOrgTitle(scoStructure) ??
+    "Formación online a tu ritmo. Contenidos prácticos y aplicables."
+  );
 }
 
 /**
@@ -57,6 +73,23 @@ export function resolveCourseDescription(course: {
     if (plain.length > 0) return plain;
   }
   return deriveDescriptionFromSco(course.scoStructure);
+}
+
+/**
+ * P-10: the same rule as the card, for the course DETAIL body, which renders
+ * the description as real paragraphs instead of a one-line excerpt.
+ *
+ * Returns an EMPTY array when there is no written description, instead of
+ * falling back here. The two surfaces need different stand-ins — the card's
+ * omits the course title because the card already shows it right above,
+ * the detail page's leads with it — so the fallback stays with the caller
+ * and only the "use what the admin wrote" half is shared.
+ */
+export function resolveCourseDescriptionParagraphs(course: {
+  description?: string;
+}): string[] {
+  if (!course.description) return [];
+  return stripHtmlToParagraphs(course.description);
 }
 
 export function deriveScoCount(scoStructure: unknown): number {

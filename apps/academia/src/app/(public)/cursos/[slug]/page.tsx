@@ -9,6 +9,11 @@ import { formatUsd } from "@/features/lms-checkout/lib/format-price";
 import { api } from "@zephyra/convex/_generated/api";
 import { btnClass } from "@zephyra/ui";
 import { requireOrigin } from "@zephyra/utils";
+import {
+  deriveScoCount,
+  scoOrgTitle,
+  resolveCourseDescriptionParagraphs,
+} from "@/lib/course-catalog";
 import styles from "./CourseDetail.module.css";
 
 // Same rendering strategy as the catalog: SEO + share previews need the
@@ -23,38 +28,28 @@ const SITE_URL = requireOrigin(
   process.env.NEXT_PUBLIC_APP_URL
 );
 
-type ScoStructure = {
-  organizations?: {
-    title?: string;
-    items?: {
-      identifier: string;
-      identifierref: string | null;
-      title: string;
-    }[];
-  };
-  resources?: {
-    identifier: string;
-    href: string | null;
-    scormType: string | null;
-  }[];
-};
-
-function deriveDescription(course: { title: string; scoStructure?: unknown }): string {
-  const s = (course.scoStructure ?? {}) as ScoStructure;
-  const orgTitle = s.organizations?.title?.trim();
-  if (orgTitle && orgTitle.length > 12) return orgTitle;
-  return `${course.title}. Formación online a tu ritmo, con contenidos prácticos y aplicables al día a día profesional.`;
-}
-
-function deriveScoCount(scoStructure: unknown): number {
-  const s = (scoStructure ?? {}) as ScoStructure;
-  const items = s.organizations?.items ?? [];
-  const resources = s.resources ?? [];
-  return items.filter((it) => {
-    const res = resources.find((r) => r.identifier === it.identifierref);
-    if (!res) return false;
-    return res.scormType === "sco" || res.scormType === null;
-  }).length;
+/**
+ * P-10: la ficha del curso mostraba SIEMPRE un texto derivado del paquete
+ * SCORM e ignoraba la descripción que el panel deja escribir — el mismo
+ * defecto que T-07 corrigió en el catálogo, y que acá sobrevivió porque esta
+ * página tenía su propia copia local de `deriveDescription` y de
+ * `deriveScoCount`. Las copias ya no están: las dos superficies leen
+ * `lib/course-catalog`, que es lo que el encabezado de ese módulo ya
+ * afirmaba ("the single place that does it, so the two call sites cannot
+ * drift") sin que fuera cierto todavía.
+ *
+ * Lo único que NO se comparte es la frase de reserva para un curso sin
+ * descripción escrita: la tarjeta del catálogo ya muestra el título justo
+ * arriba, y la ficha lo necesita dentro de la frase.
+ */
+function fallbackDescription(course: {
+  title: string;
+  scoStructure?: unknown;
+}): string {
+  return (
+    scoOrgTitle(course.scoStructure) ??
+    `${course.title}. Formación online a tu ritmo, con contenidos prácticos y aplicables al día a día profesional.`
+  );
 }
 
 async function fetchCourseForRender(slug: string) {
@@ -90,7 +85,10 @@ export async function generateMetadata({
     };
   }
   const { course, coverUrl } = result;
-  const description = deriveDescription(course).slice(0, 160);
+  const escritos = resolveCourseDescriptionParagraphs(course);
+  const description = (
+    escritos.length > 0 ? escritos.join(" ") : fallbackDescription(course)
+  ).slice(0, 160);
   const url = `${SITE_URL}/cursos/${course.slug}`;
 
   return {
@@ -140,7 +138,9 @@ export default async function CourseDetailPage({
     hasEnrollment = enrollment !== null;
   }
 
-  const description = deriveDescription(course);
+  const escritos = resolveCourseDescriptionParagraphs(course);
+  const parrafos =
+    escritos.length > 0 ? escritos : [fallbackDescription(course)];
   const scoCount = deriveScoCount(course.scoStructure);
   const scoLabel = scoCount === 1 ? "1 módulo" : `${scoCount} módulos`;
 
@@ -191,7 +191,7 @@ export default async function CourseDetailPage({
           <div className={styles.bodyMain}>
             <h2 className={styles.sectionTitle}>Sobre este curso</h2>
             <div className={styles.description}>
-              {description.split(/\n+/).map((paragraph, i) => (
+              {parrafos.map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
             </div>
