@@ -300,6 +300,31 @@ describe("insertCourse internal mutation", () => {
     });
   });
 
+  it("corta el slug largo en un límite de palabra, no en cualquier letra", async () => {
+    // El título real del único curso publicado en staging. Con el corte duro
+    // anterior el slug terminaba en "-entornos-laborales-r": la tajada de 80
+    // caía adentro de "respetuosos". Un slug es una URL pública permanente
+    // (mapa 301, buscadores, links ya compartidos), así que la cola tiene que
+    // ser una palabra entera o nada.
+    const { ctx } = buildMutationCtx();
+    const result = (await insertHandler(ctx, {
+      campusCourseId: "CAMPUS-LARGO",
+      title:
+        "Diversidad, equidad e inclusión en el trabajo: cómo construir entornos laborales respetuosos",
+      scoFiles: {},
+      manifest: "<x/>",
+      scoStructure: {},
+    })) as { slug: string };
+
+    expect(result.slug).toBe(
+      "diversidad-equidad-e-inclusion-en-el-trabajo-como-construir-entornos-laborales"
+    );
+    expect(result.slug.length).toBeLessThanOrEqual(80);
+    expect(result.slug).not.toMatch(/-$/);
+    // La aserción que importa: ningún fragmento de una sola letra al final.
+    expect(result.slug.split("-").at(-1)!.length).toBeGreaterThan(1);
+  });
+
   it("disambiguates the slug when a course with the same slug already exists", async () => {
     const { ctx } = buildMutationCtx({
       existingSlugRows: {

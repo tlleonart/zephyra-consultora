@@ -234,17 +234,42 @@ export const updateCoursePricing = mutation({
   },
 });
 
+/** Cap for a generated slug, in characters. */
+const SLUG_MAX = 80;
+
 /**
  * Slugify a title into a URL-safe slug (handles Spanish accents + ñ).
+ *
+ * WHY THE CUT IS WORD-AWARE. The 80-character cap used to be a bare
+ * `.slice(0, 80)`, which lands wherever it lands. Measured on staging
+ * 2026-09-01, the one published course carries the slug
+ * `...-entornos-laborales-r` — the cap fell inside "respetuosos" and left a
+ * dangling `-r`. A course slug is a PERMANENT public URL: it goes into the
+ * cutover 301 map, into search results, and into whatever links people have
+ * already shared, so a slug is expensive to change once it is live and free
+ * to get right before the production ingest. The cut now walks back to the
+ * last word boundary, so the tail is a whole word or nothing.
+ *
+ * This changes no existing slug — those are stored on the row. It only
+ * affects courses ingested from here on, which is exactly the set that has
+ * not been published yet.
  */
 function slugify(input: string): string {
-  return input
+  const base = input
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "") // strip diacritics
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+    .replace(/^-+|-+$/g, "");
+
+  if (base.length <= SLUG_MAX) return base;
+
+  const cortado = base.slice(0, SLUG_MAX);
+  const ultimoCorte = cortado.lastIndexOf("-");
+  // If there is no separator to fall back to, the first "word" is already
+  // longer than the cap: keep the hard cut rather than returning nothing.
+  const recortado = ultimoCorte > 0 ? cortado.slice(0, ultimoCorte) : cortado;
+  return recortado.replace(/-+$/g, "");
 }
 
 /**
