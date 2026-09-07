@@ -1,0 +1,56 @@
+/* El menu movil es el overlay verde a pantalla completa: texto blanco, centrado.
+   Este bloque acompana ese tratamiento en vez de traer el suyo. */
+
+.divider {
+  width: 40%;
+  height: 1px;
+  /* El overlay es --color-brand-main y no hay token de borde sobre verde: se
+     usa el mismo blanco del texto con opacidad, que es como ya resuelve la
+     barra sus lineas sobre el menu abierto. */
+  background-color: currentColor;
+  opacity: 0.3;
+  list-style: none;
+}
+
+.identity {
+  color: white;
+  font-size: 1rem;
+  opacity: 0.85;
+  /* Un correo largo se corta en vez de empujar el ancho de la pantalla. */
+  overflow-wrap: anywhere;
+  text-align: center;
+  list-style: none;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px: cada fila es un blanco tactil. Es el mismo minimo que garantiza la
+     primitiva en escritorio, declarado aca porque aca el elemento lo pinta
+     esta app. */
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  color: white;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.link:hover {
+  opacity: 0.8;
+}
+
+/* El foco se ve SIEMPRE, y se estila :focus ademas de :focus-visible por la
+   misma razon que en la primitiva: si el foco llega por codigo, muchos
+   navegadores no lo consideran "visible" y el anillo no se pinta. */
+.link:focus,
+.link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}

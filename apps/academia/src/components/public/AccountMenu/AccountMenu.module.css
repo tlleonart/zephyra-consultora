@@ -1,0 +1,16 @@
+/* El disparador vive a la derecha de los enlaces institucionales. La primitiva
+   ya trae el circulo, los 44px y el anillo de foco: aca solo va la separacion
+   respecto de la navegacion, para no repetir lo que el paquete garantiza. */
+.root {
+  margin-left: var(--spacing-md);
+}
+
+/* Debajo de 768px la lista de enlaces institucionales se oculta y aparece el
+   hamburguesa. El menu de cuenta acompana: sus entradas se alcanzan DENTRO del
+   menu movil, con el mismo tratamiento que el resto de esa superficie, en vez
+   de dejar un desplegable blanco flotando sobre el overlay verde. */
+@media (max-width: 768px) {
+  .root {
+    display: none;
+  }
+}

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { cn } from "@zephyra/utils";
 import { Brandmark } from "@/components/public/Brandmark";
+import { AccountMenu } from "@/components/public/AccountMenu";
+import { MobileAccountLinks } from "@/components/public/MobileAccountLinks";
 import {
   INSTITUTIONAL_HOME,
   INSTITUTIONAL_NAV_LINKS,
@@ -24,28 +26,18 @@ export interface NavbarProps {
    * servidor y la baja como prop; este componente es cliente y no puede
    * leer cookies. `null` = sin sesion.
    *
-   * SIN SESION LA BARRA NO CAMBIA (AC 1): no se agrega "Iniciar sesion". El
-   * llamado a la accion del producto es comprar, y la ficha del curso ya
-   * lleva a autenticarse con su intencion preservada (SPEC §3.1).
+   * SIN SESION LA BARRA NO CAMBIA: no se agrega "Iniciar sesion". El llamado a
+   * la accion del producto es comprar, y la ficha del curso ya lleva a
+   * autenticarse con su intencion preservada. Un enlace de sesion en la barra
+   * compite con eso.
    *
-   * CON SESION todavia no cambia nada TAMPOCO: el disparador y el menu de
-   * cuenta los monta T-fe-005 sobre esta prop. T-fe-003 entrega el cableado
-   * servidor -> barra y el recorte del payload, no la interfaz.
+   * CON SESION aparece el menu de cuenta: en escritorio a la derecha de los
+   * enlaces institucionales, y en telefono dentro del menu movil.
    */
   session?: PublicLearnerSession | null;
 }
 
-/* El consumidor de `session` es T-fe-005 (<AccountMenu session={session} />).
-   La prop se DECLARA y se CABLEA en T-fe-003, antes de que exista la interfaz,
-   por dos razones que no son de comodidad: el layout tiene que resolver la
-   sesion en el servidor para que no haya parpadeo (AC 13), y el recorte a
-   {email,type} tiene que quedar fijado por test antes de que exista superficie
-   capaz de filtrar el resto (AC 11). Hasta T-fe-005 la barra se pinta igual
-   con sesion y sin ella; el disable es de esa ventana, no permanente. */
-export const Navbar = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  session = null,
-}: NavbarProps = {}) => {
+export const Navbar = ({ session = null }: NavbarProps = {}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -101,15 +93,20 @@ export const Navbar = ({
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className={styles.navLinks}>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className={styles.navLink}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className={styles.navGroup}>
+            <ul className={styles.navLinks}>
+              {navLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={styles.navLink}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {/* A la derecha de los enlaces institucionales, y SOLO con sesion.
+                Sin sesion no se renderiza nada: la barra queda identica. */}
+            {session ? <AccountMenu session={session} /> : null}
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -139,6 +136,14 @@ export const Navbar = ({
               </Link>
             </li>
           ))}
+          {/* El area de cuenta, alcanzable DENTRO del menu movil. Plana y no
+              como un segundo desplegable: esta pantalla ya se abrio con el
+              hamburguesa, y anidar otro revelado serian dos toques para llegar
+              a lo mismo. Las entradas salen de la misma lista que el
+              desplegable de escritorio. */}
+          {session ? (
+            <MobileAccountLinks session={session} onNavigate={closeMobileMenu} />
+          ) : null}
         </ul>
       </div>
     </>
