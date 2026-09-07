@@ -663,7 +663,7 @@ describe("releaseSeat — zero-engagement gate + status change", () => {
   //
   // El estado de abajo es literalmente el de Nati en el volcado del
   // 2026-09-04: progressPercent 0, completedScoCount 0, sin scoreRaw, con
-  // scoStates poblado hasta ITEM_UNIDAD_04 ("Módulo 5 de 7") y firstTouchedAt
+  // scoStates con cinco módulos vistos ("5 de 7 módulos vistos") y firstTouchedAt
   // escrito. La pantalla de la alumna dice que avanzó; el portón tiene que
   // seguir diciendo que NO se libera.
   it("AC 20 — avance parcial con progressPercent 0 (D-1): NO liberable", async () => {

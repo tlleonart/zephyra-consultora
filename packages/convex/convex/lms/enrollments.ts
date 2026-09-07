@@ -221,7 +221,7 @@ export const listMyEnrollments = query({
 // No trae título, ni slug, ni portada, ni scoStructure — o sea, ninguno de
 // los cuatro datos que la pantalla de la alumna pinta. El mapa de reuso de la
 // spec daba por hecho que alcanzaba con consumirla; no alcanza. Esta query
-// joinea el curso y deriva la posición, así la pantalla hace UN viaje.
+// joinea el curso y deriva el avance, así la pantalla hace UN viaje.
 //
 // listMyEnrollments SE QUEDA COMO ESTÁ: la consumen el proxy de assets y
 // claim-seat.ts, y esta query no la reemplaza — le agrega un vecino.
@@ -236,7 +236,8 @@ export const listMyEnrollments = query({
 // identidad. Se excluye `expired`, igual que listMyEnrollments, para que el
 // tablero no mezcle matrículas muertas con vivas.
 //
-// LA SEÑAL DE AVANCE ES POSICIÓN, NO PORCENTAJE. Ver lms/coursePosition.ts
+// LA SEÑAL DE AVANCE ES UN CONTEO DE MÓDULOS VISTOS ("5 de 7 módulos
+// vistos"), NO UN PORCENTAJE. Ver lms/coursePosition.ts
 // para la regla y el porqué. `progressPercent` NO se expone acá a propósito:
 // por decisión D-1 sigue valiendo 0 en la base para todo el mundo, así que
 // mandarlo a la pantalla sería mandarle una mentira.

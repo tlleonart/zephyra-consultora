@@ -313,7 +313,7 @@ export default defineSchema({
     // del panel B2B y getNominalProgress — los tres siguen leyendo esto y
     // siguen mostrando 0%.
     // La señal que ve la alumna en /cursos/mis-cursos es de POSICIÓN
-    // ("Módulo 5 de 7 · en curso"), NO un porcentaje, y NO se persiste acá:
+    // ("5 de 7 módulos vistos"), NO un porcentaje, y NO se persiste acá:
     // se deriva en LECTURA desde scoStates + lmsCourses.scoStructure, en
     // lms/coursePosition.ts, y la sirve lms/enrollments.ts →
     // listMyCoursesWithProgress. Decisión D-1 (2026-09-07): derivar en

@@ -28,11 +28,10 @@ const listHandler = (listMyCoursesWithProgress as any)._handler as (
     coverStorageId: string | null;
     coverUrl: string | null;
     position: {
-      moduleIndex: number;
+      modulesSeen: number;
       moduleTotal: number;
-      moduleTitle: string | null;
       state: string;
-      moduleTouched: boolean;
+      anyModuleAdvanced: boolean;
     };
   }>
 >;
@@ -136,19 +135,31 @@ describe("listMyCoursesWithProgress — el contrato de /cursos/mis-cursos", () =
     expect(cruda.coverUrl).toBeUndefined();
   });
 
-  it("trae la POSICIÓN derivada: el caso real de Nati da Módulo 5 de 7", async () => {
+  it("trae el AVANCE derivado: el caso real de Nati da 5 de 7 módulos vistos", async () => {
     const { ctx } = makeCtx(
       [matricula({ scoStates: REAL_SCO_STATES.nati })],
       [CURSO]
     );
     const [row] = await listHandler(ctx, { learnerId: LEARNER });
     expect(row.position).toEqual({
-      moduleIndex: 5,
+      modulesSeen: 5,
       moduleTotal: 7,
-      moduleTitle: "Cierre del curso",
       state: "in-progress",
-      moduleTouched: true,
+      anyModuleAdvanced: true,
     });
+  });
+
+  it("y el caso real de `zephyracs` da 3 de 7, no 7 de 7 (T-be-002b)", async () => {
+    // La matrícula que salteó cuatro unidades y tocó el último ítem. Fijado
+    // acá también, y no sólo en coursePosition.test.ts, porque éste es el
+    // número que efectivamente llega a la pantalla.
+    const { ctx } = makeCtx(
+      [matricula({ scoStates: REAL_SCO_STATES.zephyracs })],
+      [CURSO]
+    );
+    const [row] = await listHandler(ctx, { learnerId: LEARNER });
+    expect(row.position.modulesSeen).toBe(3);
+    expect(row.position.moduleTotal).toBe(7);
   });
 
   it("NO expone progressPercent — sigue en 0 en la base y sería una mentira", async () => {
@@ -266,6 +277,7 @@ describe("listMyCoursesWithProgress — el contrato de /cursos/mis-cursos", () =
     );
     const [row] = await listHandler(ctx, { learnerId: LEARNER });
     expect(row.position.moduleTotal).toBe(0);
+    expect(row.position.modulesSeen).toBe(0);
     expect(row.position.state).toBe("not-started");
   });
 
@@ -287,7 +299,7 @@ describe("listMyCoursesWithProgress — el contrato de /cursos/mis-cursos", () =
     expect(row.courseTitle).toBe(
       "Diversidad, equidad e inclusión en el trabajo"
     );
-    expect(row.position.moduleIndex).toBe(3);
-    expect(row.position.moduleTouched).toBe(false);
+    expect(row.position.modulesSeen).toBe(2);
+    expect(row.position.anyModuleAdvanced).toBe(false);
   });
 });

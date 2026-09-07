@@ -38,7 +38,8 @@ interface ScoStructureShape {
 
 /**
  * Los ítems SCO de un curso, EN EL ORDEN DEL MANIFIESTO. Ese orden es el
- * contrato: es el que recorre el reproductor y el que numera "Módulo N de M".
+ * contrato: es el que recorre el reproductor y el que da el "de 7" del
+ * conteo de módulos vistos que ve la alumna.
  *
  * Mirrors the manifest parser: each <item> with an identifierref pointing to
  * a "sco" resource counts as one SCO. WHY use item identifiers (not resource
