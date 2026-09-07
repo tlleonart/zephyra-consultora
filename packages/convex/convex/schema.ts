@@ -302,6 +302,26 @@ export default defineSchema({
     // - lessonStatus    = "completed" iff all SCOs completed, "passed" if all ≥ passed, else "incomplete"
     // - suspendData     = latest-touched SCO's suspend_data (legacy single-SCO consumer compat;
     //                     per-SCO suspend_data lives in scoStates[scoId].suspendData)
+    //
+    // OJO — la fórmula de progressPercent de arriba sigue siendo CIERTA, pero
+    // NO es lo que ve la alumna. Ese número mide finalización (cuántos SCOs
+    // mandaron lesson_status ∈ {completed, passed}) y en la práctica queda en
+    // 0 para todo el mundo, porque el contenido nunca manda "completed": en
+    // toda la historia del deployment hubo 103 "incomplete" sobre 105 eventos
+    // de lesson_status. Lo consumen el portón de liberación de cupos
+    // (lms/seats.ts, gate de cero interacción), el agregado de finalizaciones
+    // del panel B2B y getNominalProgress — los tres siguen leyendo esto y
+    // siguen mostrando 0%.
+    // La señal que ve la alumna en /cursos/mis-cursos es de POSICIÓN
+    // ("Módulo 5 de 7 · en curso"), NO un porcentaje, y NO se persiste acá:
+    // se deriva en LECTURA desde scoStates + lmsCourses.scoStructure, en
+    // lms/coursePosition.ts, y la sirve lms/enrollments.ts →
+    // listMyCoursesWithProgress. Decisión D-1 (2026-09-07): derivar en
+    // lectura evita migración, backfill y tocar el patch de recordScormEvent
+    // donde conviven firstTouchedAt, completedScoCount y progressPercent.
+    // Un porcentaje honesto NO es derivable de los datos que emite el
+    // contenido (cmi.suspend_data trae la página actual, nunca el total) —
+    // ver la caracterización en lms/suspendData.ts.
     progressPercent: v.number(),
     scoreRaw: v.optional(v.number()),
     lessonStatus: v.optional(v.string()),
