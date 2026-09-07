@@ -33,11 +33,32 @@ const learnerSecretKey = new TextEncoder().encode(
 // The pattern stays narrowly scoped to /cursos/<slug>/player rather than
 // widening to /^\/[^/]+\/player/: the /cursos prefix is KEPT on this host
 // (boundaries v1.1 §3.1 D1), so there is no reason to match an arbitrary first
-// segment. apps/legacy's `learnerProtectedRoutes = ['/cursos/mis-cursos']` is
-// deliberately NOT carried over — that page never existed, so the entry gated
-// a 404 (boundaries §3, "Resolved ambiguities"). A learner dashboard will be
-// (re)introduced deliberately with its own matcher entry.
-const learnerProtectedPatterns: RegExp[] = [/^\/cursos\/[^/]+\/player(\/|$)/];
+// segment.
+//
+// EL PANEL DE LA ALUMNA VUELVE, Y CON SU PROPIA ENTRADA. El comentario que
+// estaba acá decía que `learnerProtectedRoutes = ['/cursos/mis-cursos']` de
+// apps/legacy NO se arrastraba —esa página nunca existió, así que la entrada
+// gateaba un 404— y anticipaba por escrito que "a learner dashboard will be
+// (re)introduced deliberately with its own matcher entry". Esto es esa
+// reintroducción deliberada, no el arrastre que aquel comentario rechazaba.
+//
+// ORDEN DENTRO DEL SPRINT, dicho para que no se lea como el mismo error: la
+// entrada aterriza ANTES que las dos páginas, porque las páginas dependen de
+// ella (se construyen ya gateadas y con su returnTo funcionando). La ventana en
+// la que estas dos rutas gatean un 404 es de horas y dentro de la misma rama;
+// si el sprint se cerrara sin las páginas, estas dos líneas se van con ellas.
+//
+// SON PREFIJOS, no rutas exactas: el `(\/|$)` cubre cualquier sub-ruta que
+// cuelgue de ellas más adelante sin tener que volver a este archivo. Y ojo con
+// el efecto lateral: /cursos/<slug> comparte espacio de nombres con estas dos,
+// así que un curso publicado con slug `mis-cursos` o `cuenta` quedaría gateado
+// además de inalcanzable. Es la misma colisión que ya existía a nivel de
+// carpetas en el App Router; sólo que ahora también se ve acá.
+const learnerProtectedPatterns: RegExp[] = [
+  /^\/cursos\/[^/]+\/player(\/|$)/,
+  /^\/cursos\/mis-cursos(\/|$)/,
+  /^\/cursos\/cuenta(\/|$)/,
+];
 const learnerAuthRoutes = [
   '/cursos/auth/signup',
   '/cursos/auth/signin',
