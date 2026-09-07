@@ -22,3 +22,9 @@
   margin: 0;
   line-height: 1.6;
 }
+
+/* Solo se pinta cuando el estado vacio trae una salida. El catalogo no la
+   tiene (no hay a donde mandar); "mis cursos" si. */
+.action {
+  margin-top: var(--spacing-lg);
+}
