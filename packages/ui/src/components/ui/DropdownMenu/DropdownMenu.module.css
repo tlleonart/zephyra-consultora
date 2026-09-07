@@ -1,0 +1,134 @@
+/* Menú desplegable. Sólo tokens: ningún color, radio, sombra ni transición
+   literal — la única excepción son las medidas que SON el requisito
+   (44px de blanco táctil y el grosor del anillo de foco), que no se
+   parametrizan porque el número es la garantía. */
+
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ── El disparador ────────────────────────────────────────────────────────── */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* BLANCO TÁCTIL DE 44px. No es holgura estética: es el mínimo con el que un
+     control se puede tocar con confianza en un teléfono. Va en min-*, no en
+     width/height, para que un disparador con más contenido crezca. */
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--spacing-xs);
+  background-color: var(--color-brand-main);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.trigger:hover {
+  background-color: var(--color-brand-main-hover);
+}
+
+/* ── Foco ─────────────────────────────────────────────────────────────────── */
+
+/* EL FOCO ES VISIBLE SIEMPRE, y por eso se estila `:focus` y no sólo
+   `:focus-visible`. El menú mueve el foco POR CÓDIGO al abrirse y al recorrerse
+   con las flechas; si la persona abrió con el puntero, muchos navegadores no
+   consideran "visible" ese foco programático y `:focus-visible` no aplica. El
+   resultado sería exactamente el defecto que el testing ya levantó: foco que
+   existe y no se ve. La regla dura es que si algo tiene el foco, se nota. */
+.trigger:focus,
+.trigger:focus-visible,
+.item:focus,
+.item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── El panel ─────────────────────────────────────────────────────────────── */
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--spacing-xs));
+  z-index: var(--z-dropdown);
+  min-width: 14rem;
+  padding: var(--spacing-xs) 0;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.end {
+  right: 0;
+}
+
+.start {
+  left: 0;
+}
+
+/* ── Filas ────────────────────────────────────────────────────────────────── */
+
+.label {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  /* La identidad puede ser un correo largo y no se acciona: se corta sin
+     empujar el ancho del panel. */
+  overflow-wrap: anywhere;
+}
+
+.separator {
+  height: 1px;
+  margin: var(--spacing-xs) 0;
+  background-color: var(--color-border);
+}
+
+/* El envoltorio de un ítem que renderiza el consumidor (o el <form> de una
+   acción de servidor). No pinta nada: sólo evita que el elemento herede
+   `display: flex` del panel de forma inesperada. */
+.itemSlot {
+  display: block;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  /* 44px otra vez, y por lo mismo. Cada fila del menú es un blanco táctil. */
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+/* En pantallas chicas el panel se ancla al borde y se ensancha, para que no
+   quede cortado por el borde de la ventana. */
+@media (max-width: 480px) {
+  .menu {
+    right: 0;
+    left: auto;
+    min-width: min(18rem, calc(100vw - var(--spacing-lg) * 2));
+  }
+}

@@ -28,7 +28,7 @@ workspace (`TS2307` at compile time, `ERR_PACKAGE_PATH_NOT_EXPORTED` at runtime)
 
 | Key | Contents |
 |---|---|
-| `.` | presentational components only — `Button`, `Card`, `IconPicker`, `ImageUpload`, `Input`, `Modal`/`ConfirmDialog`, `Select`, `Skeleton`*, `Table`, `Toast`, plus `ClientOnly`/`ErrorBoundary`, and their prop types |
+| `.` | presentational components only — `Button`, `Card`, `DropdownMenu`, `IconPicker`, `ImageUpload`, `Input`, `Modal`/`ConfirmDialog`, `Select`, `Skeleton`*, `Table`, `Toast`, plus `ClientOnly`/`ErrorBoundary`, and their prop types |
 | `./providers/ConvexProvider` | `ConvexProvider` |
 | `./providers/ToastProvider` | `ToastProvider`, `useToast` |
 | `./styles/variables.css` | the design tokens |
@@ -114,3 +114,41 @@ this. Boot a consumer app and confirm a token-driven computed style still
 resolves — for `apps/www`, `next start` and grep the served CSS for the brand
 green `#1E3C2E`. A change that trims the bundle by dropping styles is worse than
 the original finding.
+
+## `DropdownMenu` — la primitiva de menú, y por qué no se queda con el elemento
+
+Este paquete no tenía ninguna primitiva de menú: había `Button`, `Card`,
+`IconPicker`, `ImageUpload`, `Input`, `Modal`/`ConfirmDialog`, `Select`,
+`Skeleton`, `Table`, `Toast`, `ClientOnly`, `ErrorBoundary` y `btnClass`.
+Cualquier menú de cuenta se iba a construir a mano en cada superficie que lo
+necesitara, con la accesibilidad reinventada cada vez — y el testing ya había
+levantado foco que existe y no se ve.
+
+Lo que la primitiva garantiza: se abre y se opera sólo con teclado; el
+disparador declara `aria-haspopup` y `aria-expanded`; el foco **entra** al menú
+al abrirlo; `Escape` cierra y **devuelve** el foco al disparador; el foco es
+visible siempre (se estila `:focus`, no sólo `:focus-visible`, porque el menú
+mueve el foco por código); y cada blanco táctil mide 44px.
+
+**Los ítems de navegación los renderiza el consumidor** (`kind: 'custom'`), por
+la misma razón por la que existe `btnClass`: este paquete no contiene ni un
+ancla ni un `next/link`, y reescribir una navegación como `<button>` pierde
+`href`, el click del medio y el rol correcto para tecnología asistiva. La
+primitiva presta el rol, el `tabIndex`, la clase, la `ref` y el cierre al
+activar; el elemento lo elige quien lo usa. Los que sí renderiza son los que no
+son navegación: `kind: 'action'` (un `<button>` con `onSelect`) y
+`kind: 'form'` (un `<form action={serverAction}>`, el patrón que ya usa el
+cierre de sesión de la superficie de empresa).
+
+`resolveMenuKey` también sale al barril, y no es un detalle interno filtrado:
+es la máquina de teclado, pura, y exportarla es lo que permite verificar las
+reglas de foco tecla por tecla en un runner sin DOM.
+
+### Una deuda con nombre: este paquete no tiene runner de tests
+
+`package.json` declara `lint` y `typecheck` y nada más, así que la tarea `test`
+de turbo no alcanza a ninguno de sus componentes. Los tests de `DropdownMenu`
+viven, por eso, en `apps/academia/tests/unit/ui/` — academia lo consume por
+workspace y su runner lo resuelve, así que corren y cuentan. Darle runner
+propio al paquete significa agregar vitest a sus devDependencies y tocar el
+lockfile; queda anotado acá para que se decida a propósito y no por inercia.

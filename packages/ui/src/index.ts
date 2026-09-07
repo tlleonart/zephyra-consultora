@@ -40,6 +40,26 @@ export type { ImageUploadProps } from './components/ui/ImageUpload';
 export { resolveImagePreview } from './components/ui/ImageUpload';
 export type { ImagePreviewState } from './components/ui/ImageUpload';
 
+// Primitiva de menú desplegable. NO existía menú en este barril —había Button,
+// Card, IconPicker, ImageUpload, Input, Modal/ConfirmDialog, Select, Skeleton,
+// Table, Toast, ClientOnly, ErrorBoundary y btnClass, y ninguna es un menú— así
+// que un menú de cuenta se iba a construir a mano en cada superficie que lo
+// necesitara, con la accesibilidad reinventada cada vez.
+//
+// `resolveMenuKey` sale al barril junto con el componente, y no es un detalle
+// interno filtrado: es la máquina de teclado pura, y exportarla es lo que
+// permite verificar por unidad las reglas de foco de este menú en un runner sin
+// DOM. El componente sin ella sólo se puede probar en un navegador.
+export { DropdownMenu, resolveMenuKey, CLOSED_MENU } from './components/ui/DropdownMenu';
+export type {
+  DropdownMenuProps,
+  DropdownMenuEntry,
+  DropdownMenuItemRenderProps,
+  MenuState,
+  MenuKeyResult,
+  MenuFocusTarget,
+} from './components/ui/DropdownMenu';
+
 export { Input } from './components/ui/Input';
 export type { InputProps } from './components/ui/Input';
 
