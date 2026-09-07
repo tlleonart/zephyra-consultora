@@ -8,6 +8,7 @@ import {
   INSTITUTIONAL_HOME,
   INSTITUTIONAL_NAV_LINKS,
 } from "@/lib/institutional-links";
+import type { PublicLearnerSession } from "@/features/auth-learner/lib/public-session";
 import styles from "./Navbar.module.css";
 
 // These six labels point at routes www owns and this app does not serve. They
@@ -16,7 +17,35 @@ import styles from "./Navbar.module.css";
 // IA question about whether "Inicio" and the logo should stay pointed off-site.
 const navLinks = INSTITUTIONAL_NAV_LINKS;
 
-export const Navbar = () => {
+export interface NavbarProps {
+  /**
+   * La sesion de la alumna, YA RECORTADA a lo que puede ver el navegador
+   * (`email` y `type`). La resuelve `(public)/layout.tsx` del lado del
+   * servidor y la baja como prop; este componente es cliente y no puede
+   * leer cookies. `null` = sin sesion.
+   *
+   * SIN SESION LA BARRA NO CAMBIA (AC 1): no se agrega "Iniciar sesion". El
+   * llamado a la accion del producto es comprar, y la ficha del curso ya
+   * lleva a autenticarse con su intencion preservada (SPEC §3.1).
+   *
+   * CON SESION todavia no cambia nada TAMPOCO: el disparador y el menu de
+   * cuenta los monta T-fe-005 sobre esta prop. T-fe-003 entrega el cableado
+   * servidor -> barra y el recorte del payload, no la interfaz.
+   */
+  session?: PublicLearnerSession | null;
+}
+
+/* El consumidor de `session` es T-fe-005 (<AccountMenu session={session} />).
+   La prop se DECLARA y se CABLEA en T-fe-003, antes de que exista la interfaz,
+   por dos razones que no son de comodidad: el layout tiene que resolver la
+   sesion en el servidor para que no haya parpadeo (AC 13), y el recorte a
+   {email,type} tiene que quedar fijado por test antes de que exista superficie
+   capaz de filtrar el resto (AC 11). Hasta T-fe-005 la barra se pinta igual
+   con sesion y sin ella; el disable es de esa ventana, no permanente. */
+export const Navbar = ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  session = null,
+}: NavbarProps = {}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
