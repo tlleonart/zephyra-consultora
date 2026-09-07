@@ -190,11 +190,15 @@ describe('AC 13 — la sesión se resuelve en el servidor, la barra no parpadea'
 });
 
 describe('AC 14 / riesgo S4 — volver async el layout no degrada el grupo (public)', () => {
-  it('las 13 páginas del grupo ya eran force-dynamic, así que leer cookies no cambia su render', () => {
+  it('TODA página del grupo declara force-dynamic, así que leer cookies no cambia su render', () => {
+    // Eran 13 cuando el layout se volvió async, y todas ya eran force-dynamic:
+    // por eso volverlo async no degradó nada. El número crece con el sprint, así
+    // que lo que se afirma es la PROPIEDAD, no el conteo — una página nueva sin
+    // force-dynamic es lo único que este test tiene que atrapar.
     const pages = walk(PUBLIC_GROUP, ['.tsx']).filter(
       (f) => path.basename(f) === 'page.tsx'
     );
-    expect(pages.length).toBe(13);
+    expect(pages.length).toBeGreaterThanOrEqual(13);
     const missing = pages
       .filter(
         (f) => !/export const dynamic\s*=\s*["']force-dynamic["']/.test(code(read(f)))
