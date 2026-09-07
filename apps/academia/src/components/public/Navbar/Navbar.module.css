@@ -72,6 +72,19 @@
   align-items: center;
 }
 
+/* El desplegable de cuenta es de ESCRITORIO. Debajo de 768px la lista de
+   enlaces institucionales se oculta y aparece el hamburguesa; el area de cuenta
+   acompana y se alcanza DENTRO del menu movil, plana, en vez de dejar un panel
+   blanco flotando sobre el overlay verde. La regla vive aca y no en la hoja del
+   menu porque alli comparte la clase `.root` con la primitiva de @zephyra/ui y
+   la cascada la decidia por orden de bundle: medido en Chromium a 390px, el
+   desplegable quedaba visible. */
+@media (max-width: 768px) {
+  .accountSlot {
+    display: none;
+  }
+}
+
 .navLinks {
   display: flex;
   gap: var(--spacing-xl);

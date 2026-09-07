@@ -266,10 +266,21 @@ describe('AC 10 — el menú de cuenta es alcanzable en el teléfono', () => {
   });
 
   it('el desplegable de escritorio se oculta en teléfono para no duplicar el acceso', () => {
-    const css = read(
+    // La regla vive en la hoja de la BARRA, sobre un envoltorio propio, y no en
+    // la del menú: ahí el elemento comparte la clase `.root` con la primitiva
+    // (`display: inline-flex`) y, con igual especificidad, ganaba el orden del
+    // bundle. Medido en Chromium a 390px: el desplegable quedaba visible.
+    const navbarCss = read(
+      path.join(SRC, 'components/public/Navbar/Navbar.module.css')
+    );
+    expect(navbarCss).toMatch(
+      /@media \(max-width: 768px\)\s*\{\s*\.accountSlot\s*\{\s*display:\s*none/
+    );
+    const menuCss = read(
       path.join(SRC, 'components/public/AccountMenu/AccountMenu.module.css')
     );
-    expect(css).toMatch(/@media \(max-width: 768px\)[\s\S]*display:\s*none/);
+    // Y no vuelve a intentarse desde la hoja del menú.
+    expect(menuCss.replace(/\/\*[\s\S]*?\*\//g, '')).not.toContain('display: none');
   });
 });
 

@@ -104,8 +104,18 @@ export const Navbar = ({ session = null }: NavbarProps = {}) => {
               ))}
             </ul>
             {/* A la derecha de los enlaces institucionales, y SOLO con sesion.
-                Sin sesion no se renderiza nada: la barra queda identica. */}
-            {session ? <AccountMenu session={session} /> : null}
+                Sin sesion no se renderiza nada: la barra queda identica.
+
+                El envoltorio NO es decorativo: es el elemento sobre el que la
+                barra decide que en telefono el desplegable no va (las entradas
+                se alcanzan dentro del menu movil). Ponerlo sobre el componente
+                mismo no alcanza — comparte clase `.root` con la primitiva y la
+                cascada decide por orden de bundle. */}
+            {session ? (
+              <div className={styles.accountSlot}>
+                <AccountMenu session={session} />
+              </div>
+            ) : null}
           </div>
 
           {/* Mobile Menu Button */}
