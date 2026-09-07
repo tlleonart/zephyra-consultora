@@ -59,11 +59,30 @@ const learnerProtectedPatterns: RegExp[] = [
   /^\/cursos\/mis-cursos(\/|$)/,
   /^\/cursos\/cuenta(\/|$)/,
 ];
+// Rutas que MINTEAN sesión. Una alumna que ya la tiene no tiene nada que hacer
+// en ellas, así que se la manda al catálogo.
+//
+// /cursos/auth/set-password NO ESTÁ EN ESTA LISTA, y su ausencia es el arreglo.
+// Estuvo acá desde el split y dejaba la ruta inalcanzable para todo el mundo:
+// con sesión rebotaba el middleware antes de que la página corriera, y sin
+// sesión rebotaba la página, que exige sesión. La entrada siempre estuvo mal
+// categorizada — set-password no mintea nada, es POSTERIOR a la sesión: la
+// alumna ya está autenticada y lo que hace ahí es elegir contraseña.
+//
+// Sacarla destraba además el alta con correo nuevo. El consumo del enlace
+// mágico setea la cookie también en la activación, la pantalla de verificación
+// empuja a set-password?firstTime=true, y el middleware veía "alumna
+// autenticada sobre ruta de auth" y la mandaba a /cursos. Resultado: quien se
+// daba de alta por primera vez aterrizaba en el catálogo sin que nadie le
+// pidiera contraseña.
+//
+// La ruta NO pasa a learnerProtectedPatterns: la página ya se protege sola
+// (llama getLearnerSession y redirige a signin sin ella), y gatearla acá además
+// duplicaría el guard en dos lugares que pueden divergir.
 const learnerAuthRoutes = [
   '/cursos/auth/signup',
   '/cursos/auth/signin',
   '/cursos/auth/verify',
-  '/cursos/auth/set-password',
 ];
 
 const verifyLearnerSessionInMiddleware = async (token: string): Promise<boolean> => {

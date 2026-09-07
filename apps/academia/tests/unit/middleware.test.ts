@@ -239,6 +239,81 @@ describe("middleware — el área de cuenta de la alumna (AC 7)", () => {
   });
 });
 
+/**
+ * /cursos/auth/set-password — una ruta que hasta acá no podía abrir NADIE.
+ *
+ * Estaba listada en `learnerAuthRoutes`, la lista de rutas que MINTEAN sesión.
+ * El efecto combinado era una superficie muerta: con sesión rebotaba el
+ * middleware a /cursos antes de que la página corriera, y sin sesión rebotaba
+ * la página, que llama getLearnerSession() y redirige a signin. Los dos
+ * caminos cerrados.
+ *
+ * Y explicaba un defecto que el testing no había podido diagnosticar: el alta
+ * con correo nuevo no pedía contraseña. El consumo del enlace mágico setea la
+ * cookie también en la activación, la verificación empuja a
+ * set-password?firstTime=true, y el middleware veía una alumna autenticada
+ * sobre una ruta de auth. La alumna caía en el catálogo, con sesión abierta y
+ * sin contraseña.
+ *
+ * El arreglo es sacar la entrada. Estos tests fijan las dos mitades: con sesión
+ * se llega, sin sesión sigue rebotando —pero rebota la PÁGINA, no el
+ * middleware, que es la diferencia que hace que la ruta exista.
+ */
+describe("middleware — /cursos/auth/set-password es alcanzable con sesión", () => {
+  it("deja pasar a una alumna CON sesión (antes la rebotaba a /cursos)", async () => {
+    const token = await signValidLearnerSession();
+    const res = await middleware(
+      makeRequest(
+        "http://localhost:3000/cursos/auth/set-password",
+        `session-learner=${token}`
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("deja pasar también con ?firstTime=true, que es como llega el alta nueva", async () => {
+    const token = await signValidLearnerSession();
+    const res = await middleware(
+      makeRequest(
+        "http://localhost:3000/cursos/auth/set-password?firstTime=true",
+        `session-learner=${token}`
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("SIN sesión el middleware no redirige: el rebote a signin lo hace la página", async () => {
+    // La ruta no se agregó a learnerProtectedPatterns a propósito. La página ya
+    // se protege sola; gatearla acá además pondría el mismo guard en dos
+    // lugares que pueden divergir. Lo que el middleware tiene que hacer es
+    // DEJARLA PASAR para que la página decida.
+    const res = await middleware(
+      makeRequest("http://localhost:3000/cursos/auth/set-password")
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("las otras tres rutas de auth siguen rebotando a quien ya tiene sesión", async () => {
+    // El cambio es de UNA entrada. Si se llevara puesta la propiedad de las
+    // otras tres, la lista entera quedaría inerte y nadie lo vería.
+    const token = await signValidLearnerSession();
+    for (const path of [
+      "/cursos/auth/signup",
+      "/cursos/auth/signin",
+      "/cursos/auth/verify",
+    ]) {
+      const res = await middleware(
+        makeRequest(`http://localhost:3000${path}`, `session-learner=${token}`)
+      );
+      expect(res.status, `${path} debería rebotar`).toBe(307);
+      expect(res.headers.get("location")).toMatch(/\/cursos$/);
+    }
+  });
+});
+
 describe("middleware — dropped and absent surfaces", () => {
   it("no gatea una ruta que no existe (el caso que cubría el test de mis-cursos)", async () => {
     // La propiedad original —el middleware no protege superficies inexistentes—
