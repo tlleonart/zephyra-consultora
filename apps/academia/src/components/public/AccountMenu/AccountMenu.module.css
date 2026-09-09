@@ -1,0 +1,16 @@
+/* El disparador vive a la derecha de los enlaces institucionales. La primitiva
+   ya trae el circulo, los 44px y el anillo de foco: aca solo va la separacion
+   respecto de la navegacion, para no repetir lo que el paquete garantiza.
+
+   OJO CON LO QUE **NO** VA ACA. Esconder el desplegable en telefono se intento
+   primero con `@media (max-width:768px){ .root{display:none} }` en esta hoja, y
+   NO FUNCIONO: `className` de DropdownMenu se compone con `cn(styles.root,
+   className)`, asi que el mismo elemento lleva el `.root` de la primitiva
+   (`display:inline-flex`) y el de aca. Las dos reglas son de una sola clase, o
+   sea de igual especificidad, y quien gana depende del ORDEN en el bundle final
+   — una carrera que en unidad no se ve y que en el navegador dejaba el
+   desplegable visible a 390px. La regla vive ahora en Navbar.module.css, sobre
+   un elemento propio de la barra, donde no hay colision posible. */
+.root {
+  margin-left: var(--spacing-md);
+}

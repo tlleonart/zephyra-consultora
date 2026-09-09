@@ -154,13 +154,172 @@ describe("middleware — learner protected route branch", () => {
   });
 });
 
-describe("middleware — dropped and absent surfaces", () => {
-  it("does NOT gate /cursos/mis-cursos (dead matcher entry removed)", async () => {
-    // apps/legacy protected this path, but the page never existed, so the entry
-    // gated a 404 (boundaries §3, "Resolved ambiguities"). It must not be
-    // carried over. Anonymous request falls through instead of redirecting.
+/**
+ * AC 7 — las páginas de cuenta de la alumna están protegidas.
+ *
+ * ESTE BLOQUE INVIERTE UN TEST QUE YA EXISTÍA, no agrega uno nuevo sobre terreno
+ * virgen. Hasta acá el archivo afirmaba, en el describe "dropped and absent
+ * surfaces", que el middleware NO gateaba /cursos/mis-cursos:
+ *
+ *   it("does NOT gate /cursos/mis-cursos (dead matcher entry removed)")
+ *
+ * Esa aserción era correcta cuando se escribió y su motivo está en el propio
+ * middleware: apps/legacy gateaba esa ruta, la página nunca existió, y la
+ * entrada terminaba protegiendo un 404. El mismo comentario anticipaba la
+ * salida: "a learner dashboard will be (re)introduced deliberately with its own
+ * matcher entry". La reintroducción es ésta, así que la propiedad se da vuelta
+ * a propósito. NO es una regresión ni una relajación del gate: es el gate
+ * llegando a la ruta que aquel comentario le reservó.
+ *
+ * El caso "una ruta inexistente no se gatea" sigue cubierto, con un sujeto que
+ * de verdad no existe (ver el describe de abajo).
+ */
+describe("middleware — el área de cuenta de la alumna (AC 7)", () => {
+  const ACCOUNT_ROUTES = ["/cursos/mis-cursos", "/cursos/cuenta"];
+
+  it("gatea /cursos/mis-cursos y /cursos/cuenta sin sesión, con su returnTo", async () => {
+    for (const path of ACCOUNT_ROUTES) {
+      const res = await middleware(makeRequest(`http://localhost:3000${path}`));
+      expect(res.status, `${path} debería redirigir`).toBe(307);
+      const location = res.headers.get("location");
+      expect(location).not.toBeNull();
+      const url = new URL(location!);
+      expect(url.pathname).toBe("/cursos/auth/signin");
+      // El returnTo se EMITE bien acá. Que la vuelta completa funcione después
+      // de activar la cuenta es otro asunto y otro defecto: la rama de
+      // activación lo pierde. AC 7 exige que el redirect lo lleve, y lo lleva.
+      expect(url.searchParams.get("returnTo")).toBe(path);
+    }
+  });
+
+  it("deja pasar /cursos/mis-cursos y /cursos/cuenta con una sesión válida", async () => {
+    const token = await signValidLearnerSession();
+    for (const path of ACCOUNT_ROUTES) {
+      const res = await middleware(
+        makeRequest(`http://localhost:3000${path}`, `session-learner=${token}`)
+      );
+      expect(res.status, `${path} debería pasar`).toBe(200);
+      expect(res.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("una cookie de admin no abre el área de cuenta (guarda entre superficies)", async () => {
+    const adminToken = await signAdminStyleSession();
+    for (const path of ACCOUNT_ROUTES) {
+      const res = await middleware(
+        makeRequest(`http://localhost:3000${path}`, `session=${adminToken}`)
+      );
+      expect(res.status, `${path} con cookie de admin`).toBe(307);
+      expect(new URL(res.headers.get("location")!).pathname).toBe(
+        "/cursos/auth/signin"
+      );
+    }
+  });
+
+  it("gatea también las sub-rutas que cuelguen de ellas", async () => {
+    // Las entradas son prefijos, no rutas exactas: agregar una sub-pantalla más
+    // adelante no exige acordarse de volver al middleware.
+    for (const path of ["/cursos/mis-cursos/archivados", "/cursos/cuenta/datos"]) {
+      const res = await middleware(makeRequest(`http://localhost:3000${path}`));
+      expect(res.status, `${path} debería redirigir`).toBe(307);
+      expect(new URL(res.headers.get("location")!).searchParams.get("returnTo")).toBe(
+        path
+      );
+    }
+  });
+
+  it("no arrastra el gate al catálogo: /cursos y /cursos/<slug> siguen públicos", async () => {
+    // La regresión que estas tres líneas nuevas podrían causar y nadie vería:
+    // que un patrón demasiado ancho gatee el catálogo entero.
+    for (const path of ["/cursos", "/cursos/mis-cursos-de-diversidad"]) {
+      const res = await middleware(makeRequest(`http://localhost:3000${path}`));
+      expect(res.status, `${path} debe seguir público`).toBe(200);
+      expect(res.headers.get("location")).toBeNull();
+    }
+  });
+});
+
+/**
+ * /cursos/auth/set-password — una ruta que hasta acá no podía abrir NADIE.
+ *
+ * Estaba listada en `learnerAuthRoutes`, la lista de rutas que MINTEAN sesión.
+ * El efecto combinado era una superficie muerta: con sesión rebotaba el
+ * middleware a /cursos antes de que la página corriera, y sin sesión rebotaba
+ * la página, que llama getLearnerSession() y redirige a signin. Los dos
+ * caminos cerrados.
+ *
+ * Y explicaba un defecto que el testing no había podido diagnosticar: el alta
+ * con correo nuevo no pedía contraseña. El consumo del enlace mágico setea la
+ * cookie también en la activación, la verificación empuja a
+ * set-password?firstTime=true, y el middleware veía una alumna autenticada
+ * sobre una ruta de auth. La alumna caía en el catálogo, con sesión abierta y
+ * sin contraseña.
+ *
+ * El arreglo es sacar la entrada. Estos tests fijan las dos mitades: con sesión
+ * se llega, sin sesión sigue rebotando —pero rebota la PÁGINA, no el
+ * middleware, que es la diferencia que hace que la ruta exista.
+ */
+describe("middleware — /cursos/auth/set-password es alcanzable con sesión", () => {
+  it("deja pasar a una alumna CON sesión (antes la rebotaba a /cursos)", async () => {
+    const token = await signValidLearnerSession();
     const res = await middleware(
-      makeRequest("http://localhost:3000/cursos/mis-cursos")
+      makeRequest(
+        "http://localhost:3000/cursos/auth/set-password",
+        `session-learner=${token}`
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("deja pasar también con ?firstTime=true, que es como llega el alta nueva", async () => {
+    const token = await signValidLearnerSession();
+    const res = await middleware(
+      makeRequest(
+        "http://localhost:3000/cursos/auth/set-password?firstTime=true",
+        `session-learner=${token}`
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("SIN sesión el middleware no redirige: el rebote a signin lo hace la página", async () => {
+    // La ruta no se agregó a learnerProtectedPatterns a propósito. La página ya
+    // se protege sola; gatearla acá además pondría el mismo guard en dos
+    // lugares que pueden divergir. Lo que el middleware tiene que hacer es
+    // DEJARLA PASAR para que la página decida.
+    const res = await middleware(
+      makeRequest("http://localhost:3000/cursos/auth/set-password")
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("las otras tres rutas de auth siguen rebotando a quien ya tiene sesión", async () => {
+    // El cambio es de UNA entrada. Si se llevara puesta la propiedad de las
+    // otras tres, la lista entera quedaría inerte y nadie lo vería.
+    const token = await signValidLearnerSession();
+    for (const path of [
+      "/cursos/auth/signup",
+      "/cursos/auth/signin",
+      "/cursos/auth/verify",
+    ]) {
+      const res = await middleware(
+        makeRequest(`http://localhost:3000${path}`, `session-learner=${token}`)
+      );
+      expect(res.status, `${path} debería rebotar`).toBe(307);
+      expect(res.headers.get("location")).toMatch(/\/cursos$/);
+    }
+  });
+});
+
+describe("middleware — dropped and absent surfaces", () => {
+  it("no gatea una ruta que no existe (el caso que cubría el test de mis-cursos)", async () => {
+    // La propiedad original —el middleware no protege superficies inexistentes—
+    // se conserva con un sujeto que efectivamente no existe en este bundle.
+    const res = await middleware(
+      makeRequest("http://localhost:3000/cursos/panel-inexistente")
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("location")).toBeNull();

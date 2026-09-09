@@ -23,7 +23,9 @@
 
 import { internalMutation, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 import { AuthError, requireAuth, requireRole } from "../model/auth";
+import { deriveCoursePosition } from "./coursePosition";
 
 // Same normalizer as lms/auth.ts. Inlined (not imported) because the auth
 // module is large and we only need the trim+lowercase shape; keeping this
@@ -207,5 +209,91 @@ export const listMyEnrollments = query({
       .withIndex("by_learner", (q) => q.eq("learnerId", args.learnerId))
       .collect();
     return rows.filter((r) => r.status !== "expired");
+  },
+});
+
+// ============================================================================
+// listMyCoursesWithProgress — lo que /cursos/mis-cursos necesita, de una
+// ============================================================================
+//
+// POR QUÉ EXISTE, SI YA ESTÁ listMyEnrollments (hallazgo H-4): porque
+// listMyEnrollments devuelve las filas CRUDAS de lmsEnrollments y nada más.
+// No trae título, ni slug, ni portada, ni scoStructure — o sea, ninguno de
+// los cuatro datos que la pantalla de la alumna pinta. El mapa de reuso de la
+// spec daba por hecho que alcanzaba con consumirla; no alcanza. Esta query
+// joinea el curso y deriva el avance, así la pantalla hace UN viaje.
+//
+// listMyEnrollments SE QUEDA COMO ESTÁ: la consumen el proxy de assets y
+// claim-seat.ts, y esta query no la reemplaza — le agrega un vecino.
+//
+// MISMO CONTRATO DE CONFIANZA que getMyEnrollment y listMyEnrollments: NO hay
+// requireAuth acá arriba. El llamador es un server component de Next.js que
+// ya validó la cookie `session-learner` con getLearnerSession() y baja el
+// learnerId resultante. Si alguien forjara el learnerId de otra en el borde,
+// la exposición máxima es "qué cursos tiene esa otra learner" — mismos datos
+// que ya expone listMyEnrollments, más título y portada de cursos que son
+// PÚBLICOS en el catálogo. Ningún PII nuevo: ni mail, ni nombre, ni
+// identidad. Se excluye `expired`, igual que listMyEnrollments, para que el
+// tablero no mezcle matrículas muertas con vivas.
+//
+// LA SEÑAL DE AVANCE ES UN CONTEO DE MÓDULOS VISTOS ("5 de 7 módulos
+// vistos"), NO UN PORCENTAJE. Ver lms/coursePosition.ts
+// para la regla y el porqué. `progressPercent` NO se expone acá a propósito:
+// por decisión D-1 sigue valiendo 0 en la base para todo el mundo, así que
+// mandarlo a la pantalla sería mandarle una mentira.
+export const listMyCoursesWithProgress = query({
+  args: {
+    learnerId: v.id("lmsCustomers"),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("lmsEnrollments")
+      .withIndex("by_learner", (q) => q.eq("learnerId", args.learnerId))
+      .collect();
+
+    const live = rows
+      .filter((r) => r.status !== "expired")
+      // Más recién tocada primero: "seguir donde iba" es el gesto de la
+      // pantalla. updatedAt se escribe en el insert y en cada evento SCORM,
+      // así que una matrícula nunca abierta cae al fondo sola.
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+
+    // Caché por curso: varias matrículas pueden apuntar al mismo curso (una
+    // individual y una por asiento, p.ej.). Un solo point-read por curso.
+    const courseCache = new Map<string, Doc<"lmsCourses"> | null>();
+    const out = [];
+
+    for (const enrollment of live) {
+      const courseKey = enrollment.courseId as string;
+      if (!courseCache.has(courseKey)) {
+        courseCache.set(courseKey, await ctx.db.get(enrollment.courseId));
+      }
+      const course = courseCache.get(courseKey) ?? null;
+      // Sin fila de curso no hay tarjeta que pintar (ni título ni destino).
+      // No debería pasar —el archivado por re-ingesta CONSERVA la fila, y el
+      // borrado es blando— pero la pantalla no se cae por un dato faltante.
+      if (!course) continue;
+
+      out.push({
+        enrollmentId: enrollment._id,
+        status: enrollment.status,
+        courseId: course._id,
+        courseSlug: course.slug,
+        courseTitle: course.title,
+        // Se devuelven los dos: la URL firmada para pintar ya, y el storageId
+        // por si el consumidor prefiere resolverla él (es lo que hace hoy
+        // apps/academia/src/lib/course-catalog.ts para el catálogo público).
+        coverStorageId: course.coverStorageId ?? null,
+        coverUrl: course.coverStorageId
+          ? await ctx.storage.getUrl(course.coverStorageId)
+          : null,
+        position: deriveCoursePosition(
+          enrollment.scoStates,
+          course.scoStructure
+        ),
+      });
+    }
+
+    return out;
   },
 });

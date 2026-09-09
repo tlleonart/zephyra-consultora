@@ -33,16 +33,56 @@ const learnerSecretKey = new TextEncoder().encode(
 // The pattern stays narrowly scoped to /cursos/<slug>/player rather than
 // widening to /^\/[^/]+\/player/: the /cursos prefix is KEPT on this host
 // (boundaries v1.1 §3.1 D1), so there is no reason to match an arbitrary first
-// segment. apps/legacy's `learnerProtectedRoutes = ['/cursos/mis-cursos']` is
-// deliberately NOT carried over — that page never existed, so the entry gated
-// a 404 (boundaries §3, "Resolved ambiguities"). A learner dashboard will be
-// (re)introduced deliberately with its own matcher entry.
-const learnerProtectedPatterns: RegExp[] = [/^\/cursos\/[^/]+\/player(\/|$)/];
+// segment.
+//
+// EL PANEL DE LA ALUMNA VUELVE, Y CON SU PROPIA ENTRADA. El comentario que
+// estaba acá decía que `learnerProtectedRoutes = ['/cursos/mis-cursos']` de
+// apps/legacy NO se arrastraba —esa página nunca existió, así que la entrada
+// gateaba un 404— y anticipaba por escrito que "a learner dashboard will be
+// (re)introduced deliberately with its own matcher entry". Esto es esa
+// reintroducción deliberada, no el arrastre que aquel comentario rechazaba.
+//
+// ORDEN DENTRO DEL SPRINT, dicho para que no se lea como el mismo error: la
+// entrada aterriza ANTES que las dos páginas, porque las páginas dependen de
+// ella (se construyen ya gateadas y con su returnTo funcionando). La ventana en
+// la que estas dos rutas gatean un 404 es de horas y dentro de la misma rama;
+// si el sprint se cerrara sin las páginas, estas dos líneas se van con ellas.
+//
+// SON PREFIJOS, no rutas exactas: el `(\/|$)` cubre cualquier sub-ruta que
+// cuelgue de ellas más adelante sin tener que volver a este archivo. Y ojo con
+// el efecto lateral: /cursos/<slug> comparte espacio de nombres con estas dos,
+// así que un curso publicado con slug `mis-cursos` o `cuenta` quedaría gateado
+// además de inalcanzable. Es la misma colisión que ya existía a nivel de
+// carpetas en el App Router; sólo que ahora también se ve acá.
+const learnerProtectedPatterns: RegExp[] = [
+  /^\/cursos\/[^/]+\/player(\/|$)/,
+  /^\/cursos\/mis-cursos(\/|$)/,
+  /^\/cursos\/cuenta(\/|$)/,
+];
+// Rutas que MINTEAN sesión. Una alumna que ya la tiene no tiene nada que hacer
+// en ellas, así que se la manda al catálogo.
+//
+// /cursos/auth/set-password NO ESTÁ EN ESTA LISTA, y su ausencia es el arreglo.
+// Estuvo acá desde el split y dejaba la ruta inalcanzable para todo el mundo:
+// con sesión rebotaba el middleware antes de que la página corriera, y sin
+// sesión rebotaba la página, que exige sesión. La entrada siempre estuvo mal
+// categorizada — set-password no mintea nada, es POSTERIOR a la sesión: la
+// alumna ya está autenticada y lo que hace ahí es elegir contraseña.
+//
+// Sacarla destraba además el alta con correo nuevo. El consumo del enlace
+// mágico setea la cookie también en la activación, la pantalla de verificación
+// empuja a set-password?firstTime=true, y el middleware veía "alumna
+// autenticada sobre ruta de auth" y la mandaba a /cursos. Resultado: quien se
+// daba de alta por primera vez aterrizaba en el catálogo sin que nadie le
+// pidiera contraseña.
+//
+// La ruta NO pasa a learnerProtectedPatterns: la página ya se protege sola
+// (llama getLearnerSession y redirige a signin sin ella), y gatearla acá además
+// duplicaría el guard en dos lugares que pueden divergir.
 const learnerAuthRoutes = [
   '/cursos/auth/signup',
   '/cursos/auth/signin',
   '/cursos/auth/verify',
-  '/cursos/auth/set-password',
 ];
 
 const verifyLearnerSessionInMiddleware = async (token: string): Promise<boolean> => {

@@ -650,6 +650,53 @@ describe("releaseSeat — zero-engagement gate + status change", () => {
     expect(tables.lmsSeatPacks[0].claimedSeats).toBe(1);
   });
 
+  // AC 20 (SPEC-CUENTA-ALUMNA v1.2) — la liberación de cupos NO cambia de
+  // comportamiento con la señal de posición.
+  //
+  // Éste es el caso que la decisión D-1 vuelve el caso REAL, y el que los dos
+  // tests de arriba NO cubren: con D-1 la señal de posición se deriva en
+  // lectura y `progressPercent` SIGUE EN 0 en la base aunque la alumna esté
+  // cursando. O sea que el portón de cero interacción NO puede apoyarse en
+  // `progressPercent`: la única señal que se mueve es `firstTouchedAt`, que
+  // recordScormEvent escribe en el MISMO patch (scormEvents.ts) y que D-1
+  // deja intacto.
+  //
+  // El estado de abajo es literalmente el de Nati en el volcado del
+  // 2026-09-04: progressPercent 0, completedScoCount 0, sin scoreRaw, con
+  // scoStates con cinco módulos vistos ("5 de 7 módulos vistos") y firstTouchedAt
+  // escrito. La pantalla de la alumna dice que avanzó; el portón tiene que
+  // seguir diciendo que NO se libera.
+  it("AC 20 — avance parcial con progressPercent 0 (D-1): NO liberable", async () => {
+    const { db, tables } = makeStore(
+      claimedSeed({
+        // Lo que la base realmente guarda mientras la alumna cursa.
+        progressPercent: 0,
+        completedScoCount: 0,
+        scoreRaw: undefined,
+        firstTouchedAt: 1788389026376,
+        scoStates: {
+          ITEM_PRESENTACION: { suspendData: '{"done":[],"actual":2}' },
+          ITEM_UNIDAD_01: { lessonStatus: "incomplete", suspendData: '{"done":[],"actual":5}' },
+          ITEM_UNIDAD_02: { lessonStatus: "incomplete", suspendData: '{"done":[],"actual":2}' },
+          ITEM_UNIDAD_03: { lessonStatus: "incomplete", suspendData: '{"done":[],"actual":0}' },
+          ITEM_UNIDAD_04: { lessonStatus: "incomplete", suspendData: '{"done":[],"actual":2}' },
+        },
+      })
+    );
+    await expect(
+      releaseHandler(db_ctx(db), {
+        callerCustomerId: "owner-1",
+        organizationId: "org-1",
+        seatId: "seat-1",
+      })
+    ).rejects.toThrow(/ya comenzó el curso/);
+    // Nada se movió: ni el asiento, ni el balance del pack, ni la matrícula.
+    expect(tables.lmsSeats.find((s) => s._id === "seat-1")?.status).toBe("claimed");
+    expect(tables.lmsSeatPacks[0].availableSeats).toBe(1);
+    expect(tables.lmsSeatPacks[0].claimedSeats).toBe(1);
+    expect(tables.lmsEnrollments.find((e) => e._id === "enr-1")?.status).toBe("active");
+  });
+
   it("RELEASE BLOCKED — a learner with a recorded score is NOT releasable", async () => {
     const { db } = makeStore(claimedSeed({ scoreRaw: 80 }));
     await expect(

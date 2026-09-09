@@ -29,6 +29,11 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
+// T-be-002: extraída verbatim desde este archivo a lms/scoStructure.ts para
+// que la derivación de posición de la alumna use la MISMA lista ordenada de
+// SCOs que este denominador. Extracción, no cambio de lógica: por D-1 este
+// archivo no se toca más allá de este import.
+import { extractScoIds } from "./scoStructure";
 
 // Read the append-only event trail for an enrollment, ordered by time.
 // Same trust contract as the other learner-keyed reads in this file.
@@ -81,41 +86,6 @@ function countCompleted(scoStates: ScoStateMap): number {
     if (status && TERMINAL_COMPLETE.has(status)) n += 1;
   }
   return n;
-}
-
-/**
- * Pull the ordered list of SCO identifiers from a parsed course's
- * scoStructure. Mirrors the manifest parser: each <item> with an
- * identifierref pointing to a "sco" resource counts as one SCO. WHY use item
- * identifiers (not resource identifiers): items are what the player navigates
- * between, and one resource CAN be referenced by multiple items (rare but
- * legal in IMS CP). The 1:1 player-nav-to-progress mapping requires
- * item-level identity.
- */
-function extractScoIds(scoStructure: unknown): string[] {
-  if (!scoStructure || typeof scoStructure !== "object") return [];
-  const s = scoStructure as {
-    organizations?: {
-      items?: Array<{ identifier?: string; identifierref?: string | null }>;
-    };
-    resources?: Array<{ identifier?: string; scormType?: string | null }>;
-  };
-  const items = s.organizations?.items ?? [];
-  const resources = s.resources ?? [];
-  const scoResourceIds = new Set(
-    resources
-      .filter((r) => (r.scormType ?? "sco") === "sco")
-      .map((r) => r.identifier)
-      .filter((x): x is string => typeof x === "string" && x.length > 0)
-  );
-  const out: string[] = [];
-  for (const it of items) {
-    if (!it.identifier || !it.identifierref) continue;
-    if (scoResourceIds.has(it.identifierref)) {
-      out.push(it.identifier);
-    }
-  }
-  return out;
 }
 
 /**
