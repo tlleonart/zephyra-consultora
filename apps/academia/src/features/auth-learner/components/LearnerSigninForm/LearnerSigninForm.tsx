@@ -9,6 +9,38 @@ import { requestMagicLink } from '../../actions/request-magic-link';
 import { signInLearnerWithPassword } from '../../actions/signin-password';
 import styles from './LearnerSigninForm.module.css';
 
+/**
+ * UAT1 / U6 — lo que la pantalla dice cuando se pide el link.
+ *
+ * EL DEFECTO QUE REPORTARON. "Poniendo el correo para que envien el link, no
+ * llega. Solo llega si se toca '¿No tenes cuenta? Empeza'." Tenian razon: con
+ * un correo que todavia no tiene cuenta no se manda nada, y la pantalla igual
+ * afirmaba "Te enviamos un link. Revisa tu mail". Quedaban esperando un mail
+ * que no existia, sin ninguna salida a la vista.
+ *
+ * POR QUE NO SE MANDA. `requestMagicLink` (Convex) tira "usuario no encontrado"
+ * para un correo no registrado, y la accion de Next colapsa CUALQUIER error en
+ * un exito opaco a proposito: es anti-enumeracion, para que nadie pueda sondear
+ * que direcciones tienen cuenta. Tomas la ratifico el 2026-09-12: se sostiene.
+ * Asi que el backend no cambia; cambia lo que la pantalla afirma.
+ *
+ * DE PASO, LA RAMA MUERTA. Habia un `else` con el mensaje anti-enumeracion
+ * correcto que NO SE EJECUTABA NUNCA: la accion devuelve `success: true`
+ * siempre, justamente por el disenio de arriba. El mensaje bueno estaba
+ * escrito y era inalcanzable. Ahora hay uno solo, que es la otra mitad del
+ * requisito: la respuesta tiene que ser indistinguible entre un correo que
+ * existe y uno que no. Dos mensajes distintos serian el oraculo que la
+ * anti-enumeracion viene a evitar.
+ *
+ * LO QUE PROPUSIERON ELLAS, aplicado un paso despues. Sugerian sacar el campo
+ * de correo y dejar solo "Empeza" y "Recuperalo". Eso resuelve el sintoma pero
+ * rompe a quien SI tiene cuenta y quiere entrar, que es el caso normal. Las
+ * dos salidas van donde hacian falta: en la pantalla donde antes se quedaban
+ * esperando.
+ */
+const MAGIC_LINK_REQUESTED_MESSAGE =
+  'Si ese correo tiene una cuenta, en un minuto te llega el link para entrar.';
+
 export const LearnerSigninForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,22 +80,18 @@ export const LearnerSigninForm = () => {
           'learner_signin',
           returnTo
         );
-        if (result.success) {
-          setSuccessMessage(
-            'Te enviamos un link. Revisá tu mail.'
-          );
-        } else {
-          // Anti-enumeration uniform message.
-          setSuccessMessage(
-            'Si esta cuenta existe, recibirás un link.'
-          );
-        }
+        // Un solo mensaje, gane o pierda: la respuesta tiene que ser la misma
+        // para un correo que existe y para uno que no. `result.success` es
+        // siempre true por disenio de la accion, asi que la rama que habia
+        // aca nunca corria.
+        void result;
+        setSuccessMessage(MAGIC_LINK_REQUESTED_MESSAGE);
       }
     } catch {
       if (mode === 'password') {
         setError('credenciales inválidas');
       } else {
-        setSuccessMessage('Si esta cuenta existe, recibirás un link.');
+        setSuccessMessage(MAGIC_LINK_REQUESTED_MESSAGE);
       }
     } finally {
       setLoading(false);
@@ -78,11 +106,17 @@ export const LearnerSigninForm = () => {
   return (
     <form onSubmit={handleSubmit} className={styles.form} noValidate>
       <h2 className={styles.title}>Iniciá sesión</h2>
-      <p className={styles.subtitle}>
-        {mode === 'magic'
-          ? 'Te enviamos un link al mail. Sin contraseñas.'
-          : 'Ingresá con tu email y contraseña.'}
-      </p>
+      {/* El subtitulo describe el METODO, y solo tiene sentido mientras el
+          formulario esta a la vista. Dejarlo puesto en el estado de exito
+          reponia la misma afirmacion que U6 vino a sacar —"te enviamos un
+          link"— justo arriba del mensaje que dice que capaz no. */}
+      {!successMessage && (
+        <p className={styles.subtitle}>
+          {mode === 'magic'
+            ? 'Te mandamos un link al mail para entrar. Sin contraseñas.'
+            : 'Ingresá con tu email y contraseña.'}
+        </p>
+      )}
 
       {error && (
         <div
@@ -105,6 +139,23 @@ export const LearnerSigninForm = () => {
           tabIndex={-1}
         >
           {successMessage}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className={styles.successHelp}>
+          <p className={styles.successHelpText}>
+            Revisá también el correo no deseado. Si no llega nada, puede ser que
+            esa dirección todavía no tenga cuenta.
+          </p>
+          <div className={styles.successHelpActions}>
+            <Link href="/cursos/auth/signup" className={styles.footerLink}>
+              ¿No tenés cuenta? Empezá
+            </Link>
+            <Link href="/cursos/auth/recovery" className={styles.footerLink}>
+              ¿Perdiste el acceso? Recuperalo
+            </Link>
+          </div>
         </div>
       )}
 
@@ -160,14 +211,18 @@ export const LearnerSigninForm = () => {
         </>
       )}
 
-      <div className={styles.footerLinks}>
-        <Link href="/cursos/auth/signup" className={styles.footerLink}>
-          ¿No tenés cuenta? Empezá
-        </Link>
-        <Link href="/cursos/auth/recovery" className={styles.footerLink}>
-          ¿Perdiste el acceso? Recuperalo
-        </Link>
-      </div>
+      {/* En el estado de exito las mismas dos salidas ya se ofrecen arriba,
+          pegadas al mensaje. Repetirlas seria pintarlas dos veces. */}
+      {!successMessage && (
+        <div className={styles.footerLinks}>
+          <Link href="/cursos/auth/signup" className={styles.footerLink}>
+            ¿No tenés cuenta? Empezá
+          </Link>
+          <Link href="/cursos/auth/recovery" className={styles.footerLink}>
+            ¿Perdiste el acceso? Recuperalo
+          </Link>
+        </div>
+      )}
     </form>
   );
 };

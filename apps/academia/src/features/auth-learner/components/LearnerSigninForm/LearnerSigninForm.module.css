@@ -89,3 +89,27 @@
 .footerLink:hover {
   text-decoration: underline;
 }
+
+/* UAT1 / U6 — la ayuda que acompaña al mensaje de "pedimos el link".
+   Va pegada al mensaje y no al pie: es justo donde las testers se quedaban
+   esperando un mail que, con una dirección sin cuenta, no iba a llegar. */
+.successHelp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  text-align: center;
+}
+
+.successHelpText {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.successHelpActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
