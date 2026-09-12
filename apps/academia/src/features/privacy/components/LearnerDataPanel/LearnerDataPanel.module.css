@@ -1,0 +1,117 @@
+/* UAT1 / U4 — pantalla de datos de la alumna B2C.
+   Sin colores propios: todo sale de los tokens, que en academia resuelven a la
+   piel Arena. Espeja el tratamiento de tarjetas de Account.module.css para que
+   las dos superficies de "mi cuenta" se lean como la misma familia. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.card {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+}
+
+.cardTitle {
+  margin: 0 0 var(--spacing-md);
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cardText {
+  margin: 0 0 var(--spacing-md);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Qué guardamos ────────────────────────────────────────────────────────── */
+.dataList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin: 0 0 var(--spacing-lg);
+}
+
+.dataRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.dataTerm {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.dataValue {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.note {
+  margin: 0;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Baja ─────────────────────────────────────────────────────────────────── */
+.warning {
+  margin: 0 0 var(--spacing-lg);
+  color: var(--color-text);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.confirmRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.confirmText {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.confirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.success {
+  padding: var(--spacing-lg);
+  background-color: var(--color-success-tint);
+  border-radius: var(--radius-md);
+}
+
+.successTitle {
+  margin: 0 0 var(--spacing-xs);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.successText {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.error {
+  margin: var(--spacing-md) 0 0;
+  color: var(--color-error);
+  line-height: 1.6;
+}
