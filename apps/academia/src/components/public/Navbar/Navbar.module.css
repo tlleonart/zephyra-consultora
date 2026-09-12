@@ -196,11 +196,40 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   height: 100%;
   gap: var(--spacing-xl);
   list-style: none;
-  padding: 0;
+  /* UAT1 / U5. El panel se recortaba por los DOS extremos a la vez.
+     Tenia `height: 100%` + `justify-content: center` y NINGUN overflow: cuando
+     la lista pasa el alto de la pantalla — que es lo que ocurre al sumarse el
+     bloque de cuenta (correo + 4 enlaces + cerrar sesion) — el centrado empuja
+     la mitad sobrante fuera por arriba y la otra mitad por abajo, y no habia
+     forma de alcanzar ninguna de las dos. Arriba "Inicio" quedaba pisando el
+     logo; abajo "Cerrar sesion" desaparecia.
+
+     NO ERA UNA DIFERENCIA ENTRE CUENTAS. Las dos testers vieron menus
+     distintos con la misma sesion: en una pantalla de 667px de alto no entra y
+     en una de 844px si. Reproducido a los dos tamanos antes de tocar esto.
+
+     El centrado se conserva con margenes automaticos en vez de
+     `justify-content`, y esa es toda la gracia: un margen automatico colapsa a
+     cero cuando no sobra espacio, asi que el contenido nunca se desborda por
+     el borde de arranque y el scroll lo alcanza. `justify-content: center`
+     desborda por los dos lados y deja el de arriba inalcanzable. */
+  padding: var(--navbar-height) var(--spacing-lg) var(--spacing-2xl);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Centrado seguro: ver el comentario de arriba. Cuando la lista entra, estos
+   dos margenes la centran igual que antes; cuando no entra, valen cero y el
+   panel se comporta como una lista scrolleable desde arriba. */
+.mobileNavLinks > :first-child {
+  margin-top: auto;
+}
+
+.mobileNavLinks > :last-child {
+  margin-bottom: auto;
 }
 
 .mobileNavLink {
