@@ -85,6 +85,48 @@ const learnerAuthRoutes = [
   '/cursos/auth/verify',
 ];
 
+// UAT1 / U2. A donde mandar a una alumna que YA tiene sesion y cae sobre una
+// ruta que mintea sesion.
+//
+// Antes esto no existia: se la mandaba siempre al catalogo, tirando el
+// `returnTo` que la propia pagina de destino habia puesto en la URL. El efecto
+// lo reportaron las testers sin saber que era esto: /empresa gatea a quien no
+// es duena de empresa mandandola a `signin?returnTo=/empresa`, el middleware
+// veia "alumna autenticada sobre ruta de auth" y la devolvia a /cursos. Asi
+// que /empresa "se transformaba en el link de cursos" para cualquiera con la
+// sesion iniciada, y la propuesta B2B quedaba inalcanzable.
+//
+// ESTO ES UNA REDIRECCION ABIERTA SI SE HACE MAL, y por eso el destino se
+// valida en vez de confiarse. La guarda que hace el trabajo pesado es la
+// comparacion de origen: `new URL(raw, origin)` resuelve las formas que
+// parecen relativas y no lo son —`//evil.com` es protocolo-relativa, y el
+// parser ademas descarta tabs y saltos de linea intercalados, que es el truco
+// clasico para colar `/	/evil.com`— y cualquiera de esas termina con un
+// origen distinto del nuestro. Se devuelve solo la parte de ruta, nunca la URL
+// entera que llego.
+//
+// La segunda guarda es contra el rebote infinito: si el `returnTo` apunta a
+// otra ruta de auth, volveriamos a entrar por esta misma rama.
+const FALLBACK_AFTER_AUTH = '/cursos';
+
+const safeReturnTo = (raw: string | null, origin: string): string => {
+  if (!raw) return FALLBACK_AFTER_AUTH;
+  // Tiene que ser una ruta de este sitio, escrita como ruta.
+  if (!raw.startsWith('/')) return FALLBACK_AFTER_AUTH;
+  let resolved: URL;
+  try {
+    resolved = new URL(raw, origin);
+  } catch {
+    return FALLBACK_AFTER_AUTH;
+  }
+  if (resolved.origin !== origin) return FALLBACK_AFTER_AUTH;
+  // Nada de volver a una ruta que mintea sesion: seria este mismo rebote otra vez.
+  if (learnerAuthRoutes.some((route) => resolved.pathname.startsWith(route))) {
+    return FALLBACK_AFTER_AUTH;
+  }
+  return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+};
+
 const verifyLearnerSessionInMiddleware = async (token: string): Promise<boolean> => {
   try {
     await jwtVerify(token, learnerSecretKey);
@@ -117,7 +159,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isLearnerAuthRoute && isLearnerAuthenticated) {
-    return NextResponse.redirect(new URL('/cursos', request.url));
+    // Respeta el `returnTo` que puso la pagina que gateo, si es seguro.
+    // Sin `returnTo` el destino sigue siendo el catalogo, como siempre.
+    const target = safeReturnTo(
+      request.nextUrl.searchParams.get('returnTo'),
+      request.nextUrl.origin
+    );
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   return NextResponse.next();

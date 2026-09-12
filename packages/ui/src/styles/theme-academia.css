@@ -90,4 +90,24 @@
   --color-warning-tint: #f2e3d5; /* rgba(180,83,9,.14) over card   · text 5.65:1 */
   --color-brand-tint-soft: #e6e7e2; /* rgba(30,60,46,.10) over card · text 9.70:1 */
   --color-error-tint: #f9e5e1; /* rgba(220,38,38,.10) over card  · text 6.85:1 */
+
+  /* ── Geometria de la barra superior ───────────────────────────────────────
+     UAT1 / U1. La barra de (public) es `position: fixed`, asi que NO ocupa
+     lugar en el flujo: sin esta reserva, el primer contenido de cada pagina
+     nace debajo de ella y queda tapado. Las testers lo reportaron tres veces
+     como tres defectos distintos — la imagen de la ficha cortada, el titulo de
+     "Configura tu contrasena" tapado y el de "Compra confirmada" cortado.
+
+     QUE NO SE VUELVA A PERDER. `CoursesPage.module.css` ya afirmaba que "el
+     layout publico ya contempla la barra fija via su propio padding de main".
+     Era falso: nadie lo habia escrito nunca. Esta variable es esa afirmacion,
+     hecha verdadera en un solo lugar y consumida en dos:
+       - `Navbar.module.css .header`  fija su alto a este valor (lo hace autoridad)
+       - `(public)/layout.module.css .main` reserva exactamente ese alto
+     Si cambia el alto de la barra, se cambia ACA y las dos siguen de acuerdo.
+
+     73px = logo 40px + padding vertical 2x16px (--spacing-md) + 1px de borde
+     inferior. Con `box-sizing: border-box` (globals.css) el alto declarado ya
+     incluye padding y borde, asi que el numero es el alto real pintado. */
+  --navbar-height: 73px;
 }

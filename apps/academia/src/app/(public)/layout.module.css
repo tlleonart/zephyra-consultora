@@ -8,4 +8,18 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* UAT1 / U1 — LA LINEA QUE FALTABA. La barra es `position: fixed`, o sea que
+     no ocupa lugar: sin esta reserva el primer contenido de cada una de las 13
+     paginas del grupo nace debajo de ella. Se veia en las tres pantallas cuyo
+     primer bloque no trae aire propio de sobra (ficha de curso, confirmacion
+     de compra, alta de contrasena) y se disimulaba en las que si.
+
+     No es una linea nueva, es una promesa incumplida: `CoursesPage.module.css`
+     ya decia "el layout publico ya contempla la barra fija via su propio
+     padding de main". Ahora es cierto.
+
+     El reproductor SCORM no se ve afectado: su shell es `position: fixed;
+     inset: 0` (player/layout.module.css), esta fuera de flujo y se pinta por
+     encima con --z-modal. */
+  padding-top: var(--navbar-height);
 }
