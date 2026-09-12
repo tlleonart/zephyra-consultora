@@ -388,6 +388,18 @@ export function ScormPlayer({
           {/* Sibling of the iframe, never a parent of it: the SCORM bridge walks
               window.parent, so reparenting the iframe would break progress
               persistence silently. Reuses selectSco — no new state. */}
+          {/* UAT1 / U7. Los rotulos dicen a que nivel navegan.
+              Una tester lo escribio asi: "al poner siguiente dentro del curso
+              va al modulo siguiente y no a la seccion siguiente dentro del
+              mismo modulo, eso es confuso". Tenia razon en lo que veia, y el
+              comportamiento es el correcto: este pie es NUESTRO y navega
+              modulos; las secciones de adentro las navega el reproductor del
+              propio paquete, que trae su lista. Son dos navegaciones apiladas
+              y las dos decian "Siguiente".
+
+              Lo que cambia es el rotulo, no el comportamiento: el "Modulo 2 de
+              7" del medio ya decia de que nivel se trata, y los botones no lo
+              acompanaban. */}
           {multiSco ? (
             <nav className={styles.footerNav} aria-label="Módulo anterior y siguiente">
               <button
@@ -396,7 +408,7 @@ export function ScormPlayer({
                 onClick={() => selectSco(currentIdx - 1)}
                 disabled={currentIdx === 0}
               >
-                <span aria-hidden="true">←</span> Anterior
+                <span aria-hidden="true">←</span> Módulo anterior
               </button>
               <span className={styles.footerNavLabel}>
                 Módulo {currentIdx + 1} de {totalScos}
@@ -407,7 +419,7 @@ export function ScormPlayer({
                 onClick={() => selectSco(currentIdx + 1)}
                 disabled={currentIdx === totalScos - 1}
               >
-                Siguiente <span aria-hidden="true">→</span>
+                Módulo siguiente <span aria-hidden="true">→</span>
               </button>
             </nav>
           ) : null}
