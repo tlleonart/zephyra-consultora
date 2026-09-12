@@ -8,32 +8,16 @@ import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
 import { formatUsd } from '@/features/lms-checkout/lib/format-price';
 import { institutionalHref } from '@/lib/institutional-links';
+import { VOLUME_BANDS, bandIndexForSeats } from '../../lib/volume-bands';
 import { createPackCheckout } from '../../actions/create-pack-checkout';
 import { btnClass } from '@zephyra/ui';
 import styles from './PackCalculator.module.css';
 
-interface Band {
-  label: string;
-  discountLabel: string;
-  /** min seat for highlight matching */
-  min: number;
-  /** max seat (null = open band) */
-  max: number | null;
-  contact: boolean;
-}
-
-// Display-only band reference so the buyer understands volume pricing. The
-// SERVER is the pricing authority — this table is purely educational; the
-// actual applied discount + total always come from computePackPrice.
-const BANDS: Band[] = [
-  { label: '1–9 lugares', discountLabel: 'Sin descuento', min: 1, max: 9, contact: false },
-  { label: '10–24 lugares', discountLabel: '10% off', min: 10, max: 24, contact: false },
-  { label: '25–49 lugares', discountLabel: '20% off', min: 25, max: 49, contact: false },
-  { label: '50 o más', discountLabel: 'Precio a medida', min: 50, max: null, contact: true },
-];
-
-const bandIndexForSeats = (seats: number): number =>
-  BANDS.findIndex((b) => seats >= b.min && (b.max === null || seats <= b.max));
+// La tabla de bandas se mudo a features/packs/lib/volume-bands.ts porque la
+// propuesta publica de /empresa pinta exactamente la misma escala. Eran el
+// mismo hecho comercial escrito en dos pantallas; ahora es uno solo. Sigue
+// siendo material explicativo: el precio lo calcula computePackPrice en el
+// servidor, y el cliente no manda ni precio ni descuento.
 
 interface PackCalculatorProps {
   courseId: Id<'lmsCourses'>;
@@ -131,7 +115,7 @@ export function PackCalculator({
               </tr>
             </thead>
             <tbody>
-              {BANDS.map((b, i) => (
+              {VOLUME_BANDS.map((b, i) => (
                 <tr
                   key={b.label}
                   className={i === activeBandIndex ? styles.bandActive : undefined}

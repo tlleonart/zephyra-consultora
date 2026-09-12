@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ConvexHttpClient } from 'convex/browser';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
 import { OrgDashboard } from '@/features/org-dashboard/components/OrgDashboard';
+import { B2BLanding } from '@/features/org-landing/components/B2BLanding';
 import type { OrgDashboardData } from '@/features/org-dashboard/types';
 import { api } from '@zephyra/convex/_generated/api';
 import type { Id } from '@zephyra/convex/_generated/dataModel';
@@ -32,8 +33,23 @@ export const metadata = {
  */
 export default async function EmpresaDashboardPage() {
   const session = await getLearnerSession();
+  // UAT1 / U3. /empresa deja de ser SOLO el panel de la duena y pasa a
+  // resolverse por tipo de sesion. Quien no es duena de una empresa —una
+  // alumna individual, una alumna de otra organizacion, o alguien sin
+  // sesion— ve la propuesta publica en vez de un rebote.
+  //
+  // ANTES: rebotaba a `signin?returnTo=/empresa`. Con sesion iniciada el
+  // middleware veia "ruta de auth" y devolvia al catalogo, asi que la
+  // propuesta B2B era inalcanzable para cualquiera que ya hubiera entrado. Y
+  // desde que el middleware respeta el returnTo (U2), ese mismo rebote se
+  // convirtio en un bucle infinito: la pagina mandaba a signin, signin
+  // devolvia a /empresa, la pagina mandaba a signin. Por eso U2 y U3 son un
+  // solo cambio y no dos.
+  //
+  // Una duena SIN organizacion sigue yendo al alta, mas abajo: ese caso es un
+  // tramite a medio terminar, no una visitante.
   if (!session || session.type !== 'org_admin') {
-    redirect('/cursos/auth/signin?returnTo=/empresa');
+    return <B2BLanding />;
   }
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);

@@ -24,8 +24,15 @@ export const metadata = {
  */
 export default async function EmpresaCatalogPage() {
   const session = await getLearnerSession();
-  if (!session || session.type !== 'org_admin') {
+  // UAT1 / U3. Sin sesion se pide iniciar sesion, que es lo correcto. Pero con
+  // una sesion viva que no es de duena, mandar a signin es mandar a una puerta
+  // que ya se cruzo: el middleware la devuelve, y desde U2 la devuelve ACA,
+  // con lo cual seria un bucle. Esa persona va a la propuesta publica.
+  if (!session) {
     redirect('/cursos/auth/signin?returnTo=/empresa/cursos');
+  }
+  if (session.type !== 'org_admin') {
+    redirect('/empresa');
   }
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);

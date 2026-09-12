@@ -345,3 +345,91 @@ describe("middleware — dropped and absent surfaces", () => {
     expect(withLearner.headers.get("location")).toBeNull();
   });
 });
+
+/**
+ * UAT1 / U2 — el `returnTo` deja de tirarse a la basura, y no se convierte en
+ * una redireccion abierta al hacerlo.
+ *
+ * POR QUE ESTE BLOQUE EXISTE. /empresa gatea a quien no es duena de empresa
+ * mandandola a `signin?returnTo=/empresa`. Con sesion iniciada, el middleware
+ * veia "ruta de auth" y devolvia a /cursos descartando el destino, asi que la
+ * propuesta B2B quedaba inalcanzable para cualquiera que ya hubiera entrado.
+ * Las testers lo reportaron como "/empresa se transforma en el link de cursos".
+ *
+ * Y POR QUE LA MITAD DE LOS CASOS SON DE SEGURIDAD. Obedecer un destino que
+ * viene en la URL es una redireccion abierta si no se valida: la guarda es que
+ * el destino resuelva al MISMO origen. Los casos de abajo son las formas que
+ * parecen relativas y no lo son.
+ */
+describe("middleware — returnTo en rutas de auth con sesion iniciada (U2)", () => {
+  const signedIn = async () => `session-learner=${await signValidLearnerSession()}`;
+
+  const destinoDe = async (url: string): Promise<string> => {
+    const res = await middleware(makeRequest(url, await signedIn()));
+    expect(res.status).toBe(307);
+    const location = res.headers.get("location");
+    expect(location).not.toBeNull();
+    const parsed = new URL(location!);
+    expect(parsed.origin).toBe("http://localhost:3000");
+    return parsed.pathname + parsed.search;
+  };
+
+  it("respeta un returnTo relativo de este sitio", async () => {
+    expect(
+      await destinoDe(
+        "http://localhost:3000/cursos/auth/signin?returnTo=%2Fempresa"
+      )
+    ).toBe("/empresa");
+  });
+
+  it("conserva la query del returnTo", async () => {
+    expect(
+      await destinoDe(
+        "http://localhost:3000/cursos/auth/signin?returnTo=%2Fcursos%2Fintro-to-x%3Fref%3Dmail"
+      )
+    ).toBe("/cursos/intro-to-x?ref=mail");
+  });
+
+  it("sin returnTo sigue mandando al catalogo, como siempre", async () => {
+    expect(await destinoDe("http://localhost:3000/cursos/auth/signin")).toBe(
+      "/cursos"
+    );
+  });
+
+  // ── Release gate: redireccion abierta ──────────────────────────────────────
+  it.each([
+    ["absoluta a otro host", "https%3A%2F%2Fevil.example%2Frobo"],
+    ["protocolo-relativa", "%2F%2Fevil.example%2Frobo"],
+    ["protocolo-relativa con backslash", "%2F%5Cevil.example%2Frobo"],
+    ["con tab intercalado para colar el doble slash", "%2F%09%2Fevil.example"],
+    ["con salto de linea intercalado", "%2F%0A%2Fevil.example"],
+    ["esquema javascript", "javascript%3Aalert(1)"],
+    ["esquema data", "data%3Atext%2Fhtml%2Chola"],
+    ["ruta que no arranca con barra", "empresa"],
+  ])("no obedece un returnTo %s — cae al catalogo", async (_caso, raw) => {
+    expect(
+      await destinoDe(`http://localhost:3000/cursos/auth/signin?returnTo=${raw}`)
+    ).toBe("/cursos");
+  });
+
+  // ── Rebote infinito ────────────────────────────────────────────────────────
+  it.each([
+    ["/cursos/auth/signin"],
+    ["/cursos/auth/signup"],
+    ["/cursos/auth/verify"],
+  ])("no vuelve a %s — seria este mismo rebote otra vez", async (destino) => {
+    expect(
+      await destinoDe(
+        `http://localhost:3000/cursos/auth/signin?returnTo=${encodeURIComponent(destino)}`
+      )
+    ).toBe("/cursos");
+  });
+
+  it("una alumna SIN sesion no es tocada por esta rama", async () => {
+    const res = await middleware(
+      makeRequest("http://localhost:3000/cursos/auth/signin?returnTo=%2Fempresa")
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+});
