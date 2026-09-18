@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { btnClass } from '@zephyra/ui';
 import { VOLUME_BANDS } from '@/features/packs/lib/volume-bands';
+import type { PublicLearnerSession } from '@/features/auth-learner/lib/public-session';
+import { OrgAccountSwitch } from '../OrgAccountSwitch';
 import styles from './B2BLanding.module.css';
 
 /**
@@ -27,7 +29,12 @@ import styles from './B2BLanding.module.css';
  * propio se descartaron en el Sprint 3 a favor de esta configuracion. Si alguna
  * vez vuelve un precio fijo, vuelve por la config, no por este archivo.
  */
-export function B2BLanding() {
+export interface B2BLandingProps {
+  /** La sesion abierta, si hay. Aca nunca es de una duena: a ella /empresa le muestra el panel. */
+  session?: PublicLearnerSession | null;
+}
+
+export function B2BLanding({ session = null }: B2BLandingProps) {
   return (
     <div className={styles.wrapper}>
       <header className={styles.hero}>
@@ -164,12 +171,16 @@ export function B2BLanding() {
         >
           Registrá tu empresa
         </Link>
-        <p className={styles.signinHint}>
-          ¿Ya tenés una empresa registrada?{' '}
-          <Link href="/cursos/auth/signin?returnTo=/empresa" className={styles.signinLink}>
-            Iniciá sesión
-          </Link>
-        </p>
+        {session ? (
+          <OrgAccountSwitch email={session.email} className={styles.signinHint} />
+        ) : (
+          <p className={styles.signinHint}>
+            ¿Ya tenés una empresa registrada?{' '}
+            <Link href="/cursos/auth/signin?returnTo=/empresa" className={styles.signinLink}>
+              Iniciá sesión
+            </Link>
+          </p>
+        )}
       </section>
     </div>
   );

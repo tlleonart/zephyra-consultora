@@ -484,3 +484,43 @@ test.describe('Defecto E — el cromo tapado detrás del reproductor (evidencia)
     expect(Array.isArray(alcanzados)).toBe(true);
   });
 });
+
+/**
+ * UAT2 — "Sigue sin poder cerrarse sesión en la web. En el celu sí se puede."
+ *
+ * El click sobre "Cerrar sesión" cerraba el menú, React desmontaba el panel
+ * ANTES de la acción por defecto del click, y el navegador cancelaba el envío
+ * de un formulario que ya no estaba en el documento ("Form submission canceled
+ * because the form is not connected"). Ningún test lo veía: los de marcado
+ * leen el código, y los de teclado de arriba nunca envían. Éste sí, con el
+ * puntero y con el teclado, que son los dos caminos del menú.
+ */
+test.describe('UAT2 — Cerrar sesión desde el menú de escritorio', () => {
+  for (const via of ['puntero', 'teclado'] as const) {
+    test(`cierra la sesión de verdad (${via})`, async ({ page }) => {
+      await signIn(page, 'individual');
+      await page.goto('/cursos');
+      await expect(trigger(page)).toBeVisible();
+
+      const cancelado: string[] = [];
+      page.on('console', (m) => {
+        if (/not connected/i.test(m.text())) cancelado.push(m.text());
+      });
+
+      if (via === 'puntero') {
+        await trigger(page).click();
+        await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
+      } else {
+        await trigger(page).focus();
+        await page.keyboard.press('ArrowUp'); // abre por el final: "Cerrar sesión"
+        await expect(page.locator(':focus')).toHaveText('Cerrar sesión');
+        await page.keyboard.press('Enter');
+      }
+
+      await expect(trigger(page)).toHaveCount(0);
+      const cookies = await page.context().cookies();
+      expect(cookies.find((c) => c.name === 'session-learner')?.value ?? '').toBe('');
+      expect(cancelado, 'el navegador canceló el envío del formulario').toEqual([]);
+    });
+  }
+});

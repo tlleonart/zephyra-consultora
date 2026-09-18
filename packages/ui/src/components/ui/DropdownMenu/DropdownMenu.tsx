@@ -282,6 +282,17 @@ export const DropdownMenu = ({
               );
             }
 
+            // EL ÍTEM DE FORMULARIO NO CIERRA EL MENÚ AL CLICK. Cerrarlo desmonta
+            // el panel, y con él el <form>: React aplica el cambio de estado
+            // antes de que el navegador ejecute el envío (que es la acción por
+            // defecto del click, y corre DESPUÉS de los listeners). Cuando el
+            // envío llega, el formulario ya no está en el documento y el
+            // navegador lo cancela en silencio — "Form submission canceled
+            // because the form is not connected". Así se veía "Cerrar sesión"
+            // en escritorio: el menú se cerraba y la sesión seguía abierta. En
+            // el teléfono andaba porque ahí el formulario es plano y nadie lo
+            // desmonta. La acción de servidor redirige, y la navegación es la
+            // que se lleva el menú.
             return (
               <form key={entry.id} role="none" action={entry.action} className={styles.itemSlot}>
                 <button
@@ -291,7 +302,6 @@ export const DropdownMenu = ({
                   className={props.className}
                   ref={props.ref}
                   data-dropdown-item-id={props['data-dropdown-item-id']}
-                  onClick={props.onClick}
                 >
                   {entry.label}
                 </button>

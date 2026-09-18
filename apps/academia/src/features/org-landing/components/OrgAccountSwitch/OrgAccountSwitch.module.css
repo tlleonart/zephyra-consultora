@@ -1,0 +1,28 @@
+/* Por defecto: nota centrada debajo de un formulario claro (el registro). */
+.hint {
+  margin: var(--spacing-md) 0 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Un <button> que se lee como el enlace al que reemplaza: hereda color y
+   tipografía del contexto (fondo verde en la landing, claro en el registro). */
+.switchButton {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.switchButton:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

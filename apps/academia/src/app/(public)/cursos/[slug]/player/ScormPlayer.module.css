@@ -24,6 +24,11 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* UAT2. En el teléfono, 100vh es el alto CON la barra del navegador
+     escondida: con la barra a la vista el pie de módulos quedaba debajo del
+     borde y el curso "no se llegaba a ver entero". dvh es el alto visible de
+     verdad; el 100vh de arriba queda para navegadores que no lo entienden. */
+  height: 100dvh;
   /* sand, per Dirección C `.player-wrap` — the chrome reads as a warm reading
      room and the card-coloured stage floats on it. */
   background-color: var(--color-bg-secondary);
@@ -46,6 +51,10 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  /* UAT2. Cede ancho y el título se recorta con "…" en vez de empujar el
+     progreso a una segunda fila: cada fila de cabecera es alto que pierde el
+     curso. */
+  flex: 1 1 320px;
 }
 
 .exitLink {
@@ -111,6 +120,32 @@
   border-radius: var(--radius-sm);
 }
 
+/* UAT2 — pliega la lista de módulos. Se lee como acción de texto, no como
+   botón de peso: es un control de la vista, no del curso. */
+.railToggle {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.railToggle:hover {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-brand-main);
+}
+
+.railToggle:focus-visible {
+  outline: 3px solid var(--color-brand-main);
+  outline-offset: 2px;
+}
+
 /* Progress, pushed to the trailing edge (`.player-top .prog`). */
 .progressRow {
   margin-left: auto;
@@ -166,6 +201,10 @@
   border-bottom: 1px solid var(--color-border);
   padding: var(--spacing-md);
   overflow-x: auto;
+}
+
+.navCollapsed {
+  display: none;
 }
 
 .navHeading {
@@ -350,6 +389,52 @@
 
 /* Breakpoints per the delta §6 convention: 1024 / 768, never 1023 / 767.
    720px was the pre-brand drift value; 768 is the canonical rail breakpoint. */
+/* UAT2 — el teléfono. El título del curso se cortaba en una línea con "…" y
+   la cabecera se comía el alto que necesita el curso. Acá el título baja a dos
+   líneas y el detalle del progreso (que repite el porcentaje) se va. */
+@media (max-width: 767px) {
+  .header {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .exitDivider {
+    display: none;
+  }
+
+  .headerMain {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .title {
+    font-size: 1rem;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .progressRow {
+    order: 4;
+    flex-basis: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .progressTrack {
+    max-width: none;
+  }
+
+  .progressLabel {
+    display: none;
+  }
+
+  .footerNav {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}
+
 @media (min-width: 768px) {
   .body {
     flex-direction: row;

@@ -387,6 +387,15 @@ describe('DropdownMenu — el panel abierto (estructura, no render)', () => {
     expect(SRC).toContain("if (result.focus === 'trigger') focusTrigger();");
   });
 
+  it('UAT2 — el ítem de formulario NO cierra el menú al click: cerrarlo desmonta el <form> antes del envío', () => {
+    // Así se rompió "Cerrar sesión" en escritorio: el click cerraba el menú,
+    // React desmontaba el panel antes de la acción por defecto del click, y el
+    // navegador cancelaba el envío de un formulario desconectado. En silencio.
+    const formBlock = SRC.match(/<form key=[\s\S]*?<\/form>/)?.[0];
+    expect(formBlock).toBeDefined();
+    expect(formBlock).not.toMatch(/onClick/);
+  });
+
   it('el componente es de cliente: usa estado y foco', () => {
     expect(SRC.startsWith("'use client';")).toBe(true);
   });

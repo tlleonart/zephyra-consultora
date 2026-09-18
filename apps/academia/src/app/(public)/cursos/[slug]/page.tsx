@@ -272,6 +272,27 @@ export default async function CourseDetailPage({
                 </p>
               </>
             )}
+
+            {/* UAT2. El camino a los cupos. La portada promete "elegí el pack
+                desde la ficha de cada curso", y la ficha sólo ofrecía la compra
+                individual: las testers buscaron los cupos acá y no estaban. La
+                dueña de una empresa va directo a la calculadora de este curso;
+                cualquier otra persona, a la propuesta para organizaciones. */}
+            {isBuyable ? (
+              <p className={styles.ctaNote}>
+                ¿Es para tu equipo?{" "}
+                <Link
+                  href={
+                    session?.type === "org_admin"
+                      ? `/empresa/cursos/${course.slug}`
+                      : "/empresa"
+                  }
+                  className={styles.ctaTeamLink}
+                >
+                  Comprá cupos con descuento por volumen
+                </Link>
+              </p>
+            ) : null}
           </aside>
         </div>
       </section>

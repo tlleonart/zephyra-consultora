@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ConvexHttpClient } from 'convex/browser';
 import { getLearnerSession } from '@/features/auth-learner/lib/session';
+import { toPublicLearnerSession } from '@/features/auth-learner/lib/public-session';
 import { OrgDashboard } from '@/features/org-dashboard/components/OrgDashboard';
 import { B2BLanding } from '@/features/org-landing/components/B2BLanding';
 import type { OrgDashboardData } from '@/features/org-dashboard/types';
@@ -49,7 +50,7 @@ export default async function EmpresaDashboardPage() {
   // Una duena SIN organizacion sigue yendo al alta, mas abajo: ese caso es un
   // tramite a medio terminar, no una visitante.
   if (!session || session.type !== 'org_admin') {
-    return <B2BLanding />;
+    return <B2BLanding session={toPublicLearnerSession(session)} />;
   }
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
