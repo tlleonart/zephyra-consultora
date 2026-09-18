@@ -237,6 +237,19 @@ export function ScormPlayer({
   // WHY roving tabIndex pattern: a single tab stop into the nav, then arrows
   // navigate within. Matches WAI-ARIA Authoring Practices "tablist".
   const navButtonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // UAT2. La lista de modulos se puede plegar, para que el curso gane el
+  // ancho. Lo pidieron las testers dos veces ("achicar el margen izquierdo de
+  // modulos para que el curso se vea mas grande"), y en el telefono es la
+  // diferencia entre ver el curso o no verlo: ahi arranca plegada.
+  //
+  // Plegar es CSS sobre el <nav>, que es HERMANO del <main> del iframe: la
+  // cadena de padres del iframe no cambia y su `key` tampoco, asi que el
+  // contenido no se recarga ni el puente SCORM se entera.
+  const [railOpen, setRailOpen] = useState(true);
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) setRailOpen(false);
+  }, []);
   const onNavKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
       if (e.key === "ArrowDown" || e.key === "ArrowRight") {
@@ -284,6 +297,17 @@ export function ScormPlayer({
           <span aria-hidden="true">←</span> Volver al curso
         </Link>
         <span aria-hidden="true" className={styles.exitDivider} />
+        {multiSco ? (
+          <button
+            type="button"
+            className={styles.railToggle}
+            aria-expanded={railOpen}
+            aria-controls="player-module-rail"
+            onClick={() => setRailOpen((open) => !open)}
+          >
+            {railOpen ? "Ocultar módulos" : "Ver módulos"}
+          </button>
+        ) : null}
         <div className={styles.headerMain}>
           <h1 className={styles.title}>{courseTitle}</h1>
           <Link href="/cursos/privacidad" className={styles.privacyLink}>
@@ -319,7 +343,8 @@ export function ScormPlayer({
             single-SCO path looks identical to D01. */}
         {multiSco ? (
           <nav
-            className={styles.nav}
+            id="player-module-rail"
+            className={`${styles.nav} ${railOpen ? "" : styles.navCollapsed}`}
             aria-label="Navegación entre módulos del curso"
           >
             <strong className={styles.navHeading}>MÓDULOS</strong>
