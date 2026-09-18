@@ -191,6 +191,19 @@
   line-height: 1.5;
 }
 
+.ctaTeamLink {
+  color: var(--color-brand-main);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ctaTeamLink:focus-visible {
+  outline: 3px solid var(--color-brand-main);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 @media (max-width: 1024px) {
   .heroInner {
     grid-template-columns: 1fr;
