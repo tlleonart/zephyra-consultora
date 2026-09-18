@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Input } from '@zephyra/ui';
 import { Button } from '@zephyra/ui';
 import { requestOrgSignup } from '../../actions/request-org-signup';
+import type { PublicLearnerSession } from '@/features/auth-learner/lib/public-session';
 import styles from './OrgSignupForm.module.css';
 
 /**
@@ -18,7 +19,15 @@ import styles from './OrgSignupForm.module.css';
  * are aria-live, and the success panel takes focus so a screen-reader user is
  * told to check their email.
  */
-export const OrgSignupForm = () => {
+export interface OrgSignupFormProps {
+  /**
+   * La sesion abierta, si hay. Con una cuenta personal adentro, "Inicia sesion"
+   * no puede llevar a ningun ingreso (UAT2): se ofrece salir de esa cuenta.
+   */
+  session?: PublicLearnerSession | null;
+}
+
+export const OrgSignupForm = ({ session = null }: OrgSignupFormProps) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [orgName, setOrgName] = useState('');
@@ -160,9 +169,11 @@ export const OrgSignupForm = () => {
         </>
       )}
 
-      <Link href="/cursos/auth/signin?returnTo=/empresa" className={styles.footerLink}>
-        ¿Ya tenés cuenta de empresa? Iniciá sesión
-      </Link>
+      {session && session.type !== 'org_admin' ? null : (
+        <Link href="/cursos/auth/signin?returnTo=/empresa" className={styles.footerLink}>
+          ¿Ya tenés cuenta de empresa? Iniciá sesión
+        </Link>
+      )}
     </form>
   );
 };

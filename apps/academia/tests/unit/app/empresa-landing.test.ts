@@ -55,7 +55,7 @@ describe('U3 — /empresa resuelve por tipo de sesion en vez de rebotar', () => 
 
   it('muestra la propuesta publica a quien no es duena de empresa', () => {
     const src = empresaPage();
-    expect(src).toContain('<B2BLanding />');
+    expect(src).toContain('<B2BLanding session={toPublicLearnerSession(session)} />');
     expect(src).toMatch(/session\.type !== 'org_admin'/);
   });
 
@@ -118,5 +118,33 @@ describe('U3 — la propuesta no inventa precios', () => {
 
   it('la unica llamada a la accion lleva al alta de empresa', () => {
     expect(landing()).toContain('href="/empresa/registro"');
+  });
+});
+
+describe('UAT2 — "Iniciá sesión" con una sesión personal abierta', () => {
+  // Con una cuenta individual adentro, `signin?returnTo=/empresa` vuelve a
+  // /empresa, que muestra la propuesta: el enlace dejaba a la tester en el
+  // mismo lugar. Se ofrece salir de esa cuenta en vez del enlace.
+  const registro = () =>
+    code(read(path.join(APP, 'src/app/(empresa)/empresa/registro/page.tsx')));
+  const signout = () =>
+    code(read(path.join(APP, 'src/features/auth-learner/actions/signout.ts')));
+
+  it('la propuesta ofrece cambiar de cuenta cuando hay sesión, y el enlace sólo sin ella', () => {
+    const src = landing();
+    expect(src).toMatch(/session \? \(\s*<OrgAccountSwitch/);
+  });
+
+  it('el registro ofrece cambiar de cuenta sólo a una sesión que no es de dueña', () => {
+    const src = registro();
+    expect(src).toMatch(/session\.type !== 'org_admin'/);
+    expect(src).toContain('<OrgAccountSwitch');
+  });
+
+  it('salir para entrar como empresa lleva a un destino FIJO: no es una redirección abierta', () => {
+    const src = signout();
+    expect(src).toContain("redirect('/cursos/auth/signin?returnTo=/empresa')");
+    // La acción no recibe a dónde ir.
+    expect(src).toMatch(/signOutToOrgSignin = async \(\): Promise<void>/);
   });
 });
