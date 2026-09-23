@@ -185,6 +185,16 @@
   flex-basis: 100%;
 }
 
+/* UAT2 — la explicación del 0%. Se lee como nota, no como error: no pasó nada
+   malo, es cómo cuenta el curso. */
+.progressHint {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  flex-basis: 100%;
+  max-width: 52ch;
+}
+
 /* ── Body: sidebar + stage (`.player-body`) ─────────────────────────────────── */
 
 .body {
@@ -272,7 +282,20 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* UAT2 — qué pasó en este módulo, en palabras. */
+.navButtonState {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.navButtonActive .navButtonState {
+  color: var(--color-brand-main);
 }
 
 /* `.sco .dot` — the step indicator. Completion is ALSO announced in text via
