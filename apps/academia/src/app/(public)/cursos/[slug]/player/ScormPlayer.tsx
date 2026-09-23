@@ -8,6 +8,7 @@ import { btnClass } from "@zephyra/ui";
 import { api } from "@zephyra/convex/_generated/api";
 import type { Id } from "@zephyra/convex/_generated/dataModel";
 import styles from "./ScormPlayer.module.css";
+import { moduleStateText, type ScoSignal } from "./moduleState";
 
 /**
  * SCORM 1.2 player + scorm-again bridge (D02 — multi-SCO + cross-session resume).
@@ -109,6 +110,8 @@ export function ScormPlayer({
   });
   const scoStates: Record<string, ScoState> =
     (enrollment?.scoStates as Record<string, ScoState> | undefined) ?? {};
+  const scoSignals: Record<string, ScoSignal> =
+    (enrollment?.scoSignals as Record<string, ScoSignal> | undefined) ?? {};
 
   // apiBootCounter increments whenever we want to fully tear down + reboot
   // the Scorm12API + iframe (i.e. on SCO change). The iframe's `key` ties to
@@ -329,12 +332,27 @@ export function ScormPlayer({
             />
           </div>
           <span className={styles.progressPct}>{progress}%</span>
+          {/* UAT2. Antes decía "Progreso: 0% · Módulos: 0/7 · Estado:
+              incomplete · Puntaje: —": repetía el porcentaje, mostraba el
+              estado en inglés crudo y no explicaba nada. Natalia recorrió el
+              curso entero y el 0% le siguió sin cerrar. El porcentaje NO
+              cambia —cuenta módulos completos y eso es lo que significa—;
+              cambia lo que la pantalla dice alrededor. */}
           <small className={styles.progressLabel}>
-            Progreso: {progress}%
-            {multiSco ? ` · Módulos: ${completedCount}/${totalScos}` : ""} ·
-            Estado: {enrollment?.lessonStatus ?? "—"} · Puntaje:{" "}
-            {enrollment?.scoreRaw ?? "—"}
+            {multiSco
+              ? `${completedCount} de ${totalScos} módulos completos`
+              : "Todavía sin completar"}
+            {enrollment?.scoreRaw !== undefined
+              ? ` · Último puntaje: ${enrollment.scoreRaw}`
+              : ""}
           </small>
+          {completedCount === 0 ? (
+            <small className={styles.progressHint}>
+              Tu avance se guarda aunque el porcentaje siga en 0%: un módulo
+              recién cuenta como completo cuando el curso registra su
+              evaluación como aprobada.
+            </small>
+          ) : null}
         </div>
       </header>
 
@@ -381,10 +399,16 @@ export function ScormPlayer({
                       >
                         {isCompleted ? "✓" : idx + 1}
                       </span>
-                      <span className={styles.navButtonTitle}>{u.title}</span>
-                      {isCompleted && (
-                        <span className={styles.srOnly}>Completado</span>
-                      )}
+                      <span className={styles.navButtonTitle}>
+                        {u.title}
+                        {/* El punto de color no puede ser la única señal
+                            (WCAG 1.4.1) y además no explicaba nada. */}
+                        {moduleStateText(isCompleted, scoSignals[u.scoId]) ? (
+                          <span className={styles.navButtonState}>
+                            {moduleStateText(isCompleted, scoSignals[u.scoId])}
+                          </span>
+                        ) : null}
+                      </span>
                     </button>
                   </li>
                 );

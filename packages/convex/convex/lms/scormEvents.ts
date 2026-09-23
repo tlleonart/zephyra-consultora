@@ -34,6 +34,7 @@ import { Doc } from "../_generated/dataModel";
 // SCOs que este denominador. Extracción, no cambio de lógica: por D-1 este
 // archivo no se toca más allá de este import.
 import { extractScoIds } from "./scoStructure";
+import { parseSuspendData } from "./suspendData";
 
 // Read the append-only event trail for an enrollment, ordered by time.
 // Same trust contract as the other learner-keyed reads in this file.
@@ -241,13 +242,25 @@ export const recordScormEvent = mutation({
 
 // Reactive read of the enrollment aggregate for the live progress bar.
 // Same trust contract as the other learner-keyed reads in this file.
+//
+// UAT2 — DEVUELVE ADEMAS UNA SEÑAL POR MODULO (`scoSignals`), y por que sale de
+// aca y no del navegador: `suspend_data` es una cadena opaca de SCORM y su
+// forma NO se supone, se midió — la caracterización y el parser viven en
+// lms/suspendData.ts, que es puro y está testeado. El reproductor ya recibe la
+// cadena cruda y podría parsearla en el cliente, pero eso sería un segundo
+// parser que puede divergir del medido. Se deriva acá, con el de la casa.
+//
+// LO QUE LA SEÑAL NO ES: una fracción. El contenido nunca declara cuántas
+// secciones tiene un módulo, así que "N de M" no es derivable y no se expone
+// (riesgo S9 de la spec). `sectionsDone` es un CONTEO y `currentSection` una
+// POSICION; la pantalla tiene que escribirlos como tales.
 export const getEnrollment = query({
   args: {
     learnerId: v.id("lmsCustomers"),
     courseId: v.id("lmsCourses"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const enrollment = await ctx.db
       .query("lmsEnrollments")
       .withIndex("by_learner_course_status", (q) =>
         q
@@ -256,5 +269,41 @@ export const getEnrollment = query({
           .eq("status", "active")
       )
       .first();
+
+    if (!enrollment) return null;
+
+    const states =
+      enrollment.scoStates &&
+      typeof enrollment.scoStates === "object" &&
+      !Array.isArray(enrollment.scoStates)
+        ? (enrollment.scoStates as Record<
+            string,
+            { suspendData?: string } | undefined
+          >)
+        : {};
+
+    const scoSignals: Record<
+      string,
+      {
+        sectionsDone: number;
+        currentSection: number | null;
+        touched: boolean;
+        advanced: boolean;
+      }
+    > = {};
+
+    for (const [scoId, state] of Object.entries(states)) {
+      const signal = parseSuspendData(state?.suspendData);
+      scoSignals[scoId] = {
+        sectionsDone: signal.done.length,
+        // Posición dentro del módulo, en base 1 para la pantalla. `null`
+        // cuando el contenido no la declara.
+        currentSection: signal.actual === null ? null : signal.actual + 1,
+        touched: signal.touched,
+        advanced: signal.advanced,
+      };
+    }
+
+    return { ...enrollment, scoSignals };
   },
 });

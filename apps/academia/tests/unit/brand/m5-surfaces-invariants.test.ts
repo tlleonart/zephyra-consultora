@@ -94,6 +94,7 @@ function effective(name: string): string {
 const PLAYER_DIR = 'src/app/(public)/cursos/[slug]/player';
 const PLAYER_TSX = read(path.join(APP, PLAYER_DIR, 'ScormPlayer.tsx'));
 const PLAYER_CSS = read(path.join(APP, PLAYER_DIR, 'ScormPlayer.module.css'));
+const PLAYER_MODULE_STATE = read(path.join(APP, PLAYER_DIR, 'moduleState.ts'));
 const PLAYER_LAYOUT = read(path.join(APP, PLAYER_DIR, 'layout.tsx'));
 const PLAYER_LAYOUT_CSS = read(path.join(APP, PLAYER_DIR, 'layout.module.css'));
 
@@ -161,7 +162,12 @@ describe('the SCORM bridge survives the chrome restyle', () => {
   });
 
   it('completion is announced in text, not by dot colour alone (WCAG 1.4.1)', () => {
-    expect(PLAYER_TSX).toContain('className={styles.srOnly}>Completado');
+    // UAT2: el texto dejó de ser sólo para lectores de pantalla y pasó a ser
+    // VISIBLE (`.navButtonState`), junto con el estado de los módulos que no
+    // están completos. La invariante es la misma y ahora alcanza a todo el
+    // mundo; lo que cambió es de dónde sale el texto.
+    expect(PLAYER_TSX).toContain('styles.navButtonState');
+    expect(PLAYER_MODULE_STATE).toMatch(/if \(completed\) return "Completo";/);
     expect(PLAYER_TSX).toMatch(/aria-hidden="true"\s*\n\s*className=\{`\$\{styles\.navDot\}/);
   });
 
