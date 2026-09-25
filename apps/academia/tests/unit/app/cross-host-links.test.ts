@@ -242,13 +242,16 @@ describe('the components consume the shared list', () => {
    */
   const readSrc = (p: string) => code(fs.readFileSync(path.join(SRC, p), 'utf8'));
 
-  it('Navbar and Footer import from @/lib/institutional-links', () => {
-    for (const p of [
-      'components/public/Navbar/Navbar.tsx',
-      'components/public/Footer/Footer.tsx',
-    ]) {
-      expect(readSrc(p), p).toContain('@/lib/institutional-links');
-    }
+  it('Navbar and Footer consume a shared link module, never their own literals', () => {
+    // 2026-09-25: la barra pasó a tener navegación PROPIA de la Academia, así
+    // que ya no lee la lista institucional — lee @/lib/academia-nav, que es
+    // igual de compartido y que a su vez saca de @/lib/institutional-links el
+    // único enlace que sigue saliendo del producto (volver a Zephyra). El pie
+    // sí sigue con la lista institucional entera.
+    expect(readSrc('components/public/Navbar/Navbar.tsx')).toContain('@/lib/academia-nav');
+    expect(readSrc('components/public/Footer/Footer.tsx')).toContain('@/lib/institutional-links');
+    // Y academia-nav no inventa el origen de www: lo pide prestado.
+    expect(readSrc('lib/academia-nav.ts')).toContain("from './institutional-links'");
   });
 
   it('neither component defines its own href literal array', () => {
