@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@zephyra/utils";
+import { ACADEMIA_HOME_URL, ACADEMIA_LABEL } from "@/lib/academia-link";
 import styles from "./Navbar.module.css";
 
 const navLinks = [
@@ -71,6 +72,19 @@ export const Navbar = () => {
                 </Link>
               </li>
             ))}
+            {/* ACADEMIA. Va en el índice del sitio principal y NO se lee como
+                un ítem más: es la marca del producto, con el mismo tratamiento
+                tipográfico que el descriptor del logo de Academia Zephyra.
+                Lleva a otro host, así que Next lo emite como ancla y no
+                prefetchea. */}
+            <li>
+              <Link
+                href={ACADEMIA_HOME_URL}
+                className={cn(styles.navLink, styles.academiaLink)}
+              >
+                {ACADEMIA_LABEL}
+              </Link>
+            </li>
           </ul>
 
           {/* Mobile Menu Button */}
@@ -101,6 +115,15 @@ export const Navbar = () => {
               </Link>
             </li>
           ))}
+          <li>
+            <Link
+              href={ACADEMIA_HOME_URL}
+              className={cn(styles.mobileNavLink, styles.academiaLink)}
+              onClick={closeMobileMenu}
+            >
+              {ACADEMIA_LABEL}
+            </Link>
+          </li>
         </ul>
       </div>
     </>

@@ -106,7 +106,21 @@ describe("www generates no app URL (the M4 sweep, pinned)", () => {
    * broadened pattern would silently permit the next component that hardcodes a
    * cross-host link, which is the failure this suite exists to catch.
    */
-  const ORIGIN_VAR_ALLOWLIST = ["lib/cutover-redirects.ts", "lib/site.ts"];
+  /**
+   * lib/academia-link.ts se suma el 2026-09-25, y es el PRIMER enlace de este
+   * sitio hacia otro host del producto: Tomás pidió que ACADEMIA figure en el
+   * índice del sitio principal y lleve a la Academia. Un href relativo ahí sería
+   * un 404 silencioso —el mismo error que ya se pagó al revés, cuando el split
+   * dejó la barra de academia apuntando a rutas de www—, así que el origen se
+   * resuelve una sola vez y por `requireOrigin`, que falla en el build si falta
+   * la variable. La regla que esta lista protege sigue en pie: ningún
+   * componente lee la variable cruda, todos importan la constante resuelta.
+   */
+  const ORIGIN_VAR_ALLOWLIST = [
+    "lib/cutover-redirects.ts",
+    "lib/site.ts",
+    "lib/academia-link.ts",
+  ];
 
   it("reads no app-origin env var outside the allowlisted resolution points", () => {
     const offenders = files

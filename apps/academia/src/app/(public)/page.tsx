@@ -113,6 +113,52 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* LOS DOS FORMATOS, ANTES DE COMPRAR (Tomás, 2026-09-25). El catálogo
+          mostraba un solo camino —comprar un curso para vos— y la propuesta
+          para organizaciones aparecía recién al final de la página, en la
+          banda. Las testers lo reportaron como "sólo me deja comprar uno": no
+          era un defecto de la compra, era que el otro formato no se veía hasta
+          el fondo. Acá se presentan los dos, a la misma altura y con la misma
+          jerarquía, apenas termina el hero. */}
+      <section className={styles.formats} aria-labelledby="formatos-title">
+        <div className={styles.container}>
+          <h2 id="formatos-title" className={styles.sectionTitle}>
+            ¿Para vos o para tu equipo?
+          </h2>
+          <p className={styles.sectionSubtitle}>
+            Los dos caminos empiezan en el mismo catálogo. Elegí el que te sirve.
+          </p>
+          <ul className={styles.formatGrid} role="list">
+            <li className={styles.formatCard}>
+              <span className={styles.formatEyebrow}>Para vos</span>
+              <h3 className={styles.formatTitle}>Un curso, acceso inmediato</h3>
+              <p className={styles.formatText}>
+                Comprás el curso con un pago único y entrás enseguida. Avanzás a
+                tu ritmo, desde donde quieras.
+              </p>
+              <Link href="/cursos" className={btnClass({ block: true })}>
+                Ver los cursos
+              </Link>
+            </li>
+            <li className={styles.formatCard}>
+              <span className={styles.formatEyebrow}>Para tu equipo</span>
+              <h3 className={styles.formatTitle}>Cupos para tu organización</h3>
+              <p className={styles.formatText}>
+                Comprás varios cupos con descuento por volumen, los repartís
+                cuando quieras y seguís el avance del equipo desde un panel
+                propio.
+              </p>
+              <Link
+                href="/empresa"
+                className={btnClass({ variant: "outline", block: true })}
+              >
+                Ver la propuesta para empresas
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
       {/* spec §3.2, AC 4: a topic with zero published courses renders no
           chip; if NONE has a course, the whole section is skipped — there
           is no empty state for it. */}

@@ -312,11 +312,26 @@
   color: var(--color-text-secondary);
 }
 
+/* UAT 2026-09-25 — las cuatro cifras se salían de la tarjeta.
+ *
+ * Eran cuatro columnas FIJAS (`repeat(4, 1fr)`) y tres de las cuatro celdas
+ * llevan una píldora con `white-space: nowrap` ("0 completaron", "0 en curso",
+ * "0 sin iniciar"). Cuatro píldoras que no se pueden cortar no entran en una
+ * tarjeta de 20rem, así que desbordaban por la derecha, por fuera del borde.
+ *
+ * `auto-fit` con un mínimo por celda las reparte en dos filas cuando no entran
+ * en una, en vez de empujarlas afuera. El `min-width: 0` es lo que permite que
+ * la celda sea más angosta que su contenido, que es la mitad del arreglo.
+ */
 .progressStats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-sm);
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--spacing-sm) var(--spacing-md);
   margin: 0;
+}
+
+.progressStats > div {
+  min-width: 0;
 }
 
 .progressStats dt {

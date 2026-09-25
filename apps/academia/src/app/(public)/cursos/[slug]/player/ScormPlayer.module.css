@@ -186,13 +186,33 @@
 }
 
 /* UAT2 — la explicación del 0%. Se lee como nota, no como error: no pasó nada
-   malo, es cómo cuenta el curso. */
+   malo, es cómo cuenta el curso. Plegada, porque cada línea de cabecera es alto
+   que el curso pierde (ver el docblock del componente). */
 .progressHint {
   font-size: 0.78rem;
   line-height: 1.4;
   color: var(--color-text-secondary);
   flex-basis: 100%;
-  max-width: 52ch;
+  max-width: 60ch;
+}
+
+.progressHintSummary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  list-style-position: inside;
+}
+
+.progressHintSummary:focus-visible {
+  outline: 3px solid var(--color-brand-main);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.progressHintText {
+  margin: var(--spacing-xs) 0 0;
 }
 
 /* ── Body: sidebar + stage (`.player-body`) ─────────────────────────────────── */
@@ -333,7 +353,19 @@
 /* ── Stage (`.stage`) ──────────────────────────────────────────────────────── */
 
 /* The iframe's ONLY parent. Deliberately a bare flex column: no overlay, no
-   transform, no new wrapper. Do not nest anything between this and the iframe. */
+   transform, no new wrapper. Do not nest anything between this and the iframe.
+ *
+ * EL ESCENARIO SCROLLEA (UAT 2026-09-25). Medido: el documento del contenido de
+ * CAMPUS mide 650px de alto y no se adapta; cuando el iframe queda más bajo que
+ * eso, el final del curso —con los botones de continuar y enviar del propio
+ * paquete— queda cortado Y ES INALCANZABLE, porque la rueda del mouse mueve el
+ * panel interno del contenido y nunca su documento. Así que el iframe deja de
+ * achicarse por debajo de esa altura y el escenario, que es su padre de
+ * siempre, ofrece el scroll que falta.
+ *
+ * Es un cambio de PROPIEDADES sobre los elementos que ya existían: no se
+ * envuelve el iframe, no se lo reubica y su cadena de padres no cambia. Eso es
+ * lo que hace que el puente SCORM no se entere. */
 .main {
   flex: 1;
   min-width: 0;
@@ -341,6 +373,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--color-surface-card);
+  overflow-y: auto;
 }
 
 .iframe {
@@ -350,6 +383,12 @@
   min-height: 0;
   border: none;
   display: block;
+}
+
+/* El piso medido del contenido de CAMPUS. Si la ventana da menos, el escenario
+   scrollea en vez de cortar. */
+.iframe {
+  min-height: 650px;
 }
 
 /* Boot state, dressed as Dirección C's `.scorm .frame` dashed panel. */
@@ -419,6 +458,10 @@
   .header {
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .progressHint {
+    font-size: 0.72rem;
   }
 
   .exitDivider {

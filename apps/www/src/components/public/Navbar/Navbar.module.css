@@ -200,3 +200,34 @@
     font-size: 1.25rem;
   }
 }
+
+/* ACADEMIA en el índice del sitio principal.
+ *
+ * MISMO tratamiento que el descriptor del logo de Academia Zephyra
+ * (apps/academia .../Brandmark.module.css): sans 600, versalitas, tracking
+ * 0.14em. Eso es lo que la distingue del resto del menú sin gritar: no es una
+ * sección de la consultora, es el producto.
+ *
+ * Sobre la barra verde el texto ya va en blanco como el resto; el borde suave
+ * la separa de los seis rótulos de al lado.
+ */
+.academiaLink {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-xs) var(--spacing-md);
+}
+
+.academiaLink:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+/* El subrayado animado del resto del menú no aplica: ésta ya tiene su propia
+   forma, y las dos señales juntas se leen como un error. */
+.academiaLink::after {
+  content: none;
+}

@@ -7,17 +7,20 @@ import { Brandmark } from "@/components/public/Brandmark";
 import { AccountMenu } from "@/components/public/AccountMenu";
 import { MobileAccountLinks } from "@/components/public/MobileAccountLinks";
 import {
-  INSTITUTIONAL_HOME,
-  INSTITUTIONAL_NAV_LINKS,
-} from "@/lib/institutional-links";
+  ACADEMIA_HOME,
+  ACADEMIA_NAV_LINKS,
+  ACADEMIA_SIGNIN_LINK,
+} from "@/lib/academia-nav";
 import type { PublicLearnerSession } from "@/features/auth-learner/lib/public-session";
 import styles from "./Navbar.module.css";
 
-// These six labels point at routes www owns and this app does not serve. They
-// were relative when the split copied this component over, so all six 404'd on
-// this host. @/lib/institutional-links explains the fix and holds the reserved
-// IA question about whether "Inicio" and the logo should stay pointed off-site.
-const navLinks = INSTITUTIONAL_NAV_LINKS;
+// LA BARRA DE LA ACADEMIA ES DE LA ACADEMIA (Tomas, 2026-09-25). Hasta acá
+// mostraba los seis enlaces del sitio institucional —Inicio, Servicios, Equipo,
+// Proyectos, Perspectivas, Contacto—, heredados tal cual por el split: seis
+// maneras de IRSE del producto y ninguna de moverse adentro. La pregunta estaba
+// reservada por escrito en @/lib/institutional-links; ésta es la respuesta, y
+// vive en @/lib/academia-nav.
+const navLinks = ACADEMIA_NAV_LINKS;
 
 export interface NavbarProps {
   /**
@@ -73,8 +76,12 @@ export const Navbar = ({ session = null }: NavbarProps = {}) => {
     <>
       <header className={cn(styles.header, isScrolled && styles.scrolled, isMobileMenuOpen && styles.menuOpen)}>
         <nav className={styles.nav}>
+          {/* La marca lleva a la casa de la ACADEMIA. Antes llevaba al sitio
+              institucional: quien tocaba el logo estando en un curso se iba del
+              producto sin querer. El camino de vuelta a la consultora sigue
+              existiendo, con nombre propio, en los enlaces de al lado. */}
           <Link
-            href={INSTITUTIONAL_HOME}
+            href={ACADEMIA_HOME}
             className={styles.logo}
             onClick={closeMobileMenu}
           >
@@ -102,6 +109,18 @@ export const Navbar = ({ session = null }: NavbarProps = {}) => {
                   </Link>
                 </li>
               ))}
+              {/* Sin sesion, la puerta de entrada. Con sesion no va: al lado
+                  esta el menu de cuenta, y dos entradas para lo mismo confunden. */}
+              {session ? null : (
+                <li>
+                  <Link
+                    href={ACADEMIA_SIGNIN_LINK.href}
+                    className={styles.navLink}
+                  >
+                    {ACADEMIA_SIGNIN_LINK.label}
+                  </Link>
+                </li>
+              )}
             </ul>
             {/* A la derecha de los enlaces institucionales, y SOLO con sesion.
                 Sin sesion no se renderiza nada: la barra queda identica.
@@ -146,6 +165,17 @@ export const Navbar = ({ session = null }: NavbarProps = {}) => {
               </Link>
             </li>
           ))}
+          {session ? null : (
+            <li>
+              <Link
+                href={ACADEMIA_SIGNIN_LINK.href}
+                className={styles.mobileNavLink}
+                onClick={closeMobileMenu}
+              >
+                {ACADEMIA_SIGNIN_LINK.label}
+              </Link>
+            </li>
+          )}
           {/* El area de cuenta, alcanzable DENTRO del menu movil. Plana y no
               como un segundo desplegable: esta pantalla ya se abrio con el
               hamburguesa, y anidar otro revelado serian dos toques para llegar

@@ -75,13 +75,22 @@ const ACCOUNT_MARKERS = [
   'Cerrar sesion',
   'Mis cursos',
   'Mi cuenta',
-  'Iniciar sesión',
-  'Iniciar sesion',
-  'Ingresar',
   '/cursos/mis-cursos',
   '/cursos/cuenta',
-  '/cursos/auth/signin',
 ];
+
+/**
+ * "Ingresar" SALIÓ de esa lista el 2026-09-25, a propósito.
+ *
+ * La barra pre-split no ofrecía ingresar, con el argumento de que el llamado a
+ * la acción es comprar y la ficha del curso ya lleva a autenticarse. En el
+ * testing eso se pagó: las testers, ya con cuenta, no encontraban dónde entrar.
+ * Tomás pidió una barra propia de la Academia; ésta es parte de esa decisión.
+ *
+ * Lo que la lista sigue protegiendo es lo que importa: sin sesión no se pinta
+ * NINGÚN control de CUENTA —ni menú, ni correo, ni cerrar sesión, ni las rutas
+ * privadas—. Un enlace público al ingreso no es un control de cuenta.
+ */
 
 describe('AC 1 — la barra sin sesión no cambió', () => {
   it('sin sesión no pinta ningún control de cuenta', () => {
@@ -89,6 +98,18 @@ describe('AC 1 — la barra sin sesión no cambió', () => {
     for (const marker of ACCOUNT_MARKERS) {
       expect(html, `apareció "${marker}" en la barra sin sesión`).not.toContain(marker);
     }
+  });
+
+  it('sin sesión SÍ ofrece la puerta de entrada, y con sesión NO (Tomás, 2026-09-25)', () => {
+    const anonima = renderToStaticMarkup(<Navbar session={null} />);
+    expect(anonima).toContain('/cursos/auth/signin');
+    expect(anonima).toContain('Ingresar');
+    // Con sesión no va: al lado está el menú de cuenta, y dos entradas para lo
+    // mismo confunden.
+    const conSesion = renderToStaticMarkup(
+      <Navbar session={{ email: PAYLOAD.email, type: 'individual' }} />
+    );
+    expect(conSesion).not.toContain('Ingresar');
   });
 
   it('sin sesión pinta EXACTAMENTE lo mismo que antes de que la prop existiera', () => {
@@ -100,9 +121,14 @@ describe('AC 1 — la barra sin sesión no cambió', () => {
     );
   });
 
-  it('sigue pintando la navegación institucional y la marca', () => {
+  it('pinta la navegación PROPIA de la Academia, y el camino de vuelta a Zephyra', () => {
     const html = renderToStaticMarkup(<Navbar session={null} />);
     expect(html).toContain('<header');
+    // La barra es de la Academia: Cursos y Para empresas, no las seis secciones
+    // de la consultora (Tomás, 2026-09-25).
+    expect(html).toContain('Cursos');
+    expect(html).toContain('Para empresas');
+    // Y el camino de vuelta sigue existiendo, con nombre propio y absoluto.
     expect(html).toContain('https://www.zephyra.test/');
     expect(html).toContain('Abrir menu'); // el hamburguesa móvil, intacto
   });
