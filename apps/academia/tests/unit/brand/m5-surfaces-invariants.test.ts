@@ -138,6 +138,25 @@ describe('the SCORM bridge survives the chrome restyle', () => {
     expect(PLAYER_CSS).toMatch(/\.main\s*\{[^}]*flex:\s*1/);
   });
 
+  it('UAT 2026-09-25 — el escenario scrollea y el iframe tiene piso: el final del curso es alcanzable', () => {
+    // MEDIDO, no supuesto: el documento del contenido de CAMPUS mide 650px y no
+    // se adapta. Con la cabecera de 216px que dejó la explicación del 0%, el
+    // iframe quedaba en 542px y los últimos 108px —donde están los botones del
+    // propio paquete— eran INALCANZABLES: la rueda del mouse mueve el panel
+    // interno del contenido, nunca su documento. Si alguien saca cualquiera de
+    // estas dos declaraciones, el final del curso se vuelve a perder en
+    // silencio.
+    expect(PLAYER_CSS).toMatch(/\.main\s*\{[^}]*overflow-y:\s*auto/);
+    expect(PLAYER_CSS).toMatch(/\.iframe\s*\{[^}]*min-height:\s*650px/);
+    // Y el pie de módulos queda FUERA del área que scrollea, para no tener que
+    // scrollear hasta él.
+    const main = PLAYER_TSX.slice(
+      PLAYER_TSX.indexOf('<main className={styles.main}>'),
+      PLAYER_TSX.indexOf('</main>')
+    );
+    expect(main).not.toContain('footerNav');
+  });
+
   it('the shell is one element with no literal inline styles left', () => {
     // The four inline literals moved to a CSS Module on the SAME element, which
     // is why the ancestor chain is byte-identical.

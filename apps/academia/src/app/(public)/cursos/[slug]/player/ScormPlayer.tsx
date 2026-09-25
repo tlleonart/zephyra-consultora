@@ -347,11 +347,22 @@ export function ScormPlayer({
               : ""}
           </small>
           {completedCount === 0 ? (
-            <small className={styles.progressHint}>
-              Tu avance se guarda aunque el porcentaje siga en 0%: un módulo
-              recién cuenta como completo cuando el curso registra su
-              evaluación como aprobada.
-            </small>
+            // PLEGADO POR DEFECTO, y no por gusto: la explicación en texto
+            // corrido hacía una cabecera de 216px, y el curso ocupa lo que
+            // sobra. Con el contenido de CAMPUS midiendo 650px, esos 216
+            // dejaban el final del curso —y sus botones— fuera de la pantalla y
+            // sin forma de llegar (la rueda mueve el panel interno del
+            // contenido, no su documento). La explicación sigue a un clic.
+            <details className={styles.progressHint}>
+              <summary className={styles.progressHintSummary}>
+                ¿Por qué sigue en 0%?
+              </summary>
+              <p className={styles.progressHintText}>
+                Tu avance se guarda igual. Un módulo recién cuenta como completo
+                cuando el curso registra su evaluación como aprobada, así que
+                podés haber recorrido todas las secciones y ver 0%.
+              </p>
+            </details>
           ) : null}
         </div>
       </header>
@@ -434,10 +445,18 @@ export function ScormPlayer({
               <p className={styles.emptyFrame}>Inicializando SCORM API…</p>
             </div>
           )}
-          {/* Sibling of the iframe, never a parent of it: the SCORM bridge walks
-              window.parent, so reparenting the iframe would break progress
-              persistence silently. Reuses selectSco — no new state. */}
-          {/* UAT1 / U7. Los rotulos dicen a que nivel navegan.
+        </main>
+      </div>
+
+      {/* EL PIE VIVE FUERA DEL ESCENARIO (UAT 2026-09-25). Estaba adentro del
+          <main>, y desde que el escenario scrollea —para que el final del curso
+          sea alcanzable— quedar adentro significaba tener que scrollear para
+          llegar a "Módulo siguiente". Ahora cuelga del shell, debajo del cuerpo:
+          queda fijo abajo, como antes.
+
+          NO toca la cadena de padres del iframe: el pie nunca fue su padre, y
+          sigue sin serlo. Reusa selectSco — no hay estado nuevo. */}
+      {/* UAT1 / U7. Los rotulos dicen a que nivel navegan.
               Una tester lo escribio asi: "al poner siguiente dentro del curso
               va al modulo siguiente y no a la seccion siguiente dentro del
               mismo modulo, eso es confuso". Tenia razon en lo que veia, y el
@@ -449,31 +468,30 @@ export function ScormPlayer({
               Lo que cambia es el rotulo, no el comportamiento: el "Modulo 2 de
               7" del medio ya decia de que nivel se trata, y los botones no lo
               acompanaban. */}
-          {multiSco ? (
-            <nav className={styles.footerNav} aria-label="Módulo anterior y siguiente">
-              <button
-                type="button"
-                className={btnClass({ variant: "outline", size: "sm" })}
-                onClick={() => selectSco(currentIdx - 1)}
-                disabled={currentIdx === 0}
-              >
-                <span aria-hidden="true">←</span> Módulo anterior
-              </button>
-              <span className={styles.footerNavLabel}>
-                Módulo {currentIdx + 1} de {totalScos}
-              </span>
-              <button
-                type="button"
-                className={btnClass({ variant: "primary", size: "sm" })}
-                onClick={() => selectSco(currentIdx + 1)}
-                disabled={currentIdx === totalScos - 1}
-              >
-                Módulo siguiente <span aria-hidden="true">→</span>
-              </button>
-            </nav>
-          ) : null}
-        </main>
-      </div>
+      {multiSco ? (
+        <nav className={styles.footerNav} aria-label="Módulo anterior y siguiente">
+          <button
+            type="button"
+            className={btnClass({ variant: "outline", size: "sm" })}
+            onClick={() => selectSco(currentIdx - 1)}
+            disabled={currentIdx === 0}
+          >
+            <span aria-hidden="true">←</span> Módulo anterior
+          </button>
+          <span className={styles.footerNavLabel}>
+            Módulo {currentIdx + 1} de {totalScos}
+          </span>
+          <button
+            type="button"
+            className={btnClass({ variant: "primary", size: "sm" })}
+            onClick={() => selectSco(currentIdx + 1)}
+            disabled={currentIdx === totalScos - 1}
+          >
+            Módulo siguiente <span aria-hidden="true">→</span>
+          </button>
+        </nav>
+      ) : null}
+
     </div>
   );
 }
