@@ -1,10 +1,15 @@
 import path from "node:path";
+// Cabeceras compartidas por las tres apps: un solo archivo, porque son una
+// regla de seguridad y tres copias divergen. Ver ops/http-headers.mjs.
+import { buildHeaders } from "../../ops/http-headers.mjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Same reason as apps/legacy and apps/www: this app is nested inside a pnpm workspace, so
   // Next's workspace-root heuristic (walk up looking for a lockfile) can land
   // outside the checkout and trace the wrong tree. Pin it to the monorepo root.
+  // El backoffice NO se indexa nunca: es la superficie de administracion.
+  headers: async () => buildHeaders({ noindex: true }),
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // REQUIRED, not optional. @zephyra/ui and @zephyra/utils are SOURCE-exported:
   // their `exports` maps point at .tsx / .ts / .module.css, so Next must run

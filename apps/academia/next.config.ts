@@ -1,4 +1,7 @@
 import path from "node:path";
+// Cabeceras compartidas por las tres apps: un solo archivo, porque son una
+// regla de seguridad y tres copias divergen. Ver ops/http-headers.mjs.
+import { buildHeaders, noindexDesdeEntorno } from "../../ops/http-headers.mjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -6,6 +9,9 @@ const nextConfig: NextConfig = {
   // workspace, so Next's workspace-root heuristic (walk up looking for a
   // lockfile) can land outside the checkout and trace the wrong tree. Pin it to
   // the monorepo root explicitly.
+  // nosniff + SAMEORIGIN siempre; noindex solo donde el entorno lo pide
+  // (staging), para que no compita con produccion en Google.
+  headers: async () => buildHeaders({ noindex: noindexDesdeEntorno() }),
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // The shared workspace packages are SOURCE-exported: their `exports` maps
   // point straight at TypeScript (and, for @zephyra/ui, .tsx + CSS Modules +
