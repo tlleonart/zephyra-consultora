@@ -200,7 +200,9 @@
 /* Los dos formatos de compra, arriba de todo. Dos tarjetas iguales: ninguno de
    los dos caminos es "el otro". */
 .formats {
-  padding: var(--spacing-3xl) 0 0;
+  /* Aire abajo tambien: sin el, las dos tarjetas quedaban pegadas a la seccion
+     siguiente y se leian como parte de ella. */
+  padding: var(--spacing-3xl) 0;
 }
 
 .formatGrid {
@@ -329,7 +331,7 @@
   }
 
   .formats {
-    padding-top: var(--spacing-xl);
+    padding: var(--spacing-xl) 0;
   }
 }
 
