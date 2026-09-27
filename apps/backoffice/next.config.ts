@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
   // Same reason as apps/legacy and apps/www: this app is nested inside a pnpm workspace, so
   // Next's workspace-root heuristic (walk up looking for a lockfile) can land
   // outside the checkout and trace the wrong tree. Pin it to the monorepo root.
-  // El backoffice NO se indexa nunca: es la superficie de administracion.
-  headers: async () => buildHeaders({ noindex: true }),
+  // El backoffice declara su propio noindex por metadata; aca solo van las
+  // cabeceras de seguridad.
+  headers: async () => buildHeaders(),
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // REQUIRED, not optional. @zephyra/ui and @zephyra/utils are SOURCE-exported:
   // their `exports` maps point at .tsx / .ts / .module.css, so Next must run

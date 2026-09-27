@@ -10,8 +10,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildHeaders } from '../../../../../ops/http-headers.mjs';
 
-const valores = async (opciones = {}) => {
-  const reglas = await buildHeaders(opciones);
+const valores = async () => {
+  const reglas = await buildHeaders();
   return Object.fromEntries(reglas[0].headers.map((h) => [h.key, h.value]));
 };
 
@@ -26,15 +26,12 @@ describe('cabeceras compartidas', () => {
     expect((await valores())['x-content-type-options']).toBe('nosniff');
   });
 
-  it('CERRADO POR DEFECTO: sin decir nada, no se indexa', async () => {
-    // Al revés de lo intuitivo, y a propósito: olvidar la variable deja un
-    // entorno sin indexar (inocuo) en vez de dejar staging compitiendo con
-    // producción en Google (silencioso y caro).
-    expect((await valores())['x-robots-tag']).toBe('noindex, nofollow');
-  });
-
-  it('sólo se indexa cuando el entorno lo habilita explícitamente', async () => {
-    expect(await valores({ noindex: false })).not.toHaveProperty('x-robots-tag');
+  it('NO decide la indexacion: eso vive en robots.ts, en tiempo de ejecucion', async () => {
+    // Estuvo aca y estuvo mal: la cabecera se hornea al compilar, asi que
+    // cambiar la variable no tenia efecto hasta el proximo build y mientras
+    // tanto robots.txt decia lo contrario. Una sola fuente, y que se lea en
+    // cada visita.
+    expect(await valores()).not.toHaveProperty('x-robots-tag');
   });
 
   it('cubre todas las rutas, no sólo la home', async () => {

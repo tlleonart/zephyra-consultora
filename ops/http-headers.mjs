@@ -13,25 +13,21 @@
  * embebido, incluido el del propio sitio: el curso dejaría de verse. `SAMEORIGIN`
  * permite ese caso y sigue bloqueando el clickjacking desde afuera.
  *
- * ─── indexación: CERRADA POR DEFECTO ────────────────────────────────────────
- * La variable habilita la indexación (`ZEPHYRA_INDEXABLE=true`), no la
- * prohíbe. Es al revés de lo intuitivo y es a propósito: si se prohibiera con
- * una variable, olvidarla en un entorno de prueba lo deja indexable —y el
- * olvido no avisa, se descubre buscando en Google—. Al revés, el olvido deja un
- * entorno sin indexar, que es molesto pero inocuo y lo detecta el chequeo de
- * `ops/verificar-produccion.mjs` el mismo día del pase.
+ * ─── LA INDEXACIÓN NO ESTÁ ACÁ, Y ES A PROPÓSITO ──────────────────────────
+ * Estuvo, y estuvo mal: la cabecera se hornea CUANDO SE COMPILA, así que
+ * cambiar la variable de entorno no tenía efecto hasta el próximo build, y
+ * mientras tanto `robots.txt` —que sí se calcula en cada visita— decía lo
+ * contrario. Dos fuentes que se contradicen y nadie se entera.
  *
- * O sea: hoy, sin tocar nada, los entornos de prueba dejan de indexarse. El día
- * que exista producción, ESA variable se pone ahí y sólo ahí.
+ * La indexación se decide en UN solo lugar y en tiempo de ejecución:
+ * `src/app/robots.ts` de cada app. Acá viven sólo cabeceras que no dependen
+ * del entorno.
  */
 
 /** @typedef {{ key: string, value: string }} Cabecera */
 
-/**
- * @param {{ noindex?: boolean }} opciones
- * @returns {Promise<Array<{ source: string, headers: Cabecera[] }>>}
- */
-export async function buildHeaders({ noindex = true } = {}) {
+/** @returns {Promise<Array<{ source: string, headers: Cabecera[] }>>} */
+export async function buildHeaders() {
   /** @type {Cabecera[]} */
   const cabeceras = [
     // El navegador respeta el Content-Type declarado en vez de adivinarlo.
@@ -40,15 +36,5 @@ export async function buildHeaders({ noindex = true } = {}) {
     { key: 'x-frame-options', value: 'SAMEORIGIN' },
   ];
 
-  if (noindex) {
-    cabeceras.push({ key: 'x-robots-tag', value: 'noindex, nofollow' });
-  }
-
   return [{ source: '/:path*', headers: cabeceras }];
 }
-
-/**
- * Lee la decisión del entorno. Sólo produce `false` —es decir, "indexame"—
- * cuando la variable está puesta explícitamente. Ver el docblock.
- */
-export const noindexDesdeEntorno = () => process.env.ZEPHYRA_INDEXABLE !== 'true';

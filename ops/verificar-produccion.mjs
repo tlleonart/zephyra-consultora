@@ -96,14 +96,20 @@ const main = async () => {
   ok('el índice principal enlaza a ACADEMIA', wwwHome.cuerpo.includes(ACADEMIA), ACADEMIA);
 
   // 5 · Indexación
+  // La indexacion se decide en robots.ts (tiempo de ejecucion). La cabecera
+  // x-robots-tag se saco a proposito: se horneaba al compilar y contradecia al
+  // robots.txt hasta el siguiente build.
   const robots = await traer(ACADEMIA + '/robots.txt');
-  const noindex = /noindex/i.test(home.headers.get('x-robots-tag') || '') ||
+  const noindex = /Disallow:\s*\//.test(robots.cuerpo) ||
     /<meta[^>]+noindex/i.test(home.cuerpo);
   if (ES_STAGING) {
-    ok('staging NO se indexa', noindex || /Disallow:\s*\//.test(robots.cuerpo),
+    ok('staging NO se indexa', noindex,
       'sin esto, staging compite con producción en Google');
   } else {
-    ok('producción SÍ se indexa', !noindex, noindex ? 'quedó el noindex de staging puesto' : '');
+    ok('producción SÍ se indexa', !noindex,
+      noindex
+        ? 'robots.txt dice Disallow: falta ZEPHYRA_INDEXABLE=true en este proyecto'
+        : 'robots.txt permite el rastreo');
   }
 
   // 6 · HTTPS y cabeceras
