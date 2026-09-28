@@ -293,7 +293,26 @@ export class MercadoPagoAdapter implements PaymentProvider {
       sandbox_init_point?: string;
     };
 
-    const redirectUrl = preference.init_point ?? preference.sandbox_init_point;
+    // A QUE URL SE MANDA AL COMPRADOR, y por que no es siempre `init_point`.
+    //
+    // MercadoPago devuelve DOS: `init_point` (la real) y `sandbox_init_point`
+    // (la de prueba). Una preferencia creada con credenciales de PRUEBA sólo se
+    // puede pagar en la de prueba: abrir la real con una preferencia de prueba
+    // devuelve **403** y una pantalla de "Hubo un error accediendo a esta
+    // página". Eso es exactamente lo que pasaba en staging — con la orden ya
+    // creada de nuestro lado, o sea que el comprador quedaba con una orden
+    // pendiente y sin manera de pagarla.
+    //
+    // La decision se toma por el TIPO DE CREDENCIAL y no por una variable
+    // nueva: los tokens de prueba de MercadoPago empiezan con `TEST-` y los
+    // productivos con `APP_USR-`. Asi, el dia que se carguen las credenciales
+    // reales en produccion esto se corrige solo, sin que nadie tenga que
+    // acordarse de cambiar un flag — que es justo la clase de paso olvidable
+    // que rompe el camino del dinero.
+    const esCredencialDePrueba = this.accessToken.startsWith("TEST-");
+    const redirectUrl = esCredencialDePrueba
+      ? (preference.sandbox_init_point ?? preference.init_point)
+      : (preference.init_point ?? preference.sandbox_init_point);
     if (preference.id === undefined || preference.id === null || !redirectUrl) {
       throw new Error(
         "MercadoPago createCheckoutSession: preference response missing id/init_point"

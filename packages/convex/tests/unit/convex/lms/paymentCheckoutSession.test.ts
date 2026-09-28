@@ -57,6 +57,48 @@ function mockFetchOnce(response: {
   return fetchMock;
 }
 
+describe("createCheckoutSession — a que URL de pago se manda al comprador", () => {
+  /**
+   * El defecto que rompio el pago en staging (2026-09-25).
+   *
+   * MercadoPago devuelve dos URLs y el adaptador elegia SIEMPRE la real. Una
+   * preferencia creada con credenciales de prueba solo se puede pagar en la de
+   * prueba: la real devuelve 403. Y la orden ya estaba creada de nuestro lado,
+   * asi que el comprador quedaba con una orden pendiente y sin como pagarla.
+   *
+   * Se decide por el tipo de credencial (`TEST-` vs `APP_USR-`) para que el dia
+   * que entren las credenciales reales se corrija solo.
+   */
+  const preferencia = {
+    id: "pref-123",
+    init_point: "https://mp.com/checkout/pref-123",
+    sandbox_init_point: "https://sandbox.mp.com/checkout/pref-123",
+  };
+
+  it("con credenciales de PRUEBA manda a la URL de prueba", async () => {
+    process.env.MP_ACCESS_TOKEN = "TEST-1234567890";
+    mockFetchOnce({ ok: true, json: preferencia });
+    const adapter = new MercadoPagoAdapter();
+    const result = await adapter.createCheckoutSession(ORDER);
+    expect(result.redirectUrl).toBe("https://sandbox.mp.com/checkout/pref-123");
+  });
+
+  it("con credenciales PRODUCTIVAS manda a la URL real", async () => {
+    process.env.MP_ACCESS_TOKEN = "APP_USR-1234567890";
+    mockFetchOnce({ ok: true, json: preferencia });
+    const adapter = new MercadoPagoAdapter();
+    const result = await adapter.createCheckoutSession(ORDER);
+    expect(result.redirectUrl).toBe("https://mp.com/checkout/pref-123");
+  });
+
+  it("si MercadoPago no devuelve la de prueba, cae a la real en vez de romper", async () => {
+    process.env.MP_ACCESS_TOKEN = "TEST-1234567890";
+    mockFetchOnce({ ok: true, json: { id: "pref-9", init_point: "https://mp.com/x" } });
+    const adapter = new MercadoPagoAdapter();
+    expect((await adapter.createCheckoutSession(ORDER)).redirectUrl).toBe("https://mp.com/x");
+  });
+});
+
 describe("createCheckoutSession — happy path", () => {
   it("POSTs a USD preference and returns id + init_point", async () => {
     const fetchMock = mockFetchOnce({
