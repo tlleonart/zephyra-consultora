@@ -10,6 +10,9 @@ export default function ContactoPage() {
     company: "",
     message: "",
   });
+  // Honeypot: people never see or reach this field; bots that fill every
+  // input do, and the API drops their message.
+  const [website, setWebsite] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -36,6 +39,7 @@ export default function ContactoPage() {
           content: formState.company
             ? `[${formState.company}]\n\n${formState.message}`
             : formState.message,
+          website,
         }),
       });
 
@@ -168,6 +172,27 @@ export default function ContactoPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className={styles.form}>
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: "-10000px",
+                      width: "1px",
+                      height: "1px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <label htmlFor="website">No completar este campo</label>
+                    <input
+                      type="text"
+                      id="website"
+                      name="website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                    />
+                  </div>
                   <div className={styles.formGroup}>
                     <label htmlFor="name" className={styles.label}>
                       Nombre *
@@ -179,6 +204,7 @@ export default function ContactoPage() {
                       value={formState.name}
                       onChange={handleChange}
                       required
+                      maxLength={100}
                       className={styles.input}
                       placeholder="Tu nombre"
                     />
@@ -211,6 +237,7 @@ export default function ContactoPage() {
                       value={formState.company}
                       onChange={handleChange}
                       className={styles.input}
+                      maxLength={150}
                       placeholder="Nombre de tu organización"
                     />
                   </div>
@@ -225,6 +252,7 @@ export default function ContactoPage() {
                       value={formState.message}
                       onChange={handleChange}
                       required
+                      maxLength={4800}
                       rows={5}
                       className={styles.textarea}
                       placeholder="¿En qué podemos ayudarte?"
