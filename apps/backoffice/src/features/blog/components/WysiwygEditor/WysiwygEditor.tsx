@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
@@ -26,6 +27,8 @@ export const WysiwygEditor = ({ content, onChange }: WysiwygEditorProps) => {
           levels: [2, 3, 4],
         },
       }),
+      // Underline brings its own Mod-u shortcut (Ctrl+U / Cmd+U) and renders <u>.
+      Underline,
       Image.configure({
         HTMLAttributes: {
           class: 'editor-image',
@@ -130,6 +133,14 @@ export const WysiwygEditor = ({ content, onChange }: WysiwygEditorProps) => {
             title="Cursiva"
           >
             <em>I</em>
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            className={`${styles.toolbarButton} ${editor.isActive('underline') ? styles.active : ''}`}
+            title="Subrayado (Ctrl+U)"
+          >
+            <u>U</u>
           </button>
           <button
             type="button"
