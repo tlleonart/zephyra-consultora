@@ -33,7 +33,11 @@ import {
 import { hashOpaqueToken } from "../../../../convex/model/passwords";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const inviteHandler = (requestSeatInvite as any)._handler;
+const rawInviteHandler = (requestSeatInvite as any)._handler;
+// Every existing invite case runs as the server action does: with the secret.
+const TEST_SERVER_SECRET = process.env.SERVER_ACTION_SECRET as string;
+const inviteHandler = (ctx: unknown, args: Record<string, unknown>) =>
+  rawInviteHandler(ctx, { serverSecret: TEST_SERVER_SECRET, ...args });
 const claimHandler = (claimSeat as any)._handler;
 const releaseHandler = (releaseSeat as any)._handler;
 const rosterHandler = (getOrgRoster as any)._handler;
@@ -159,6 +163,33 @@ beforeEach(() => vi.clearAllMocks());
 // C1 — requestSeatInvite
 // ============================================================================
 describe("requestSeatInvite — org-owner-gated magic-link issue", () => {
+  it("REJECTS a call without serverSecret and mints nothing", async () => {
+    const { db, tables } = makeStore(baseSeed());
+    await expect(
+      rawInviteHandler(db_ctx(db), {
+        callerCustomerId: "owner-1",
+        organizationId: "org-1",
+        seatPackId: "pack-1",
+        employeeEmail: "e@acme.com",
+      })
+    ).rejects.toThrow(/no autorizado/);
+    expect(tables.lmsMagicLinkTokens).toHaveLength(0);
+  });
+
+  it("REJECTS a call with a wrong serverSecret and mints nothing", async () => {
+    const { db, tables } = makeStore(baseSeed());
+    await expect(
+      inviteHandler(db_ctx(db), {
+        callerCustomerId: "owner-1",
+        organizationId: "org-1",
+        seatPackId: "pack-1",
+        employeeEmail: "e@acme.com",
+        serverSecret: "wrong-secret",
+      })
+    ).rejects.toThrow(/no autorizado/);
+    expect(tables.lmsMagicLinkTokens).toHaveLength(0);
+  });
+
   it("issues a token + claimRequestId for an owner inviting into a pack with capacity", async () => {
     const { db, tables } = makeStore(baseSeed());
     const res = await inviteHandler(db_ctx(db), {

@@ -32,7 +32,7 @@ import { AuthError } from "../../../../convex/model/auth";
 import { hashOpaqueToken } from "../../../../convex/model/passwords";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const requestHandler = (requestMagicLink as any)._handler as (
+const rawRequestHandler = (requestMagicLink as any)._handler as (
   ctx: unknown,
   args: unknown
 ) => Promise<{
@@ -40,6 +40,12 @@ const requestHandler = (requestMagicLink as any)._handler as (
   expiresAt: number | null;
   alreadyActivated: boolean;
 }>;
+
+// Seeded in tests/setup.ts. The existing cases call the handler the way the
+// server action does, with the secret; the gate cases use rawRequestHandler.
+const TEST_SERVER_SECRET = process.env.SERVER_ACTION_SECRET as string;
+const requestHandler = (ctx: unknown, args: Record<string, unknown>) =>
+  rawRequestHandler(ctx, { serverSecret: TEST_SERVER_SECRET, ...args });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const consumeHandler = (consumeMagicLink as any)._handler as (
@@ -329,6 +335,169 @@ describe("requestMagicLink", () => {
         purpose: "learner_recovery",
       })
     ).rejects.toBeInstanceOf(AuthError);
+  });
+});
+
+// ============================================================================
+// requestMagicLink — server secret gate (CA-1) and per-email limit (CA-4)
+// ============================================================================
+
+describe("requestMagicLink — server secret", () => {
+  it("rejects a call without serverSecret and mints nothing", async () => {
+    const { ctx, tokens } = buildCtx({});
+    await expect(
+      rawRequestHandler(ctx, {
+        email: "learner@example.com",
+        purpose: "learner_activation",
+      })
+    ).rejects.toThrow(/no autorizado/);
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("rejects a wrong serverSecret with the same generic error", async () => {
+    const { ctx, tokens } = buildCtx({});
+    await expect(
+      requestHandler(ctx, {
+        email: "learner@example.com",
+        purpose: "learner_activation",
+        serverSecret: "not-the-secret",
+      })
+    ).rejects.toThrow(/^no autorizado$/);
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("rejects even the right value when SERVER_ACTION_SECRET is unset in Convex", async () => {
+    const saved = process.env.SERVER_ACTION_SECRET;
+    delete process.env.SERVER_ACTION_SECRET;
+    try {
+      const { ctx, tokens } = buildCtx({});
+      await expect(
+        requestHandler(ctx, {
+          email: "learner@example.com",
+          purpose: "learner_activation",
+        })
+      ).rejects.toThrow(/^no autorizado$/);
+      expect(tokens).toHaveLength(0);
+    } finally {
+      process.env.SERVER_ACTION_SECRET = saved;
+    }
+  });
+
+  it("with the right secret the minted link is consumable (CA-2)", async () => {
+    const { ctx } = buildCtx({});
+    const minted = await requestHandler(ctx, {
+      email: "flow@example.com",
+      purpose: "learner_activation",
+    });
+    const consumed = await consumeHandler(ctx, {
+      token: minted.rawToken,
+      purpose: "learner_activation",
+    });
+    expect(consumed.customer.email).toBe("flow@example.com");
+  });
+});
+
+describe("requestMagicLink — 3 per email per hour", () => {
+  const signinCustomer: MockCustomer = {
+    _id: "cust-rl",
+    email: "rl@example.com",
+    type: "individual",
+    createdAt: 1,
+    activatedAt: 2,
+  };
+
+  it("the fourth request in the hour mints nothing and replies like a normal one", async () => {
+    const { ctx, tokens } = buildCtx({ customers: [signinCustomer] });
+    for (let i = 0; i < 3; i++) {
+      const ok = await requestHandler(ctx, {
+        email: "rl@example.com",
+        purpose: "learner_signin",
+      });
+      expect(ok.rawToken).toBeTypeOf("string");
+    }
+    expect(tokens).toHaveLength(3);
+
+    const fourth = await requestHandler(ctx, {
+      email: "RL@example.com",
+      purpose: "learner_signin",
+    });
+    // Same keys and the same alreadyActivated as a minted reply; rawToken null
+    // is what tells the server action not to send mail.
+    expect(fourth).toEqual({
+      rawToken: null,
+      expiresAt: null,
+      alreadyActivated: false,
+    });
+    expect(tokens).toHaveLength(3);
+  });
+
+  it("counts every learner purpose together", async () => {
+    const now = Date.now();
+    const recent = (id: string, purpose: MockToken["purpose"]): MockToken => ({
+      _id: id,
+      email: "rl@example.com",
+      tokenHash: id,
+      purpose,
+      expiresAt: now + 60_000,
+      createdAt: now - 10 * 60 * 1000,
+    });
+    const { ctx, tokens } = buildCtx({
+      customers: [signinCustomer],
+      tokens: [
+        recent("t1", "learner_signin"),
+        recent("t2", "learner_recovery"),
+        recent("t3", "learner_activation"),
+      ],
+    });
+    const res = await requestHandler(ctx, {
+      email: "rl@example.com",
+      purpose: "learner_recovery",
+    });
+    expect(res.rawToken).toBeNull();
+    expect(tokens).toHaveLength(3);
+  });
+
+  it("tokens older than one hour do not count", async () => {
+    const now = Date.now();
+    const old = (id: string): MockToken => ({
+      _id: id,
+      email: "rl@example.com",
+      tokenHash: id,
+      purpose: "learner_signin",
+      expiresAt: now - 1,
+      createdAt: now - 61 * 60 * 1000,
+    });
+    const { ctx, tokens } = buildCtx({
+      customers: [signinCustomer],
+      tokens: [old("o1"), old("o2"), old("o3")],
+    });
+    const res = await requestHandler(ctx, {
+      email: "rl@example.com",
+      purpose: "learner_signin",
+    });
+    expect(res.rawToken).toBeTypeOf("string");
+    expect(tokens).toHaveLength(4);
+  });
+
+  it("seat invites minted for the address do not count against the learner", async () => {
+    const now = Date.now();
+    const invite = (id: string) => ({
+      _id: id,
+      email: "rl@example.com",
+      tokenHash: id,
+      purpose: "seat_invite" as const,
+      expiresAt: now + 60_000,
+      createdAt: now,
+    });
+    const { ctx } = buildCtx({
+      customers: [signinCustomer],
+      tokens: [invite("s1"), invite("s2"), invite("s3")] as unknown as MockToken[],
+    });
+    const res = await requestHandler(ctx, {
+      email: "rl@example.com",
+      purpose: "learner_signin",
+    });
+    expect(res.rawToken).toBeTypeOf("string");
   });
 });
 

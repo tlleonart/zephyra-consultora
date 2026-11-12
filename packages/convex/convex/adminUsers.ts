@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
-import { requireRole, AuthError } from "./model/auth";
+import { requireRole, AuthError, requireServerSecret } from "./model/auth";
 import {
   hashPassword,
   verifyPassword,
@@ -230,9 +230,16 @@ export const remove = mutation({
 // PASSWORD RESET
 // ============================================
 
+// At most this many reset requests per admin per window. Past it no token is
+// minted and the reply is the same one an unknown email gets.
+const RESET_REQUESTS_PER_WINDOW = 3;
+const RESET_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
 export const requestPasswordReset = mutation({
-  args: { email: v.string() },
+  args: { email: v.string(), serverSecret: v.string() },
   handler: async (ctx, args) => {
+    await requireServerSecret(args.serverSecret);
+
     const email = args.email.toLowerCase().trim();
     const user = await ctx.db
       .query("adminUsers")
@@ -244,14 +251,30 @@ export const requestPasswordReset = mutation({
       return { success: true };
     }
 
-    // Delete any existing tokens for this user
+    const now = Date.now();
+    const windowStart = now - RESET_WINDOW_MS;
     const existingTokens = await ctx.db
       .query("passwordResetTokens")
       .withIndex("by_user", (q) => q.eq("adminUserId", user._id))
       .collect();
+    const recentTokens = existingTokens.filter(
+      (token) => token._creationTime >= windowStart
+    );
 
+    // Rate limit: same reply as an unknown email, nothing minted, no mail.
+    if (recentTokens.length >= RESET_REQUESTS_PER_WINDOW) {
+      return { success: true };
+    }
+
+    // Rows older than the window are dropped (they already expired). Recent
+    // rows are kept so they count toward the limit, but expired right now so
+    // only the newest link works, same as when they were deleted.
     for (const token of existingTokens) {
-      await ctx.db.delete(token._id);
+      if (token._creationTime < windowStart) {
+        await ctx.db.delete(token._id);
+      } else if (token.expiresAt >= now) {
+        await ctx.db.patch(token._id, { expiresAt: now - 1 });
+      }
     }
 
     // HMAC-SHA-256 of the random opaque token (Q6 lock — argon2 is the wrong
@@ -262,14 +285,13 @@ export const requestPasswordReset = mutation({
     await ctx.db.insert("passwordResetTokens", {
       adminUserId: user._id,
       tokenHash,
-      expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
+      expiresAt: now + RESET_WINDOW_MS, // 1 hour
     });
 
-    // Return token and user info for email sending (done via server action)
+    // Only what the email needs (done via server action). No userId.
     return {
       success: true,
       token: rawToken,
-      userId: user._id,
       userName: user.name,
       userEmail: user.email,
     };

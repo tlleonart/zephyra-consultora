@@ -22,3 +22,9 @@
  */
 process.env.MAGIC_LINK_HMAC_KEY ??=
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+// SERVER_ACTION_SECRET gates the public mutations that return a raw token
+// (adminUsers.requestPasswordReset, lms/auth.requestMagicLink,
+// lms/seats.requestSeatInvite). Fixed test literal; the suites that exercise
+// those handlers pass the same value as `serverSecret`.
+process.env.SERVER_ACTION_SECRET ??= "test-server-action-secret";

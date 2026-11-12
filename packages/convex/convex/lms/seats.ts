@@ -51,7 +51,7 @@ import { mutation, query } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "../_generated/dataModel";
-import { AuthError } from "../model/auth";
+import { AuthError, requireServerSecret } from "../model/auth";
 import { hashOpaqueToken } from "../model/passwords";
 import { requireOrgOwner } from "./org";
 
@@ -132,14 +132,19 @@ async function countAvailableSeats(
 // prior link is still live). The guard is SCOPED to (email, seatPackId): an
 // invite to a DIFFERENT pack for the same email — or any B2C token (different
 // purpose) — does NOT match, so a real second-pack invite is never swallowed.
+//
+// Returns the raw token, so only the server action (holder of
+// SERVER_ACTION_SECRET) may call it; checked before anything else.
 export const requestSeatInvite = mutation({
   args: {
     callerCustomerId: v.id("lmsCustomers"),
     organizationId: v.id("lmsOrganizations"),
     seatPackId: v.id("lmsSeatPacks"),
     employeeEmail: v.string(),
+    serverSecret: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireServerSecret(args.serverSecret);
     await requireOrgOwner(ctx, args.callerCustomerId, args.organizationId);
 
     const pack = await ctx.db.get(args.seatPackId);

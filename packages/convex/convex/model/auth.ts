@@ -73,3 +73,42 @@ export const hasRole = (
   }
   return user.role === requiredRole;
 };
+
+// ============================================
+// SERVER-TO-SERVER SECRET
+// ============================================
+
+/**
+ * Generic message for every secret failure (missing env var, missing arg,
+ * wrong value). It never says which one happened.
+ */
+const SERVER_SECRET_ERROR = "no autorizado";
+
+const sha256 = async (value: string): Promise<Uint8Array> =>
+  new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
+  );
+
+/**
+ * Gate for public mutations that return a raw token meant to be mailed by a
+ * Next.js server action. Only a caller holding SERVER_ACTION_SECRET (set in the
+ * Convex deployment and in the server-only env of the apps) gets past it.
+ *
+ * Constant-time: both sides are hashed to 32 bytes first, so the comparison
+ * never short-circuits on length or on the first differing byte. Web Crypto
+ * only, because the callers run in the V8 runtime (no node:crypto there).
+ */
+export const requireServerSecret = async (provided: unknown): Promise<void> => {
+  const expected = process.env.SERVER_ACTION_SECRET;
+  const [a, b] = await Promise.all([
+    sha256(typeof provided === "string" ? provided : ""),
+    sha256(expected ?? ""),
+  ]);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  if (!expected || typeof provided !== "string" || diff !== 0) {
+    throw new AuthError(SERVER_SECRET_ERROR);
+  }
+};

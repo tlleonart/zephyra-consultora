@@ -32,7 +32,7 @@ import {
   hashOpaqueToken,
   verifyPassword,
 } from "../model/passwords";
-import { AuthError } from "../model/auth";
+import { AuthError, requireServerSecret } from "../model/auth";
 
 // ============================================================================
 // Constants
@@ -43,6 +43,10 @@ const SIGNIN_RECOVERY_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const RAW_TOKEN_BYTES = 32;
 const MIN_PASSWORD_LENGTH = 8;
 const NON_ALPHANUM_RE = /[^A-Za-z0-9]/;
+// At most this many learner links (activation + sign-in + recovery) per email
+// per window. Past it no token is minted; see requestMagicLink.
+const LINK_REQUESTS_PER_WINDOW = 3;
+const LINK_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 type LearnerPurpose =
   | "learner_activation"
@@ -113,13 +117,24 @@ interface LearnerSessionPayload {
 // The raw token is RETURNED but NEVER persisted; only the HMAC hash lives in
 // the DB. If the server action crashes after this returns, the token is lost
 // and the learner must re-request — that's the right failure mode.
+//
+// Only callers holding SERVER_ACTION_SECRET get a token back (the server
+// actions); anyone else calling the public Convex URL gets "no autorizado".
+//
+// Rate limit: once an email has LINK_REQUESTS_PER_WINDOW learner tokens created
+// inside the window, the reply is `rawToken: null, alreadyActivated: false`.
+// The server action reads that as "send no mail" and answers the browser with
+// the same success shape as always, so the limit reveals nothing.
 export const requestMagicLink = mutation({
   args: {
     email: v.string(),
     purpose: purposeValidator,
     fromIp: v.optional(v.string()),
+    serverSecret: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireServerSecret(args.serverSecret);
+
     const email = normalizeEmail(args.email);
 
     const customer = await ctx.db
@@ -151,9 +166,23 @@ export const requestMagicLink = mutation({
       return { rawToken: null, expiresAt: null, alreadyActivated: true };
     }
 
+    const now = Date.now();
+    const windowStart = now - LINK_WINDOW_MS;
+    const tokensForEmail = await ctx.db
+      .query("lmsMagicLinkTokens")
+      .withIndex("by_email_purpose", (q) => q.eq("email", email))
+      .collect();
+    // Seat invites are minted by an org owner for this address, not requested
+    // by the learner, so they do not count against her limit.
+    const recentLearnerTokens = tokensForEmail.filter(
+      (row) => row.purpose !== "seat_invite" && row.createdAt >= windowStart
+    );
+    if (recentLearnerTokens.length >= LINK_REQUESTS_PER_WINDOW) {
+      return { rawToken: null, expiresAt: null, alreadyActivated: false };
+    }
+
     const rawToken = generateRawToken();
     const tokenHash = await hashOpaqueToken(rawToken);
-    const now = Date.now();
     const expiresAt = now + ttlForPurpose(args.purpose);
 
     await ctx.db.insert("lmsMagicLinkTokens", {
