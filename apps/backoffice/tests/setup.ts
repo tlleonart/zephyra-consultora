@@ -22,3 +22,8 @@
  * undefined.
  */
 process.env.SESSION_SECRET ??= "test-session-secret-not-for-production-use";
+
+// SERVER_ACTION_SECRET is read (lazily, inside the call) by
+// src/features/auth/actions/password-reset.ts, which asks Convex for a raw
+// reset token. Fixed test literal; the fail-closed case deletes it locally.
+process.env.SERVER_ACTION_SECRET ??= "test-server-action-secret";

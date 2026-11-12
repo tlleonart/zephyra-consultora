@@ -20,8 +20,15 @@ export const requestPasswordReset = async (
   email: string
 ): Promise<RequestResetResult> => {
   try {
+    // Server-only (no NEXT_PUBLIC_): Convex hands the raw token only to a
+    // caller holding it. Unset = fail closed, no call and no mail.
+    const serverSecret = process.env.SERVER_ACTION_SECRET;
+    if (!serverSecret) {
+      throw new Error('SERVER_ACTION_SECRET is not set');
+    }
     const result = await convex.mutation(api.adminUsers.requestPasswordReset, {
       email,
+      serverSecret,
     });
 
     // If we got a token, send the email
