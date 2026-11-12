@@ -25,3 +25,9 @@ process.env.LEARNER_JWT_SECRET ??=
 // therefore mints its "other secret" token from a LOCAL constant instead of
 // from the environment — see the docblock there. Setting SESSION_SECRET here
 // would reintroduce, in tests, exactly the coupling the split removes.
+
+// SERVER_ACTION_SECRET is read (lazily, inside the call) by the server actions
+// that ask Convex for a raw token: request-magic-link, request-org-signup and
+// request-seat-invite. Fixed test literal; suites that test the fail-closed
+// path delete it locally.
+process.env.SERVER_ACTION_SECRET ??= "test-server-action-secret";

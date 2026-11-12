@@ -37,9 +37,18 @@ export const requestMagicLink = async (
   returnTo?: string
 ): Promise<RequestMagicLinkResult> => {
   try {
+    // Server-only (no NEXT_PUBLIC_): Convex hands the raw token only to a
+    // caller holding it. Unset = fail closed, no call and no mail.
+    const serverSecret = process.env.SERVER_ACTION_SECRET;
+    if (!serverSecret) {
+      throw new Error('SERVER_ACTION_SECRET is not set');
+    }
+    // rawToken comes back null when the per-email limit is hit: no mail, and
+    // the reply below is the same as for a sent one.
     const result = await convex.mutation(api.lms.auth.requestMagicLink, {
       email,
       purpose,
+      serverSecret,
     });
 
     if (result.alreadyActivated) {

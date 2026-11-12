@@ -31,9 +31,15 @@ export const requestOrgSignup = async (
   taxId?: string
 ): Promise<RequestOrgSignupResult> => {
   try {
+    // Server-only secret, same as request-magic-link.ts. Unset = fail closed.
+    const serverSecret = process.env.SERVER_ACTION_SECRET;
+    if (!serverSecret) {
+      throw new Error('SERVER_ACTION_SECRET is not set');
+    }
     const result = await convex.mutation(api.lms.auth.requestMagicLink, {
       email,
       purpose: 'learner_activation',
+      serverSecret,
     });
 
     if (result.alreadyActivated) {

@@ -54,6 +54,9 @@ function readEnvLocal(key: string): string | undefined {
 }
 
 const CONVEX_URL = readEnvLocal("NEXT_PUBLIC_CONVEX_URL")!;
+// The token-minting mutations only answer a caller holding the server secret
+// (same value as SERVER_ACTION_SECRET in the Convex deployment under test).
+const SERVER_SECRET = readEnvLocal("SERVER_ACTION_SECRET") ?? "";
 const LEARNER_SECRET = new TextEncoder().encode(
   process.env.LEARNER_JWT_SECRET || "fallback-learner-secret-for-development-only"
 );
@@ -119,6 +122,7 @@ test.describe("B2B seat lifecycle — Sprint 3b Phase E7", () => {
     const link = await convex.mutation(api.lms.auth.requestMagicLink, {
       email: ownerEmail,
       purpose: "learner_activation",
+      serverSecret: SERVER_SECRET,
     });
     const consumed = await convex.mutation(api.lms.auth.consumeMagicLink, {
       token: link.rawToken as string,
@@ -185,6 +189,7 @@ test.describe("B2B seat lifecycle — Sprint 3b Phase E7", () => {
       organizationId: organizationId as never,
       seatPackId: mintRes.seatPackId as never,
       employeeEmail,
+      serverSecret: SERVER_SECRET,
     })) as { rawToken: string | null; claimRequestId: string | null; alreadyPending: boolean };
     expect(invite.rawToken).toBeTruthy();
     expect(invite.claimRequestId).toBeTruthy();

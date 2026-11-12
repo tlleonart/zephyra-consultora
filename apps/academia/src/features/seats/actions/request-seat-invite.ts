@@ -51,6 +51,17 @@ export const requestSeatInvite = async (args: {
     return { success: false, error: 'Ingresá el email del empleado.' };
   }
 
+  // Server-only (no NEXT_PUBLIC_): Convex returns the invite token only to a
+  // caller holding it. Unset = fail closed before calling Convex.
+  const serverSecret = process.env.SERVER_ACTION_SECRET;
+  if (!serverSecret) {
+    console.error('seat-invite error: SERVER_ACTION_SECRET is not set');
+    return {
+      success: false,
+      error: 'No pudimos enviar la invitación. Intentá de nuevo.',
+    };
+  }
+
   let invite: {
     rawToken: string | null;
     claimRequestId: string | null;
@@ -63,6 +74,7 @@ export const requestSeatInvite = async (args: {
       organizationId: args.organizationId,
       seatPackId: args.seatPackId,
       employeeEmail: email,
+      serverSecret,
     });
   } catch (error) {
     // The mutation throws human-readable Spanish errors (pack full, no
