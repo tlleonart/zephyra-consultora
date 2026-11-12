@@ -14,6 +14,8 @@ import {
   scoOrgTitle,
   resolveCourseDescriptionParagraphs,
 } from "@/lib/course-catalog";
+import { resolveCourseDescriptionHtml } from "@/lib/sanitize-description";
+import { CourseDescriptionBody } from "./CourseDescriptionBody";
 import styles from "./CourseDetail.module.css";
 
 // Same rendering strategy as the catalog: SEO + share previews need the
@@ -138,9 +140,9 @@ export default async function CourseDetailPage({
     hasEnrollment = enrollment !== null;
   }
 
-  const escritos = resolveCourseDescriptionParagraphs(course);
-  const parrafos =
-    escritos.length > 0 ? escritos : [fallbackDescription(course)];
+  // The written description keeps its formatting (sanitized server-side);
+  // without one, the SCO-derived stand-in renders as before.
+  const descripcionHtml = resolveCourseDescriptionHtml(course);
   const scoCount = deriveScoCount(course.scoStructure);
   const scoLabel = scoCount === 1 ? "1 módulo" : `${scoCount} módulos`;
 
@@ -190,11 +192,11 @@ export default async function CourseDetailPage({
         <div className={styles.bodyInner}>
           <div className={styles.bodyMain}>
             <h2 className={styles.sectionTitle}>Sobre este curso</h2>
-            <div className={styles.description}>
-              {parrafos.map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-            </div>
+            <CourseDescriptionBody
+              html={descripcionHtml}
+              fallback={fallbackDescription(course)}
+              className={styles.description}
+            />
           </div>
 
           <aside className={styles.purchasePanel} aria-label="Inscripción">
