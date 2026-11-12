@@ -206,13 +206,13 @@
 }
 
 .description a {
-  color: var(--color-primary);
+  color: var(--color-brand-main);
   text-decoration: underline;
 }
 
 .description a:hover,
 .description a:focus-visible {
-  color: var(--color-primary-hover);
+  color: var(--color-brand-dark);
 }
 
 .purchasePanel {
